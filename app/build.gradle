@@ -1,0 +1,24 @@
+plugins { id 'com.android.application' }
+android {
+ namespace 'in.aicon.pocket.test'
+ compileSdk 36
+ defaultConfig {
+  applicationId 'in.aicon.pocket.test'
+  minSdk 26
+  targetSdk 35
+  versionCode 2
+  versionName '0.2.0-preview'
+ }
+ testOptions { unitTests.includeAndroidResources = true; unitTests.all { systemProperty "robolectric.dependency.repo.url", "https://maven-central.storage-download.googleapis.com/maven2"; maxHeapSize = "768m"; forkEvery = 1 } }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies {
+ testImplementation 'junit:junit:4.13.2'
+ testImplementation 'org.robolectric:robolectric:4.17'
+ implementation 'com.google.android.material:material:1.14.0'
+ implementation 'androidx.credentials:credentials:1.6.0'
+ implementation 'androidx.credentials:credentials-play-services-auth:1.6.0'
+ implementation 'com.google.android.libraries.identity.googleid:googleid:1.2.1'
+ implementation 'com.google.android.gms:play-services-auth:22.0.0'
+ implementation 'androidx.work:work-runtime:2.12.0'
+}
