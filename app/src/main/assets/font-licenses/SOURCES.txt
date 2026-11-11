@@ -1,0 +1,9 @@
+https://github.com/google/fonts/blob/main/ofl/comfortaa/Comfortaa[wght].ttf
+https://github.com/google/fonts/blob/main/ofl/comfortaa/OFL.txt
+https://github.com/google/fonts/blob/main/ofl/inter/Inter[opsz,wght].ttf
+https://github.com/google/fonts/blob/main/ofl/inter/OFL.txt
+https://github.com/google/fonts/blob/main/ofl/lora/Lora[wght].ttf
+https://github.com/google/fonts/blob/main/ofl/lora/OFL.txt
+https://github.com/google/fonts/blob/main/ofl/poppins/Poppins-Regular.ttf
+https://github.com/google/fonts/blob/main/ofl/poppins/OFL.txt
+Bundled unmodified under SIL Open Font License 1.1. System fallback covers missing scripts.

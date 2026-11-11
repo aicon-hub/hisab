@@ -1,22 +1,38 @@
-# Hisab V2 preview source
+# Hisab 0.2.1 development candidate
 
-Original Android personal ledger, separate from the AiCoN reader. This source checkpoint is not a release. Read STATUS.md for actual implemented features, test coverage and remaining blockers. The launcher remains local-only. Account UI, foreground sync and background orchestration are compiled behind CloudConfig.ACCOUNT_UI_ENABLED=false. The manifest intentionally has no INTERNET permission. The new account screens and background coordinator have framework/fake tests, not real Google/Drive or OS scheduling verification.
+Original Android personal ledger, separate from the AiCoN reader. Package `in.aicon.pocket.test`, versionCode 3. This is a private work-in-progress candidate, not a ready release. No licence for the Hisab code has been selected; source visibility is not an open-source licence. The explicitly bundled Comfortaa, Inter, Lora and Poppins fonts have their own SIL OFL 1.1 licences in app assets.
+
+Local-only is the default. Optional Google account UI and own-Drive app-data sync are enabled in this candidate, with INTERNET permission. Actual Google sign-in and Drive end-to-end behavior have NOT been verified on a phone or emulator. Do not treat compiled code or simulated tests as a live pass.
 
 ## Build
+Use Java 17, Gradle 8.14.3, AGP 8.13.2 and Android SDK platform 36. Set ANDROID_HOME or an untracked local.properties with sdk.dir, then run `gradle :app:assembleDebug`. Dependencies come from Google Maven and Maven Central. No SDK, signing key, credentials, caches or private build overrides are included.
 
-Use Java 17, Gradle 8.14.3, Android SDK platform 36 and the build tools selected by Android Gradle Plugin 8.13.2. Set ANDROID_HOME or create an untracked local.properties with sdk.dir pointing to your SDK. Then run `gradle :app:assembleDebug` from this directory. The first build downloads dependencies from Google's Maven repository and Maven Central. No SDK, dependency cache, signing key or credentials are included.
+Run `gradle :app:testDebugUnitTest` for Android-framework simulation tests. On limited hosts, run bounded groups of classes rather than one all-class native-graphics run. Root Java *Test.java programs are pure checks; compile with their corresponding pure model classes. These are not phone performance or OS execution tests.
 
-`gradle :app:testDebugUnitTest` runs the Android-framework simulation tests. They do not replace real-device, Google sign-in, Drive, keyboard or launcher QA. The root Java *Test.java programs are independent pure checks in the default Java package; compile them with UTF-8 alongside the relevant pure source classes (Identifiers, Ledger, CategoryHints, SyncModel, AccountScope, LedgerIntegrity SyncEngine and ResetBarrier).
+The registered Android OAuth client is tied to the private preview certificate and this package. Ordinary debug keys are different and cannot reuse that Android registration unchanged. Client IDs are public configuration, not secrets. Never include a client secret or signing key in source.
 
-The registered Android OAuth client is tied to a specific private preview signing certificate and package in.aicon.pocket.test. An ordinary developer debug key is not interchangeable with it. The internal checkpoint APK certificate has been verified against that registration. Rebuilt APKs must still have their actual certificate verified before attempting account tests. No client secret or private signing material belongs in this archive.
+## New candidate features
+- Back closes dialogs first, then returns to Overview, then exits.
+- Visible colour swatches, original Hisab wordmark/header, top-right profile and device-private profile photo.
+- Dynamic light/dark/pure-black appearance; separate dark-only reflective Glass with a blurred floating dock and animated selection pill.
+- Month/year picker, income/expense/net summaries, day-grouped Activity, daily totals and swipe-to-reveal Edit/Delete. Deletion still asks. Net excludes transfers/debts and is not the account balance.
+- Selected-month cumulative expense line and category donut. Charts exclude dates after today and show recorded values, not a forecast. Monthly headline totals include all recorded dates in that month.
+- People ledger with separate receive/pay figures and chronological signed running balance, linked repayments and safe principal limits.
+- Optional selected contact link, saved only on this phone. Contacts permission is requested when choosing a contact, not on launch. WhatsApp/SMS review opens another app; Hisab does not send automatically. Carrier/data charges may apply. Contact and ledger changes invalidate an old message review.
+- Optional local reminders, off by default, 08:30 and 20:30 editable local times, original short tone and app notification mark. Notifications show no amounts/people/accounts. Inexact Android alarms can be delayed. Enable asks notification permission; reboot/time/timezone changes reschedule enabled reminders.
+- Existing encrypted backup and CSV behavior retained. Photos and contact links stay outside ledger backups and Drive.
 
-Do not publish or call this V2 ready. Existing public 0.1.0 is a separate untouched checkpoint.
+## Sync boundaries
+Google ledgers are separate from local-only records. Sign-in alone does not copy the local ledger. An explicit copy flow checks the target. Selected-ledger edits queue a roughly 10-second coalesced job; periodic selected-ledger sync requests a 30-minute cadence when network/battery/Android permit it. Neither is instant or guaranteed delivery. Tokens are memory-only; reconnect can be needed. Account changes, reset markers, stale forms and conflicts are guarded. A real device is still required to validate Google identity, Drive scopes, disconnect/revoke, background execution and recovery.
 
+See STATUS.md and VERIFICATION.md for the current test boundary. No ads, analytics, bank connection, automatic SMS/notification reading, AiCoN data server or paid messaging API. No calendar view in this candidate.
 
-## Current preview appearance and login status
+## Latest profile, reminders and customization changes
+- Always-round top-right profile/photo control and a profile page with optional device-private display name, money-control overview, overdue list and export actions.
+- System default font is first and default. Only four bundled choices: Comfortaa Medium, Inter, Lora and Poppins. Licences are readable under Appearance > Font. Missing scripts fall back to Android. On device appearance follows system light/dark; Liquid Glass stays dark-only.
+- Encrypted backup/restore now carries font, theme, palette, home order, number/date/currency formatting, default entry selections, custom catalog/icon/colour choices, launcher colour and daily reminder times/on-off choice. Notification permission is not granted by restore. CSV is entry data, not a restorable settings backup; PDF is a printable raster statement, not searchable text. Profile photo/name, contact links, local pay-by notes and automatic-message grants remain device-private and are not in Drive or backups.
+- Each unpaid debt can have a recorded pay-by date. It is the user's note, not proof of agreement by the other person. Optional generic local overdue alert is at 08:30 the day AFTER that date, with Android delays possible. Reviewed messages include current amount/direction/date and ask the recipient to confirm or correct the note. A settled/deleted debt clears its device-private plan when the app refreshes.
+- Reviewed WhatsApp/SMS is always the default. WhatsApp is never auto-sent. Experimental automatic SMS is off by default, explicit per payment in the local-only ledger, one SMS segment at most, one attempt only, with no automatic retry after failure/uncertainty. It requires SEND_SMS, which Android marks hard-restricted and dependent on installer allowlisting, a default SMS SIM, notification permission and an unchanged contact/date/direction/balance. Carrier fees may apply. Permission denial leaves it off. Changed SIM/contact/selected ledger, settled/increased balance or missing permission prevents sending. No live SMS has been sent or tested during development. Automatic SMS from Google ledgers is deliberately unavailable until cloud reset/concurrency/device checks are complete.
+- No person-to-person Hisab live sharing or automatic acceptance/paid acknowledgement. Composer text works without a server. Own-Drive sync is only the selected user's private ledger, not another person's app inbox.
 
-Dynamic colour has a light/dark choice and a pure-black toggle for OLED/AMOLED. Turn the toggle off for a softer dark surface on LCD. Display type is not detected automatically. Liquid Glass is a separate dark-only appearance with true-black ground and original static glass-edge rendering. Accent colours, launcher colours, categories, accounts, people, budgets, goals and entry defaults remain editable. Rendering is a preview, not a claim of perfect glass or measured power savings.
-
-The Google login/account screen and own-Drive integration are implemented in source but **disabled in this preview**. Actual Android Google sign-in, Drive sync and background execution have not been verified. The manifest has no INTERNET permission. No working sign-in is promised by this upload.
-
-See STATUS.md for newer focused checks and unresolved work. VERIFICATION.md records the earlier 78-test checkpoint, not a complete final-theme regression run. No open-source licence has been selected; source publication alone does not grant a licence.
+This candidate is intended for an explicitly untested prerelease. Device installation, native Google sign-in/Drive, OS background delivery, launcher refresh, Contacts/photo pickers, messaging handoff and actual SMS carrier behavior remain unverified. Keep important existing backups before installing.
