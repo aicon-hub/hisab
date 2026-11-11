@@ -1,0 +1,16 @@
+package in.aicon.pocket;
+import android.database.Cursor;import android.database.sqlite.SQLiteDatabase;import java.util.*;
+/** Whole-ledger invariants without serializing a backup for every local edit. */
+public final class LedgerLocalValidator {
+ private LedgerLocalValidator(){}
+ public static void validate(SQLiteDatabase db,CatalogStore catalog,SettingsStore settings)throws Exception{
+  if(!db.inTransaction())throw new IllegalStateException("Validation must share the edit transaction");
+  Set<String> accounts=new HashSet<>(),categories=new HashSet<>(),people=new HashSet<>(),ids=new HashSet<>();ids.add(LedgerWire.PREFERENCES_ID);
+  for(String type:CatalogStore.TYPES)for(CatalogStore.Item item:catalog.list(type)){Identifiers.uuid(item.id);CatalogStore.validate(item.type,item.name,item.icon,item.color);if(!ids.add(item.id))throw new IllegalArgumentException("Duplicate record identity");(type.equals("account")?accounts:type.equals("category")?categories:people).add(item.name);}if(accounts.isEmpty()||categories.isEmpty())throw new IllegalArgumentException("Keep accounts and categories");SettingsStore.validateExport(settings.export());Map<String,String> entityTypes=new HashMap<>();for(String type:CatalogStore.TYPES)for(CatalogStore.Item item:catalog.list(type))entityTypes.put(item.id,type);SettingsStore.validateReferences(settings.export(),entityTypes);
+  List<LedgerIntegrity.Entry> transactions=new ArrayList<>();try(Cursor c=db.rawQuery("SELECT uuid,kind,amount,day,account,dest,category,note,person,loan FROM tx",null)){while(c.moveToNext()){
+   String id=c.getString(0),kind=c.getString(1),day=c.getString(3),category=c.getString(6),person=c.getString(8);if(!ids.add(id))throw new IllegalArgumentException("Duplicate record identity");if(day==null||!day.matches("20[0-9]{2}-[0-9]{2}-[0-9]{2}"))throw new IllegalArgumentException("Use a date from 2000 to 2099");if(c.getString(7)==null||c.getString(7).length()>160)throw new IllegalArgumentException("Note is too long");boolean debt=kind.equals("lent")||kind.equals("borrowed")||kind.startsWith("repay_");if(debt?(!category.equals("Debt")||!people.contains(person)):kind.equals("transfer")?!category.equals("Transfer"):!categories.contains(category))throw new IllegalArgumentException("Invalid category or person");transactions.add(new LedgerIntegrity.Entry(id,kind,c.getLong(2),day,c.getString(4),c.getString(5),person,c.getString(9)));if(transactions.size()>20000)throw new IllegalArgumentException("Too many entries");
+  }}LedgerIntegrity.validate(transactions,accounts);
+  int count=0;try(Cursor c=db.rawQuery("SELECT uuid,category,amount FROM budgets",null)){while(c.moveToNext()){Identifiers.uuid(c.getString(0));if(!ids.add(c.getString(0))||!categories.contains(c.getString(1))||c.getLong(2)<=0||c.getLong(2)>999999999999L||++count>100)throw new IllegalArgumentException("Invalid budget");}}
+  count=0;try(Cursor c=db.rawQuery("SELECT uuid,name,target,saved FROM goals",null)){while(c.moveToNext()){Identifiers.uuid(c.getString(0));if(!ids.add(c.getString(0))||c.getString(1)==null||c.getString(1).trim().isEmpty()||c.getString(1).length()>80||c.getLong(2)<=0||c.getLong(2)>999999999999L||c.getLong(3)<0||c.getLong(3)>999999999999L||++count>1000)throw new IllegalArgumentException("Invalid goal");}}
+ }
+}

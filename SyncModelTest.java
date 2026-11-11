@@ -1,0 +1,6 @@
+import in.aicon.pocket.*;import java.util.*;
+public class SyncModelTest {static int n;static void ok(boolean b){n++;if(!b)throw new AssertionError(n);}public static void main(String[] args)throws Exception{
+String id=UUID.randomUUID().toString();SyncModel.Record base=new SyncModel.Record(id,"original",false,new HashMap<>()),a=base.edit("A","changed",false),b=base.edit("B","other",false);ok(SyncModel.merge(base,a)==a);ok(SyncModel.merge(a,base)==a);try{SyncModel.merge(a,b);throw new AssertionError();}catch(SyncModel.Conflict c){SyncModel.Record resolved=SyncModel.resolve(c,"A","reviewed",false);ok(SyncModel.compare(resolved.clock,a.clock)==1);ok(SyncModel.compare(resolved.clock,b.clock)==1);}
+SyncModel.Record deletion=base.edit("B",null,true),merged=SyncModel.merge(a,deletion);ok(merged.deleted);ok(merged.payload==null);ok(SyncModel.merge(a,merged).deleted);ok(SyncModel.merge(merged,a).deleted);
+for(int i=1;i<=10000;i++){long v=i;ok(Ledger.effect("lent",v,"Cash","","Cash")==-v);ok(Ledger.effect("borrowed",v,"Cash","","Cash")==v);ok(Ledger.effect("repay_in",v,"Cash","","Cash")==v);ok(Ledger.effect("repay_out",v,"Cash","","Cash")==-v);ok(Ledger.effect("lent",v,"Cash","","Bank")==0);}
+System.out.println(n+" sync/debt effect assertions passed");}}
