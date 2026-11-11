@@ -1,0 +1,5 @@
+package in.aicon.pocket;
+import android.app.*;import android.content.*;
+public final class DueReminderReceiver extends BroadcastReceiver {
+ @Override public void onReceive(Context c,Intent i){if(!DuePlans.ACTION.equals(i.getAction())||!ReminderSchedule.allowed(c))return;if(DuePlans.consumeDue(c,System.currentTimeMillis())){ReminderSchedule.channel(c);Intent open=new Intent(c,QuickActivity.class).putExtra("reviewDue",true).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);PendingIntent tap=PendingIntent.getActivity(c,793,open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);Notification n=new Notification.Builder(c,ReminderSchedule.CHANNEL).setSmallIcon(in.aicon.pocket.test.R.drawable.notification_hisab).setContentTitle("Hisab - check promised payments").setContentText("A saved pay-by date has arrived. Review your people ledger.").setContentIntent(tap).setAutoCancel(true).setVisibility(Notification.VISIBILITY_PRIVATE).setCategory(Notification.CATEGORY_REMINDER).build();try{c.getSystemService(NotificationManager.class).notify(793,n);}catch(SecurityException ignored){}}DuePlans.schedule(c);}
+}

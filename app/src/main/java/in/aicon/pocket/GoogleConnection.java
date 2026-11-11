@@ -13,7 +13,7 @@ import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.*;
 
-/** Unwired Google connection flow. The Credential Manager result selects an account;
+/** Optional Google connection flow. The Credential Manager result selects an account;
  * the ID token is never parsed/trusted or sent to an AiCoN backend. The access token
  * is verified against Google's HTTPS userinfo response before any ledger is selected.
  * All public methods must be called on the main thread. A stopped Activity must close.
