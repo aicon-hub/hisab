@@ -1,0 +1,1 @@
+UNTESTED preview: dynamic light/dark, pure-black option and dark Glass preview. Google/Drive existed in source but were DISABLED in this APK; no INTERNET permission. Simulation/build checks are not phone QA.

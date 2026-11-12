@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-label="Hisab. Your money, with a little more clarity.">
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#07130f"/><stop offset="1" stop-color="#17392c"/></linearGradient></defs>
+<rect width="1280" height="360" rx="28" fill="url(#bg)"/><circle cx="1160" cy="30" r="300" fill="#b3d7be" opacity=".035"/>
+<rect x="78" y="66" width="226" height="226" rx="62" fill="#bfdcc9"/>
+<g transform="translate(67,49) scale(.245)"><path fill="#17382a" d="M282 278L464 320V478L560 456V298L742 256V710L560 752V578L464 600V774L282 732Z"/><path fill="none" stroke="#bfdcc9" stroke-width="17" stroke-linecap="round" d="M342 407L404 421 M622 397L684 383 M342 656L404 670 M622 661L684 647"/></g>
+<g transform="translate(361,72) scale(3.7)" fill="none" stroke="#eff5ee" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9V30 M3 22C3 12 17 12 17 22V30 M27 17V30 M48 17C36 12 31 22 42 24C54 25 46 35 35 29 M69 30V17 M69 22C68 11 53 14 53 24C53 34 67 34 69 24 M79 8V30 M79 22C80 12 95 12 95 23C95 34 80 34 79 24"/><circle cx="27" cy="9" r="2.1" fill="#eff5ee" stroke="none"/></g>
+<text x="373" y="248" fill="#d6e4d8" font-family="sans-serif" font-size="27">Your money, with a little more clarity.</text>
+<text x="374" y="285" fill="#9bb7a4" font-family="sans-serif" font-size="17" letter-spacing="2">LOCAL FIRST · MANUAL BY DESIGN · ANDROID</text></svg>

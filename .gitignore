@@ -1,6 +1,9 @@
+# Local build output and private configuration
 .gradle/
 build/
 app/build/
 local.properties
 *.keystore
 *.jks
+*.log
+.DS_Store

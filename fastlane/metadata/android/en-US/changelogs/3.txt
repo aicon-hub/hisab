@@ -1,0 +1,1 @@
+UNTESTED preview: original header/profile, bundled fonts, richer reports, people ledgers, pay-by notes, local reminders, PDF and customisation-aware backups. Optional Google/Drive enabled but phone-unverified. Experimental automatic SMS introduced here was later REMOVED in 0.2.2.
