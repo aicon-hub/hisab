@@ -1,11 +1,13 @@
-# 0.2.2-dev candidate status
+# 0.2.3-dev candidate status
 
-11 November 2026. Development preview, not production-ready. Local build/signature and bounded framework regression pass; real-device installation, Google/Drive round trips, permission pickers, background/notification/reboot delivery, upgrade and performance remain unverified.
+12 November 2026. Development prerelease, not production-ready. Local build/signature and 128 distinct framework methods across 18 classes pass in bounded groups, including all 42 UI methods. These are simulations, not a phone certification. Exact methods and pending checks are in VERIFICATION.md.
 
-Automatic SMS is completely removed, including SEND_SMS, sender, callback and UI. Legacy automatic grant metadata is scrubbed from on-device due plans. Reviewed SMS and WhatsApp composers remain, with final Send in the messaging app. Local pay-by and daily notifications remain. The final packaged manifest has no SMS, accessibility or notification-listener permission/service. Permission minimization does not guarantee that Play Protect clears a classification.
+Original full-app UI refresh: compact Home, larger centred icons, level liquid-glass lighting, theme-aware blurred dock with add action, native light and revised true-dark surfaces, amount-first progressive entry, grouped Profile/settings, weekly/month/year charts and a direct reviewed WhatsApp action from a person's ledger. All ledger, repayment, export, customization and backup boundaries are retained. No copied reference assets or source. No claim of perfect UX or superiority on performance.
 
-Google remains External Testing; scopes are drive.appdata, openid, userinfo.email and userinfo.profile only. Public homepage/privacy pages in docs/ are informational and do not change OAuth publication or submit verification. No billing, card, trial or server is added.
+Automatic SMS remains completely removed, including SEND_SMS, sender, callback and UI. Reviewed SMS and WhatsApp remain user-sent from the messaging app. Optional local notifications and contacts/photo pickers remain. Permission minimization does not guarantee Play Protect acceptance.
 
-Privacy boundaries: profile photo/name, chosen contact links and pay-by notes stay on the phone, outside Drive/backup. Encrypted backup includes supported customization and records. CSV/PDF are readable, not restore backups. PDF is printable raster, not searchable text. Calendar and person-to-person shared ledgers are not implemented.
+Google remains External Testing, with appdata/openid/email/profile scopes only. No Production switch, brand verification, billing, trial, card, server or public OAuth changes. Informational homepage/privacy pages remain independent of OAuth status.
 
-125 distinct framework methods across 18 classes pass in bounded groups, including all 39 UI methods. A broad regression run hit the host time limit and is not counted. Exact passing methods are in VERIFICATION.md. Visual review covers the no-automatic-SMS menu and the mobile homepage/privacy layout. Previous UI/PDF inspection still applies to unchanged features. All reports remain simulation evidence, not phone certification.
+Profile name/photo, chosen contact links and pay-by notes remain device-private, outside Drive/backup. Encrypted backup carries supported customization and records. CSV/PDF are readable exports; PDF is raster, not searchable text. No person-to-person server sharing, in-app messaging or automatic acknowledgement.
+
+Phone installation/Play Protect, sign-in plus own-Drive round trip, account/revoke/reset recovery, Contacts/photo pickers, upgrade/data retention, notifications/reboot/background, messaging handoff, keyboard/insets and performance remain unverified. Use sample data and a separate backup. Keep the same package/certificate to test an in-place update; do not uninstall first.

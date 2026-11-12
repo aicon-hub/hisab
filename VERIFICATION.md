@@ -1,29 +1,33 @@
-# 0.2.2-dev verification
+# 0.2.3-dev verification
 
-125 distinct passing framework methods across 18 classes. All 39 LocalUiTest methods passed in seven bounded groups. No failed or timed-out broad run is counted. Simulated Android checks are not a real-device pass.
+128 distinct passing framework methods across 18 classes, including all 42 LocalUiTest methods. Bounded class/UI groups passed. A final focused rerun passed debt save/repayment/cascade delete and stale/explicit messaging protections. This is Android-framework simulation, not phone testing or a performance comparison with another app.
 
-| Class | Methods | Failures |
-|---|---:|---:|
-| AccountDirectoryTest | 3 | 0 |
-| AccountUiTest | 9 | 0 |
-| BackgroundSyncTest | 7 | 0 |
-| BackupFlowTest | 3 | 0 |
-| BarrierRemoteTest | 5 | 0 |
-| DuePlansTest | 3 | 0 |
-| LedgerControllerTest | 7 | 0 |
-| LedgerDeviceSyncTest | 2 | 0 |
-| LedgerSessionTest | 6 | 0 |
-| LedgerSyncStoreTest | 13 | 0 |
-| LedgerTransferTest | 3 | 0 |
-| LocalUiTest | 39 | 0 |
-| ReminderScheduleTest | 4 | 0 |
-| RepaymentReviewTest | 4 | 0 |
-| ResetCoordinatorTest | 3 | 0 |
-| ResetStoreTest | 3 | 0 |
-| SyncStoreTest | 8 | 0 |
-| SyncWorkSchedulerTest | 3 | 0 |
+The changed UI tests now require Glass to follow light/dark/On device instead of enforcing the removed dark-only restriction. Defaults changed for a new/reset ledger only; saved settings and imported backup choices remain valid.
 
-## Methods
+Visual review: native light/dark Home, larger centred icons, Profile, entry/large-font entry, weekly/month/year reports, person/contact menu and existing export/privacy views. The revised near-black Forest dark Home was reviewed after rejecting the first grey rendering. Live phone keyboard, scroll, performance and colour rendering still need verification.
+
+| Class | Passing methods |
+|---|---:|
+| AccountDirectoryTest | 3 |
+| AccountUiTest | 9 |
+| BackgroundSyncTest | 7 |
+| BackupFlowTest | 3 |
+| BarrierRemoteTest | 5 |
+| DuePlansTest | 3 |
+| LedgerControllerTest | 7 |
+| LedgerDeviceSyncTest | 2 |
+| LedgerSessionTest | 6 |
+| LedgerSyncStoreTest | 13 |
+| LedgerTransferTest | 3 |
+| LocalUiTest | 42 |
+| ReminderScheduleTest | 4 |
+| RepaymentReviewTest | 4 |
+| ResetCoordinatorTest | 3 |
+| ResetStoreTest | 3 |
+| SyncStoreTest | 8 |
+| SyncWorkSchedulerTest | 3 |
+
+## Exact passing methods
 
 ### in.aicon.pocket.AccountDirectoryTest
 - forgetReturnsToLocalWithoutClaimingCloudDeletion
@@ -136,17 +140,20 @@
 - pdfPaginationAndMalayalamStayWithinPage
 - polishedSettingsLightAndDarkMalayalamRender
 - preferencesFormattingDefaultsRenameAndBackup
+- premiumHomeGraphExcludesLoansAndKeyboardFormSaves
+- premiumPalettesHaveReadablePrimaryTextAndLargerIcons
 - profileDetailsDueMessagesPdfAndFontsRender
 - remindersContactsAndPersonLedgerHaveExplicitLocalBoundaries
 - removeUnusedEntityResetsDefaultsAndKeepsReferencedHistory
 - resetConfirmationCancelAndConfirmUseCurrentLedger
-- revisedThemeChoicesRenderAndEnforceGlassDarkOnly
+- revisedThemeChoicesRenderInBothModes
+- revisedTrueDarkHomeAndAllReportPeriodsRender
 - selectedMonthReportChartsAndFutureExclusionRender
 - settledDebtClearsPrivateDuePlan
 - sidewaysSwipeRevealsActionsAndDeleteStillAsks
 - staleComposerReviewRejectsChangedContactAndLedger
 - staleUiFormCannotWriteAndFailedSaveRollsBack
-- systemThemeFollowsDeviceAndGlassStaysDark
+- systemThemeFollowsDeviceForBothSurfaces
 - twoThousandEntryLocalMutationPassesDirectAndBackupValidation
 
 ### in.aicon.pocket.ReminderScheduleTest
@@ -186,4 +193,6 @@
 - repeatedEditEnqueueKeepsOnePendingJobAndLocalSelectionCancelsIt
 - requestsUseSelectedSubjectNetworkConstraintsAndInexactThirtyMinuteCadence
 
-Packaged APK permissions, version and unchanged signing certificate independently checked. Legacy automatic-SMS grant cleanup, no SMS permission, reviewed composer and stale contact/ledger guards pass. Real Google sign-in/Drive round trips and phone install/Play Protect outcome remain unverified. Eight earlier pure Java programs were unchanged; their previous run evidence is not relabelled as a new run.
+## Still unverified
+
+Real-phone install/Play Protect, native Google sign-in and own-Drive upload/download, account switch/revoke/reset recovery, Contacts/photo picker behavior, upgrade/data retention, WhatsApp/SMS handoff, keyboard/insets, notifications/reboot/background delivery and performance. Do not use important data without a separate backup. Google External Testing and non-sensitive appdata scopes are unchanged. Public brand verification and Production publication have not been submitted.
