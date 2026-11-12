@@ -1,0 +1,9 @@
+Hisab is a local-first Android money ledger. Record income, expenses and transfers manually; keep lent and borrowed money separate; review account balances and weekly, monthly and yearly reports.
+
+A compact balance-first Home, amount-first entry, larger centred icons, light/dark Glass surfaces and a floating add action keep everyday tasks close by. Choose On device appearance, dynamic colour, bundled fonts and configurable Home sections.
+
+People ledgers track repayments. Optional reviewed SMS/WhatsApp actions open your messaging app: you check the recipient and tap Send. Hisab does not send automatically. Local reminders are optional and Android may delay them.
+
+Encrypted file backup/restore, CSV export and printable raster PDF statements are included. CSV/PDF are readable exports, not restore backups. No ads or analytics. Local-only is the default. Optional Google/own-Drive ledgers in the current preview need Google services and remain phone-unverified. Drive app data is not an application-encrypted backup and is not person-to-person sharing.
+
+DEVELOPMENT PREVIEW, NOT PRODUCTION-READY. Use sample data and a separate backup. Phone installation/Play Protect, Drive round trip, upgrade/data retention, pickers, messaging handoff, notifications and performance still require device testing. Store metadata preparation does not mean this app is listed or approved by any store.

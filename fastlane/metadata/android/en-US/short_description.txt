@@ -1,0 +1,1 @@
+Local-first money ledger with debt tracking and a calm Android interface

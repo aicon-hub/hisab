@@ -1,0 +1,1 @@
+UNTESTED UI preview: compact Home, larger centred icons, floating add, light/dark Glass, revised near-black dark, amount-first progressive entry, debt-to-person-ledger WhatsApp review and week/month/year charts. Phone install, Drive, upgrades, background alerts and performance remain unverified.

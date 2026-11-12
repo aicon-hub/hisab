@@ -1,0 +1,1 @@
+UNTESTED offline prototype: manual ledger, budgets, goals, monthly reports, search/edit/delete, equal splitting, CSV, English/Malayalam, confirmed category hints and encrypted-backup implementation. Separate preview package. Phone workflows were not verified.

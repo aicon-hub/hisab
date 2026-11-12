@@ -1,0 +1,1 @@
+UNTESTED safety preview: removed automatic SMS, SEND_SMS, callbacks and controls. Reviewed SMS/WhatsApp and local alerts remain. Homepage/privacy sources added. Google remains Testing-only. Permission removal does not prove Play Protect acceptance.
