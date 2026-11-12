@@ -1,6 +1,6 @@
-# Hisab 0.2.2 development candidate
+# Hisab 0.2.3 development candidate
 
-Original Android personal ledger, separate from the AiCoN reader. Package `in.aicon.pocket.test`, versionCode 4. This is a private work-in-progress candidate, not a ready release. No licence for the Hisab code has been selected; source visibility is not an open-source licence. The explicitly bundled Comfortaa, Inter, Lora and Poppins fonts have their own SIL OFL 1.1 licences in app assets.
+Original Android personal ledger, separate from the AiCoN reader. Package `in.aicon.pocket.test`, versionCode 5. This is a private work-in-progress candidate, not a ready release. No licence for the Hisab code has been selected; source visibility is not an open-source licence. The explicitly bundled Comfortaa, Inter, Lora and Poppins fonts have their own SIL OFL 1.1 licences in app assets.
 
 Local-only is the default. Optional Google account UI and own-Drive app-data sync are enabled in this candidate, with INTERNET permission. Actual Google sign-in and Drive end-to-end behavior have NOT been verified on a phone or emulator. Do not treat compiled code or simulated tests as a live pass.
 
@@ -14,7 +14,7 @@ The registered Android OAuth client is tied to the private preview certificate a
 ## New candidate features
 - Back closes dialogs first, then returns to Overview, then exits.
 - Visible colour swatches, original Hisab wordmark/header, top-right profile and device-private profile photo.
-- Dynamic light/dark/pure-black appearance; separate dark-only reflective Glass with a blurred floating dock and animated selection pill.
+- Dynamic light/dark/pure-black appearance; light/dark reflective Glass with a blurred floating dock and animated selection pill.
 - Month/year picker, income/expense/net summaries, day-grouped Activity, daily totals and swipe-to-reveal Edit/Delete. Deletion still asks. Net excludes transfers/debts and is not the account balance.
 - Selected-month cumulative expense line and category donut. Charts exclude dates after today and show recorded values, not a forecast. Monthly headline totals include all recorded dates in that month.
 - People ledger with separate receive/pay figures and chronological signed running balance, linked repayments and safe principal limits.
@@ -29,7 +29,7 @@ See STATUS.md and VERIFICATION.md for the current test boundary. No ads, analyti
 
 ## Latest profile, reminders and customization changes
 - Always-round top-right profile/photo control and a profile page with optional device-private display name, money-control overview, overdue list and export actions.
-- System default font is first and default. Only four bundled choices: Comfortaa Medium, Inter, Lora and Poppins. Licences are readable under Appearance > Font. Missing scripts fall back to Android. On device appearance follows system light/dark; Liquid Glass stays dark-only.
+- System default font is first and default. Only four bundled choices: Comfortaa Medium, Inter, Lora and Poppins. Licences are readable under Appearance > Font. Missing scripts fall back to Android. On device appearance follows system light/dark; Liquid Glass follows the selected light/dark/On device appearance.
 - Encrypted backup/restore now carries font, theme, palette, home order, number/date/currency formatting, default entry selections, custom catalog/icon/colour choices, launcher colour and daily reminder times/on-off choice. Notification permission is not granted by restore. CSV is entry data, not a restorable settings backup; PDF is a printable raster statement, not searchable text. Profile photo/name, contact links and local pay-by notes remain device-private and are not in Drive or backups. Automatic-message grants are removed.
 - Each unpaid debt can have a recorded pay-by date. It is the user's note, not proof of agreement by the other person. Optional generic local overdue alert is at 08:30 the day AFTER that date, with Android delays possible. Reviewed messages include current amount/direction/date and ask the recipient to confirm or correct the note. A settled/deleted debt clears its device-private plan when the app refreshes.
 - No person-to-person Hisab live sharing or automatic acceptance/paid acknowledgement. Composer text works without a server. Own-Drive sync is only the selected user's private ledger, not another person's app inbox.
@@ -38,3 +38,13 @@ This candidate is intended for an explicitly untested prerelease. Device install
 
 ## 0.2.2-dev safety update
 Automatic SMS has been removed completely: no SEND_SMS permission, background SMS sender, callback receiver or automatic-send menu. Reviewed SMS/WhatsApp composers and local overdue notifications remain. Old automatic-message grant fields are stripped from device-private due plans. This minimizes permissions; it is not a verified fix for a particular Play Protect classification. No Play Protect bypass is advised. Google remains in Testing mode. Public informational pages live in docs/; publication and OAuth state are independent.
+
+## 0.2.3-dev original UI update
+- Compact balance-first Home, month selector, larger centred account/navigation/settings icons and an always-reachable add action. Home sections/order remain configurable; all sections can be scrolled clear of the floating dock.
+- Refined near-black dark and pearl light surfaces. Liquid Glass supports both. Original static surface lighting and edge highlights; only the dock background is blurred. No optical-refraction claim. Restrained theme accents retain toned wallpaper-based dynamic colour. Existing saved choices are not overwritten. New/reset-ledger defaults are On device, Glass, and pure-black override off.
+- Amount-first entry, visible expense/income/transfer shortcuts and a separate lent/borrowed choice. Account/category pickers expand when needed. Date, person, validation and repayment protections remain. Saving a debt opens its person ledger with an optional WhatsApp message button. Reviewed message opens WhatsApp, and the user must choose/check the recipient and tap Send. No server or automatic sending.
+- Weekly daily-expense bars with exact values and tap details; monthly income-vs-expense bars, cumulative expense line, category breakdown; yearly cumulative expense view and monthly exact values. Loans/transfers/repayments never count as expenses/income. Through-today trend views exclude future entries; monthly headline sums still include every recorded date in the selected month.
+- Profile groups appearance, fonts/language, optional own-Drive, export and encrypted backup; money-control and overdue details remain further below. Original H-ledger and Hisab wordmark retained. No reference assets copied.
+- Reduced-resolution dock capture with coalesced updates, disposal of replaced bitmaps, render-scoped balance aggregation and ledger query indexes. No claim of being faster than another app; real-device performance and keyboard behavior remain pending.
+
+128 framework methods / 18 classes pass in bounded simulation groups, including 42 UI methods. This APK remains an explicitly untested prerelease. Keep a separate encrypted backup before upgrading; uninstalling deletes local data. See VERIFICATION.md for exact methods and pending device checks.
