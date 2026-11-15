@@ -48,6 +48,7 @@ final class Store extends SQLiteOpenHelper {
  long addAccount(String name, String kind, long opening) { ContentValues v = new ContentValues(); v.put("name", name); v.put("kind", kind); v.put("opening", opening); return getWritableDatabase().insert("account", null, v); }
  void updateAccount(Acc a) { ContentValues v = new ContentValues(); v.put("name", a.name); v.put("kind", a.kind); v.put("opening", a.opening); getWritableDatabase().update("account", v, "id=?", new String[]{"" + a.id}); }
  boolean deleteAccount(long id) {
+  if(accounts().size()<=1)return false;
   try (Cursor c = getReadableDatabase().rawQuery("SELECT COUNT(*) FROM tx WHERE account=? OR dest=?", new String[]{"" + id, "" + id})) { c.moveToFirst(); if (c.getLong(0) > 0) return false; }
   getWritableDatabase().delete("account", "id=?", new String[]{"" + id}); return true;
  }

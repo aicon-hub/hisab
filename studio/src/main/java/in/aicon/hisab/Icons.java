@@ -12,6 +12,11 @@ final class Icons {
  static final Map<String, Path> CACHE = new HashMap<>();
  private static String circle(double x, double y, double r) { return "M" + (x - r) + " " + y + "a" + r + " " + r + " 0 1 0 " + (2 * r) + " 0a" + r + " " + r + " 0 1 0 " + (-2 * r) + " 0Z "; }
  static {
+
+  P.put("sms", "M4 4H20V17H9L4 21Z M8 8H16 M8 12H14");
+  P.put("telegram", "M3 11L21 4L17 21L11 16L8 19L9 14L18 7L7 13Z");
+  P.put("globe", circle(12,12,9)+"M3 12H21 M12 3C6 8 6 16 12 21C18 16 18 8 12 3Z");
+  P.put("lock", "M5 10H19V21H5Z M8 10V7A4 4 0 0 1 16 7V10 M12 14V17");
   P.put("home", "M4 11L12 4L20 11 M6 10V20H18V10 M10 20V14H14V20");
   P.put("plus", "M12 5V19 M5 12H19");
   P.put("ledger", "M9 6H20 M9 12H20 M9 18H20 M4.5 6H4.6 M4.5 12H4.6 M4.5 18H4.6");
@@ -66,6 +71,13 @@ final class Icons {
  }
  static final String[] CATEGORY_ICONS = {"food", "groceries", "transport", "fuel", "shopping", "bills", "health", "fun", "education", "travel", "phone", "home", "gift", "coin", "other"};
 
+ static Bitmap whatsappBitmap;
+ static android.graphics.drawable.Drawable brand(android.content.Context c,String name){
+  if(!name.equals("whatsapp"))return new Draw(name,Ui.ink);
+  try(java.io.InputStream in=c.getAssets().open("brands/whatsapp.png")){
+   if(whatsappBitmap==null){BitmapFactory.Options options=new BitmapFactory.Options();options.inSampleSize=32;whatsappBitmap=BitmapFactory.decodeStream(in,null,options);}Bitmap scaled=Bitmap.createScaledBitmap(whatsappBitmap,Ui.dp(22),Ui.dp(22),true);return new android.graphics.drawable.BitmapDrawable(c.getResources(),scaled);
+  }catch(Exception e){return new Draw("phone",Ui.ink);}
+ }
  static Path path(String name) {
   Path p = CACHE.get(name);
   if (p == null) { String d = P.get(name); if (d == null) d = P.get("other"); p = PathParser.createPathFromPathData(d); CACHE.put(name, p); }
@@ -84,6 +96,8 @@ final class Icons {
    c.save(); c.translate(b.left + (b.width() - 24 * s) / 2f, b.top + (b.height() - 24 * s) / 2f); c.scale(s, s);
    paint.setStrokeWidth(1.9f); c.drawPath(path(name), paint); c.restore();
   }
+  @Override public int getIntrinsicWidth(){return Ui.dp(20);}
+  @Override public int getIntrinsicHeight(){return Ui.dp(20);}
   @Override public void setAlpha(int a) { paint.setAlpha(a); }
   @Override public void setColorFilter(ColorFilter f) { paint.setColorFilter(f); }
   @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }

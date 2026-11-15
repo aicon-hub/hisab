@@ -55,7 +55,7 @@ final class HomePage {
   // accounts
   c.addView(Kit.sectionHead(a, "Accounts", "Manage", () -> Pages.accounts(a)));
   HorizontalScrollView hs = new HorizontalScrollView(a); hs.setHorizontalScrollBarEnabled(false); LinearLayout row = Ui.row(a); long total = 0;
-  for (Store.Acc x : db.accounts()) { long bal = db.balance(x); total += bal; LinearLayout card = Ui.col(a); card.setBackground(Ui.shape(Ui.surface, 22)); card.setPadding(Ui.dp(16), Ui.dp(14), Ui.dp(18), Ui.dp(14)); card.addView(Ui.badge(a, x.kind.equals("cash") ? "cash" : x.kind.equals("bank") ? "bank" : x.kind.equals("card") ? "card" : "wallet", 36, Ui.surface2, Ui.ink)); TextView n = Ui.text(a, x.name, 13, Ui.muted, true); n.setPadding(0, Ui.dp(12), 0, Ui.dp(4)); card.addView(n); card.addView(Ui.big(a, Fmt.money(bal), 19, bal < 0 ? Ui.neg : Ui.ink)); row.addView(card, Ui.lpm(Ui.dp(150), -2, 0, 0, 10, 0)); }
+  for (Store.Acc x : db.accounts()) { long bal = db.balance(x); total += bal; LinearLayout card = Ui.col(a); card.setBackground(Ui.shape(Ui.surface, 22)); card.setPadding(Ui.dp(16), Ui.dp(14), Ui.dp(18), Ui.dp(14)); card.addView(Ui.badge(a, x.kind.equals("cash") ? "cash" : x.kind.equals("bank") ? "bank" : x.kind.equals("card") ? "card" : "wallet", 36, Ui.surface2, Ui.ink)); TextView n = Ui.text(a, x.name, 13, Ui.muted, true); n.setPadding(0, Ui.dp(12), 0, Ui.dp(4)); card.addView(n); card.addView(Ui.big(a, Fmt.money(bal), 19, bal < 0 ? Ui.neg : Ui.ink)); String sms=BankSms.display(db,x.id);if(sms!=null)card.addView(Ui.text(a,sms,11,Ui.muted,false),Ui.lpm(-1,-2,0,6,0,0)); row.addView(card, Ui.lpm(Ui.dp(170), -2, 0, 0, 10, 0)); }
   hs.addView(row); c.addView(hs);
   c.addView(Ui.text(a, "Total across accounts  " + Fmt.money(total), 12.5f, Ui.muted, true), Ui.lpm(-2, -2, 2, 12, 0, 0));
 
@@ -108,10 +108,10 @@ final class HomePage {
  // ---- quick add: "tea 40", "salary 52000", "auto 60 yesterday"
  static View quickAdd(MainActivity a) {
   LinearLayout r = Ui.row(a); r.setBackground(Ui.outline(Ui.surface, Ui.line, 28, 1)); r.setPadding(Ui.dp(18), Ui.dp(4), Ui.dp(6), Ui.dp(4));
-  EditText e = new EditText(a); e.setHint("Type it: tea 40, auto 60 yesterday"); e.setHintTextColor(Ui.muted); e.setTextColor(Ui.ink); e.setTextSize(15); e.setTypeface(Ui.body); e.setBackground(null); e.setSingleLine(true); e.setImeOptions(EditorInfo.IME_ACTION_DONE); e.setInputType(InputType.TYPE_CLASS_TEXT);
+  EditText e = new EditText(a); e.setHint("Type it: tea 40, auto 60 yesterday"); e.setHintTextColor(Ui.muted); e.setTextColor(Ui.ink); e.setTextSize(15); e.setTypeface(Ui.body); e.setBackground(null); e.setSingleLine(true); e.setImeOptions(EditorInfo.IME_ACTION_DONE); e.setInputType(InputType.TYPE_CLASS_TEXT); e.setTag("quickEntry");
   r.addView(e, Ui.weight(1)); FrameLayout go = Ui.badge(a, "check", 42, Ui.dark ? Ui.accent : Ui.ink, Ui.dark ? Ui.onAccent : 0xFFFFFFFF); r.addView(go, Ui.lp(Ui.dp(42), Ui.dp(42))); go.setContentDescription("Add typed entry");
-  Runnable submit = () -> { String s = e.getText().toString().trim(); if (s.isEmpty()) return; Store.Tx t = parse(a.db, s); if (t == null) { a.toast("Include an amount, like tea 40", null); return; } long id = a.db.save(t); e.setText(""); a.refresh(); a.toast("Added " + Fmt.money(t.amount) + (a.db.categoryMap().get(t.cat) != null ? " · " + a.db.categoryMap().get(t.cat).name : ""), () -> { a.db.deleteTx(id); a.refresh(); }); };
-  Ui.tap(go, submit); e.setOnEditorActionListener((v, id, ev) -> { submit.run(); return true; });
+  Runnable submit = () -> { String s = e.getText().toString().trim(); if (s.isEmpty()) return; Store.Tx t = parse(a.db, s); if (t == null) { a.toast("Include an amount, like tea 40", null); return; } long id = a.db.save(t); if(id<0){a.toast("Entry could not be saved",null);return;} e.setText(""); View focus=a.getCurrentFocus();if(focus!=null)((android.view.inputmethod.InputMethodManager)a.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(focus.getWindowToken(),0); a.refresh(); a.toast("Added " + Fmt.money(t.amount) + (a.db.categoryMap().get(t.cat) != null ? " · " + a.db.categoryMap().get(t.cat).name : ""), () -> { a.db.deleteTx(id); a.refresh(); }); };
+  Ui.tap(go, submit); e.setOnEditorActionListener((v, id, ev) -> { if(id==EditorInfo.IME_ACTION_DONE || (ev!=null && ev.getKeyCode()==android.view.KeyEvent.KEYCODE_ENTER && ev.getAction()==android.view.KeyEvent.ACTION_DOWN)){submit.run();return true;}return false; });
   return r;
  }
 
@@ -119,20 +119,20 @@ final class HomePage {
   {"Food", "tea coffee lunch dinner breakfast snack snacks food biryani juice meal chai"}, {"Groceries", "milk vegetables fruits groceries grocery rice eggs"}, {"Transport", "auto bus metro cab taxi uber ola train ticket parking"},
   {"Fuel", "petrol diesel fuel"}, {"Bills", "recharge bill electricity wifi internet rent water gas"}, {"Health", "medicine pharmacy doctor hospital"}, {"Fun", "movie game netflix show"}, {"Education", "book books fees course exam"}, {"Shopping", "shirt shoes clothes dress shopping"}};
  static Store.Tx parse(Store db, String s) {
-  String[] tok = s.trim().split("\\s+"); long amt = -1; StringBuilder note = new StringBuilder(); LocalDate day = LocalDate.now(); boolean income = false; String catName = null;
-  for (String w : tok) {
-   String lw = w.toLowerCase(Locale.ROOT).replace(",", "");
-   if (amt < 0 && lw.matches("(₹|rs\\.?)?[0-9]+(\\.[0-9]{1,2})?")) { amt = Ledger.parse(lw.replaceAll("[^0-9.]", "")); continue; }
-   if (lw.equals("yesterday")) { day = day.minusDays(1); continue; } if (lw.equals("today")) continue;
-   if (lw.equals("salary") || lw.equals("received") || lw.equals("got") || lw.equals("income")) income = true;
-   for (String[] g : WORDS) if (Arrays.asList(g[1].split(" ")).contains(lw)) catName = g[0];
-   if (note.length() > 0) note.append(' '); note.append(w);
-  }
-  if (amt <= 0) return null;
-  Store.Tx t = new Store.Tx(); t.kind = income ? "income" : "expense"; t.amount = amt; t.day = day.toString(); t.note = Fmt.title(note.toString().trim());
-  List<Store.Acc> accs = db.accounts(); long last = Long.parseLong(db.pref("lastAcc", "0")); t.account = accs.isEmpty() ? 0 : accs.get(0).id; for (Store.Acc x : accs) if (x.id == last) t.account = x.id;
-  for (Store.Cat c : db.categories(income ? "income" : "expense")) { if (catName != null && c.name.equals(catName) && !income) t.cat = c.id; if (income && c.name.equals("Salary")) t.cat = c.id; }
-  if (t.cat == 0 && !income) for (Store.Cat c : db.categories("expense")) if (c.name.equals("Other")) t.cat = c.id;
+  if(s==null||s.trim().isEmpty())return null;
+  String value=s.trim();LocalDate day=LocalDate.now();
+  java.util.regex.Matcher date=java.util.regex.Pattern.compile("\\b(20[0-9]{2}-[0-9]{2}-[0-9]{2})\\b").matcher(value);
+  if(date.find()){try{day=LocalDate.parse(date.group(1));}catch(Exception e){return null;}value=value.replace(date.group(1),"");}
+  else if(value.toLowerCase(Locale.ROOT).matches("(?s).*\\byesterday\\b.*"))day=day.minusDays(1);
+  value=value.replaceAll("(?i)\\b(yesterday|today)\\b", " ").replaceAll("(?i)\\b(?:rs\\.?|inr)\\s*", "").replace("₹","");
+  java.util.regex.Matcher amount=java.util.regex.Pattern.compile("(?<![a-zA-Z0-9.-])([0-9][0-9,]*(?:\\.[0-9]{1,2})?)(?![0-9.])").matcher(value);
+  if(!amount.find())return null;String token=amount.group(1);long amt=Ledger.parse(token.replace(",",""));int st=amount.start(),en=amount.end();if(amt<=0||amount.find())return null;
+  String note=(value.substring(0,st)+" "+value.substring(en)).trim().replaceAll("\\s+"," ");String lower=note.toLowerCase(Locale.ROOT);boolean income=lower.matches("(?s).*\\b(salary|received|got|income)\\b.*");String catName=null;
+  for(String w:lower.split("\\s+"))for(String[] group:WORDS)if(Arrays.asList(group[1].split(" ")).contains(w))catName=group[0];
+  List<Store.Acc> accs=db.accounts();if(accs.isEmpty())return null;Store.Tx t=new Store.Tx();t.kind=income?"income":"expense";t.amount=amt;t.day=day.toString();t.note=note.isEmpty()?(income?"Income":"Expense"):Fmt.title(note);t.account=accs.get(0).id;
+  for(Store.Acc ac:accs)if((""+ac.id).equals(db.pref("lastAcc","0")))t.account=ac.id;
+  for(Store.Cat c:db.categories(t.kind))if((income&&c.name.equals("Salary"))||(!income&&c.name.equals(catName)))t.cat=c.id;
+  if(t.cat==0)for(Store.Cat c:db.categories(t.kind))if(c.name.toLowerCase(Locale.ROOT).startsWith("other"))t.cat=c.id;
   return t;
  }
 }
