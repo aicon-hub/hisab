@@ -5,6 +5,12 @@
 
 > **Development preview, not production-ready.** Latest published build: [0.2.3-dev](https://github.com/aicon-hub/hisab/releases/tag/v0.2.3-dev). Use sample data and keep a separate encrypted backup. Phone installation, Play Protect, Google/Drive and OS background behaviour still need real-device checks.
 
+## New visual preview: 0.3.0
+
+A separate **Hisab Preview** app is available for checking the new look and the brief animated logo launch. It leaves the installed Hisab and its data alone. Google sign-in is off in this visual build. Use sample data; **do not uninstall the existing Hisab**. The original package and all cloud code remain in the normal source build. No stable release has been replaced.
+
+See [preview changes and verification](PREVIEW-0.3.0.md). The previous 0.2.3-dev feature/state notes below remain historical context, not a claim that the side build can access your existing records or Google ledger.
+
 ## What feels different
 
 Hisab puts a few deliberate choices together. These describe its design, not a claim that no other app offers them.
