@@ -1,0 +1,20 @@
+plugins { id 'com.android.application' }
+android {
+ namespace 'in.aicon.hisab'
+ compileSdk 36
+ buildFeatures { buildConfig true }
+ defaultConfig {
+  applicationId 'in.aicon.hisab.studio'
+  minSdk 26
+  targetSdk 35
+  versionCode 7
+  versionName '0.4.0-redesign'
+ }
+ testOptions { unitTests.includeAndroidResources = true; unitTests.all { systemProperty "robolectric.dependency.repo.url", "https://maven-central.storage-download.googleapis.com/maven2"; maxHeapSize = "768m" } }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies {
+ implementation 'androidx.core:core:1.15.0'
+ testImplementation 'junit:junit:4.13.2'
+ testImplementation 'org.robolectric:robolectric:4.17'
+}
