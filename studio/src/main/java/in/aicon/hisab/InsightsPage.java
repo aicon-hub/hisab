@@ -1,0 +1,72 @@
+package in.aicon.hisab;
+
+import android.view.*;
+import android.widget.*;
+import java.time.*;
+import java.util.*;
+
+final class InsightsPage {
+ private InsightsPage() {}
+
+ static View build(MainActivity a) {
+  Store db = a.db; ScrollView[] sv = new ScrollView[1]; LinearLayout c = Kit.column(a, sv, true);
+  c.addView(Kit.title(a, "Where it went", "Insights", false));
+  YearMonth ym = a.insightMonth;
+  LinearLayout nav = Ui.row(a); nav.setBackground(Ui.shape(Ui.surface, 26)); nav.setPadding(Ui.dp(8), Ui.dp(8), Ui.dp(8), Ui.dp(8));
+  FrameLayout l = Ui.badge(a, "left", 38, Ui.surface2, Ui.ink), r = Ui.badge(a, "right", 38, Ui.surface2, Ui.ink);
+  nav.addView(l, Ui.lp(Ui.dp(38), Ui.dp(38))); TextView mt = Ui.big(a, Fmt.month(ym), 18, Ui.ink); mt.setGravity(Gravity.CENTER); nav.addView(mt, Ui.weight(1)); nav.addView(r, Ui.lp(Ui.dp(38), Ui.dp(38)));
+  Ui.tap(l, () -> { a.insightMonth = ym.minusMonths(1); a.refresh(); }); Ui.tap(r, () -> { a.insightMonth = ym.plusMonths(1); a.refresh(); }); c.addView(nav);
+
+  List<Store.Tx> month = db.txs(Fmt.from(ym), Fmt.to(ym)); Map<Long, Store.Cat> cats = db.categoryMap(); long in = 0, out = 0; Map<Long, Long> byCat = new HashMap<>(); Map<String, Long> byNote = new HashMap<>(); long[] week = new long[7];
+  for (Store.Tx t : month) { if (t.kind.equals("income")) in += t.amount; if (t.kind.equals("expense")) { out += t.amount; byCat.merge(t.cat, t.amount, Long::sum); if (!t.note.isEmpty()) byNote.merge(t.note, t.amount, Long::sum); week[LocalDate.parse(t.day).getDayOfWeek().getValue() - 1] += t.amount; } }
+  // saved card
+  LinearLayout top = Ui.card(a); long saved = in - out; int rate = in > 0 ? (int) Math.round(100.0 * saved / in) : 0;
+  top.addView(Ui.label(a, "Kept this month")); TextView big = Ui.big(a, Fmt.money(saved), 36, saved < 0 ? Ui.neg : Ui.ink); big.setPadding(0, Ui.dp(8), 0, Ui.dp(6)); top.addView(big);
+  top.addView(Ui.text(a, in > 0 ? (saved >= 0 ? "You kept " + rate + "% of what came in" : "Spending ran " + Math.abs(rate) + "% above income") : "No income noted this month", 13.5f, Ui.muted, false));
+  Store.Tx dummy = null; LinearLayout pr = Ui.row(a); pr.setPadding(0, Ui.dp(16), 0, 0); pr.addView(HomePage.pill(a, "Income", Fmt.money(in), Ui.pos), Ui.weight(1)); ((LinearLayout.LayoutParams) pr.getChildAt(0).getLayoutParams()).rightMargin = Ui.dp(6); pr.addView(HomePage.pill(a, "Spent", Fmt.money(out), Ui.ink), Ui.weight(1)); ((LinearLayout.LayoutParams) pr.getChildAt(1).getLayoutParams()).leftMargin = Ui.dp(6);
+  for (int i = 0; i < 2; i++) pr.getChildAt(i).setBackground(Ui.shape(Ui.surface2, 20)); top.addView(pr); c.addView(top, Ui.lpm(-1, -2, 0, 14, 0, 0));
+
+  // by category
+  c.addView(Kit.sectionHead(a, "By category", null, null));
+  List<Map.Entry<Long, Long>> es = new ArrayList<>(byCat.entrySet()); es.sort((x, y) -> Long.compare(y.getValue(), x.getValue()));
+  LinearLayout cc = Ui.card(a);
+  if (es.isEmpty()) cc.addView(Kit.empty(a, "chart", "No spending", "Nothing noted in this month."));
+  else {
+   int n = Math.min(es.size(), 6); long[] vals = new long[n + (es.size() > n ? 1 : 0)]; int[] cols = new int[vals.length]; long rest = 0;
+   for (int i = 0; i < es.size(); i++) { if (i < n) { vals[i] = es.get(i).getValue(); cols[i] = Kit.tone(es.get(i).getKey()); } else rest += es.get(i).getValue(); } if (rest > 0) { vals[n] = rest; cols[n] = Ui.dark ? 0xFF3A3E49 : 0xFFD9D2C2; }
+   Charts.Donut d = new Charts.Donut(a, vals, cols, Fmt.compact(out), "spent"); cc.addView(d, Ui.lpm(Ui.dp(190), Ui.dp(190), 0, 4, 0, 14)); ((LinearLayout.LayoutParams) d.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+   for (int i = 0; i < Math.min(es.size(), 7); i++) { Store.Cat ct = cats.get(es.get(i).getKey()); long v = es.get(i).getValue(); int pct = (int) Math.round(100.0 * v / out);
+    LinearLayout row = Ui.row(a); row.setPadding(0, Ui.dp(8), 0, Ui.dp(8)); row.addView(Ui.badge(a, ct == null ? "other" : ct.icon, 34, Kit.tone(es.get(i).getKey()), 0xFF14151A), Ui.lpm(Ui.dp(34), Ui.dp(34), 0, 0, 12, 0));
+    LinearLayout m = Ui.col(a); LinearLayout h = Ui.row(a); h.addView(Ui.text(a, ct == null ? "Other" : ct.name, 14.5f, Ui.ink, true), Ui.weight(1)); h.addView(Ui.text(a, Fmt.money(v) + "  " + pct + "%", 13, Ui.muted, true)); m.addView(h);
+    Charts.Pace bar = new Charts.Pace(a, v / (float) es.get(0).getValue(), -1, Kit.tone(es.get(i).getKey()), Ui.surface2); m.addView(bar, Ui.lp(-1, Ui.dp(16))); row.addView(m, Ui.weight(1)); cc.addView(row); }
+  }
+  c.addView(cc);
+
+  // six months
+  c.addView(Kit.sectionHead(a, "Six months", null, null));
+  long[] mi = new long[6], mo = new long[6]; String[] ml = new String[6]; YearMonth first = ym.minusMonths(5);
+  List<Store.Tx> six = db.txs(Fmt.from(first), Fmt.to(ym));
+  for (int i = 0; i < 6; i++) ml[i] = Fmt.monthShort(first.plusMonths(i));
+  for (Store.Tx t : six) { int idx = (int) java.time.temporal.ChronoUnit.MONTHS.between(first, YearMonth.from(LocalDate.parse(t.day))); if (idx < 0 || idx > 5) continue; if (t.kind.equals("income")) mi[idx] += t.amount; if (t.kind.equals("expense")) mo[idx] += t.amount; }
+  LinearLayout tc = Ui.card(a); LinearLayout lg = Ui.row(a); lg.addView(dot(a, Ui.dark ? 0xFF3A3E49 : 0xFFD9D2C2), Ui.lp(Ui.dp(10), Ui.dp(10))); lg.addView(Ui.text(a, "  Income      ", 12, Ui.muted, true)); lg.addView(dot(a, Ui.dark ? Ui.accent : Ui.ink), Ui.lp(Ui.dp(10), Ui.dp(10))); lg.addView(Ui.text(a, "  Spent", 12, Ui.muted, true)); tc.addView(lg);
+  tc.addView(new Charts.Pairs(a, mi, mo, ml), Ui.lpm(-1, Ui.dp(170), 0, 12, 0, 0)); c.addView(tc);
+
+  // compare with last month
+  Map<Long, Long> prev = new HashMap<>(); YearMonth pm = ym.minusMonths(1); for (Store.Tx t : db.txs(Fmt.from(pm), Fmt.to(pm))) if (t.kind.equals("expense")) prev.merge(t.cat, t.amount, Long::sum);
+  List<long[]> diffs = new ArrayList<>(); for (long k : byCat.keySet()) { long d = byCat.get(k) - prev.getOrDefault(k, 0L); if (Math.abs(d) >= 10000) diffs.add(new long[]{k, d}); } diffs.sort((x, y) -> Long.compare(Math.abs(y[1]), Math.abs(x[1])));
+  if (!diffs.isEmpty()) { c.addView(Kit.sectionHead(a, "Versus " + Fmt.month(pm).split(" ")[0], null, null)); LinearLayout dc = Ui.card(a);
+   for (int i = 0; i < Math.min(4, diffs.size()); i++) { Store.Cat ct = cats.get(diffs.get(i)[0]); long d = diffs.get(i)[1]; if (i > 0) dc.addView(Ui.divider(a)); LinearLayout row = Ui.row(a); row.setPadding(0, Ui.dp(11), 0, Ui.dp(11)); row.addView(Ui.icon(a, d > 0 ? "up" : "download", 20, d > 0 ? Ui.neg : Ui.pos), Ui.lpm(Ui.dp(20), Ui.dp(20), 0, 0, 12, 0)); row.addView(Ui.text(a, ct == null ? "Other" : ct.name, 15, Ui.ink, true), Ui.weight(1)); row.addView(Ui.text(a, (d > 0 ? "+" : "-") + Fmt.money(Math.abs(d)), 14, d > 0 ? Ui.neg : Ui.pos, true)); dc.addView(row); }
+   c.addView(dc); }
+
+  // weekday pattern
+  c.addView(Kit.sectionHead(a, "Busiest days", null, null)); int hi = 0; for (int i = 1; i < 7; i++) if (week[i] > week[hi]) hi = i;
+  LinearLayout wc = Ui.card(a); wc.addView(new Charts.Bars(a, week, new String[]{"M", "T", "W", "T", "F", "S", "S"}, out > 0 ? hi : -1, false), Ui.lp(-1, Ui.dp(130)));
+  wc.addView(Ui.text(a, out > 0 ? "You spend the most on " + java.time.DayOfWeek.of(hi + 1).getDisplayName(java.time.format.TextStyle.FULL, Locale.ENGLISH) + "s." : "No spending to compare yet.", 13, Ui.muted, false), Ui.lpm(-2, -2, 0, 8, 0, 0)); c.addView(wc);
+
+  // frequent
+  List<Map.Entry<String, Long>> ns = new ArrayList<>(byNote.entrySet()); ns.sort((x, y) -> Long.compare(y.getValue(), x.getValue()));
+  if (!ns.isEmpty()) { c.addView(Kit.sectionHead(a, "Top notes", null, null)); LinearLayout nc = Ui.card(a); for (int i = 0; i < Math.min(4, ns.size()); i++) { if (i > 0) nc.addView(Ui.divider(a)); LinearLayout row = Ui.row(a); row.setPadding(0, Ui.dp(11), 0, Ui.dp(11)); row.addView(Ui.text(a, ns.get(i).getKey(), 15, Ui.ink, true), Ui.weight(1)); row.addView(Ui.text(a, Fmt.money(ns.get(i).getValue()), 14, Ui.muted, true)); nc.addView(row); } c.addView(nc); }
+  Ui.enter(c); return sv[0];
+ }
+ static View dot(MainActivity a, int color) { View v = new View(a); v.setBackground(Ui.shape(color, 5)); return v; }
+}

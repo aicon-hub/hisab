@@ -113,3 +113,7 @@ Store metadata preparation is in `fastlane/metadata/android/en-US/`. It does not
 Hisab's original code and original project assets are licensed under **GNU GPL version 3**. See [LICENSE](LICENSE). The code licence was selected on 12 November 2026; older release notes accurately describe the earlier unlicensed state at publication time.
 
 Bundled Comfortaa, Inter, Lora and Poppins retain their own SIL Open Font License 1.1 notices in [`app/src/main/assets/font-licenses/`](app/src/main/assets/font-licenses/). Third-party libraries and Gradle tooling retain their respective licences. This grant does not claim ownership of those components or provide trademark clearance for the name.
+
+## Hisab Studio (0.4.0 redesign, test build)
+
+A full redesign lives in the `studio` module: safe-to-spend home, typed quick add, ledger heatmap, insights, people reminders and bill splitting. On-device only, no Google sign-in. Not phone-tested yet.
