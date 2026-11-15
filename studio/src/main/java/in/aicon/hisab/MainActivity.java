@@ -18,7 +18,8 @@ public class MainActivity extends Activity {
  Store db;
  FrameLayout root, tabHost, layerHost;
  LinearLayout dock;
- int tab = 0, topInset = 0, bottomInset = 0;
+ int tab = 0, topInset = 0, bottomInset = 0, keyboardInset = 0;
+ int nextRequestCode = 100;
  YearMonth ledgerMonth = YearMonth.now(), insightMonth = YearMonth.now();
  String ledgerFilter = "all", ledgerQuery = ""; int ledgerDay = 0; boolean ledgerCalendar = false;
  final List<Layer> layers = new ArrayList<>();
@@ -36,7 +37,16 @@ public class MainActivity extends Activity {
   applyTheme();
   root = new FrameLayout(this);
   setContentView(root);
-  root.setOnApplyWindowInsetsListener((v, ins) -> { topInset = ins.getSystemWindowInsetTop(); bottomInset = ins.getSystemWindowInsetBottom(); build(); return ins; });
+  root.setOnApplyWindowInsetsListener((v, ins) -> {
+   if (Build.VERSION.SDK_INT >= 30) {
+    android.graphics.Insets bars = ins.getInsets(WindowInsets.Type.systemBars());
+    updateInsets(bars.top, bars.bottom, ins.getInsets(WindowInsets.Type.ime()).bottom);
+   } else {
+    // On older Android adjustResize shrinks the window above the keyboard.
+    updateInsets(ins.getStableInsetTop(), ins.getStableInsetBottom(), 0);
+   }
+   return ins;
+  });
   launching = b == null && Ui.motion(root) && !getIntent().getBooleanExtra("noLaunch", false);
   build();
   if (launching) showLaunch();
@@ -54,14 +64,40 @@ public class MainActivity extends Activity {
   w.getDecorView().setSystemUiVisibility(dark ? flags & ~(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | 16) : flags | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | 16);
  }
 
- /** Full rebuild of the shell, used for theme and inset changes. */
+ /** Update geometry in place. Never replace a focused field when the IME opens. */
+ void updateInsets(int top, int bottom, int ime) {
+  int dt = top - topInset, dbottom = bottom - bottomInset;
+  topInset = top; bottomInset = bottom; keyboardInset = Math.max(0, ime - bottom);
+  if (tabHost == null || layerHost == null) return;
+  if (tabHost.getChildCount() > 0) {
+   View page = tabHost.getChildAt(0);
+   if (page instanceof ScrollView && ((ScrollView) page).getChildCount() > 0) {
+    View col = ((ScrollView) page).getChildAt(0);
+    col.setPadding(col.getPaddingLeft(), col.getPaddingTop() + dt, col.getPaddingRight(), col.getPaddingBottom() + dbottom);
+   }
+  }
+  if (dock != null) {
+   FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) dock.getLayoutParams();
+   lp.bottomMargin = Ui.dp(14) + bottomInset; dock.setLayoutParams(lp);
+  }
+  FrameLayout.LayoutParams hp = (FrameLayout.LayoutParams) layerHost.getLayoutParams();
+  hp.bottomMargin = keyboardInset; layerHost.setLayoutParams(hp);
+  for (Layer l : layers) l.panel.setPadding(0, l.sheet ? 0 : topInset, 0, bottomInset);
+ }
+
+ /** Full rebuild only for an explicit theme change. */
  void build() {
   List<Layer> keep = new ArrayList<>(layers);
   root.removeAllViews(); root.setBackgroundColor(Ui.bg);
   tabHost = new FrameLayout(this); root.addView(tabHost, new FrameLayout.LayoutParams(-1, -1));
   buildDock();
   layerHost = new FrameLayout(this); layerHost.setElevation(Ui.dp(24)); root.addView(layerHost, new FrameLayout.LayoutParams(-1, -1));
-  for (Layer l : keep) layerHost.addView(l.holder);
+  for (Layer l : keep) {
+   ViewParent parent = l.holder.getParent();
+   if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(l.holder);
+   layerHost.addView(l.holder);
+  }
+  updateInsets(topInset, bottomInset, keyboardInset + bottomInset);
   showTab(tab, false);
  }
 
@@ -152,6 +188,11 @@ public class MainActivity extends Activity {
   super.onBackPressed();
  }
 
+ void launchExternal(Intent intent) {
+  try { startActivity(intent); }
+  catch (android.content.ActivityNotFoundException | SecurityException e) { toast("No app available to open this", null); }
+ }
+
  // ---- shared actions
  void openEntry(String kind, Store.Tx edit) { EntrySheet.open(this, kind, edit); }
  void openEntryPrefilled(Store.Tx t) { EntrySheet.openPrefilled(this, t); }
@@ -181,14 +222,27 @@ public class MainActivity extends Activity {
   f.postDelayed(() -> f.animate().alpha(0).setDuration(280).withEndAction(() -> root.removeView(f)).start(), 1450);
  }
 
+ @Override public void onConfigurationChanged(Configuration c) {
+  super.onConfigurationChanged(c); applyTheme(); build();
+ }
+
  // ---- activity results
- void request(Intent i, Consumer<Intent> cb) { int code = 100 + results.size() % 50; results.put(code, cb); try { startActivityForResult(i, code); } catch (Exception e) { toast("Not available on this phone", null); } }
- @Override protected void onActivityResult(int code, int res, Intent data) { Consumer<Intent> cb = results.remove(code); if (cb != null && res == RESULT_OK && data != null) cb.accept(data); }
+ void request(Intent i, Consumer<Intent> cb) {
+  while (results.containsKey(nextRequestCode)) nextRequestCode = nextRequestCode >= 65000 ? 100 : nextRequestCode + 1;
+  int code = nextRequestCode++; results.put(code, cb);
+  try { startActivityForResult(i, code); }
+  catch (android.content.ActivityNotFoundException | SecurityException e) { results.remove(code); toast("Not available on this phone", null); }
+ }
+ @Override protected void onActivityResult(int code, int res, Intent data) { super.onActivityResult(code, res, data); Consumer<Intent> cb = results.remove(code); if (cb != null && res == RESULT_OK && data != null) cb.accept(data); }
  /** Contact picker. No contacts permission is needed or requested. */
  void pickContact(BiConsumer<String, String> done) {
-  request(new Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI), d -> {
+  request(new Intent(Intent.ACTION_PICK).setDataAndType(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE), d -> {
    try (Cursor c = getContentResolver().query(d.getData(), new String[]{ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME, ContactsContract.CommonDataKinds.Phone.NUMBER}, null, null, null)) {
-    if (c != null && c.moveToFirst()) done.accept(c.getString(0), c.getString(1).replaceAll("[^+0-9]", ""));
+    if (c != null && c.moveToFirst()) {
+     String name = c.getString(0), phone = c.getString(1);
+     phone = phone == null ? "" : phone.replaceAll("[^+0-9]", "");
+     done.accept(name == null || name.trim().isEmpty() ? (phone.isEmpty() ? "Contact" : phone) : name.trim(), phone);
+    }
    } catch (Exception e) { toast("Could not read that contact", null); }
   });
  }

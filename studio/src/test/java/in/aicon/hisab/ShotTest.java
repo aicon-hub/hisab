@@ -45,6 +45,14 @@ public class ShotTest {
   a.showTab(3, false); snap(a, "22-insights-dark"); a.showTab(1, false); snap(a, "23-ledger-dark");
   a.showTab(0, false); a.openEntry("lent", null); snap(a, "24-entry-dark");
  }
+
+ @Test public void keyboardRegression() throws Exception {
+  MainActivity a=start(true); Settings.open(a);
+  CrashTest helper=new CrashTest();helper.a=a;helper.click("You");
+  EditText field=CrashTest.fields(helper.top()).get(0);field.setText("Taylor");field.requestFocus();field.setSelection(6);
+  helper.ime(900);snap(a,"40-name-with-ime-inset");helper.ime(0);snap(a,"41-name-after-ime");
+  helper.click("Save");snap(a,"42-settings-after-save");
+ }
  @Test public void logo() throws Exception {
   MainActivity a = start(false); FrameLayout f = new FrameLayout(a); f.setBackgroundColor(Ui.bg); Charts.Logo l = new Charts.Logo(a); l.t = 1f; Wordmark w = new Wordmark(a, Ui.ink);
   LinearLayout m = Ui.col(a); m.setGravity(Gravity.CENTER_HORIZONTAL); m.addView(l, Ui.lp(Ui.dp(116), Ui.dp(116))); m.addView(w, Ui.lpm(Ui.dp(112), Ui.dp(44), 0, 18, 0, 0)); f.addView(m, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));

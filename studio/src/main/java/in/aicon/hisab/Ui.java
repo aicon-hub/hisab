@@ -20,6 +20,10 @@ final class Ui {
  static final String[] ACCENT_NAMES = {"Lime", "Sky", "Lilac", "Mint", "Rose", "Sand", "Wallpaper"};
  static final int[] ACCENTS = {0xFFC7F23A, 0xFF8ACBFF, 0xFFBDA9FF, 0xFF62E3B8, 0xFFFF93B5, 0xFFF0D17C, 0};
 
+ static String initial(String name) {
+  String n = name == null ? "" : name.trim();
+  return n.isEmpty() ? "?" : n.substring(0, n.offsetByCodePoints(0, 1)).toUpperCase(java.util.Locale.ROOT);
+ }
  static int dp(float v) { return Math.round(v * density); }
 
  static int accentFor(Context c, String name) {
