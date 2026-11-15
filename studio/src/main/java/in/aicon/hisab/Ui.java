@@ -17,8 +17,8 @@ final class Ui {
  static int bg, surface, surface2, ink, muted, line, accent, onAccent, pos, neg, scrim;
  static Typeface body, bodyBold, display, displayBold;
 
- static final String[] ACCENT_NAMES = {"Lime", "Sky", "Lilac", "Mint", "Rose", "Sand", "Wallpaper"};
- static final int[] ACCENTS = {0xFFC7F23A, 0xFF8ACBFF, 0xFFBDA9FF, 0xFF62E3B8, 0xFFFF93B5, 0xFFF0D17C, 0};
+ static final String[] ACCENT_NAMES = {"Lime", "Sky", "Lilac", "Mint", "Rose", "Sand", "Peach", "Teal", "Periwinkle", "Coral", "Aqua", "Lavender", "Butter", "Sage", "Apricot", "Ice", "Wallpaper"};
+ static final int[] ACCENTS = {0xFFC7F23A, 0xFF8ACBFF, 0xFFBDA9FF, 0xFF62E3B8, 0xFFFF93B5, 0xFFF0D17C, 0xFFFFC49B, 0xFF6CD4C5, 0xFFA7B6FF, 0xFFFFACAB, 0xFF83E5EE, 0xFFD6B8FF, 0xFFF8E78F, 0xFFB6D3A0, 0xFFF2BC8D, 0xFFC1E4F9, 0};
 
  static String initial(String name) {
   String n = name == null ? "" : name.trim();
@@ -105,7 +105,7 @@ final class Ui {
  }
 
  static ImageView icon(Context c, String name, float sizeDp, int color) {
-  ImageView v = new ImageView(c); v.setImageDrawable(new Icons.Draw(name, color)); v.setLayoutParams(lp(dp(sizeDp), dp(sizeDp))); return v;
+  ImageView v = new ImageView(c); v.setImageDrawable(name.equals("whatsapp")?Icons.brand(c,name):new Icons.Draw(name, color)); v.setLayoutParams(lp(dp(sizeDp), dp(sizeDp))); return v;
  }
 
  /** Circular icon badge. */

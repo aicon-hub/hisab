@@ -53,6 +53,22 @@ public class ShotTest {
   helper.ime(900);snap(a,"40-name-with-ime-inset");helper.ime(0);snap(a,"41-name-after-ime");
   helper.click("Save");snap(a,"42-settings-after-save");
  }
+
+ @Test public void features() throws Exception {
+  MainActivity a=start(false); Settings.open(a);snap(a,"50-settings-profile");
+  a.closeAll();Pages.iconPicker(a,"other",v->{});snap(a,"51-icon-picker");
+  a.closeAll();Backup.password(a,true);snap(a,"52-backup");
+  a.closeAll();BankSms.open(a);snap(a,"53-bank-sms");
+  a.closeAll();PeoplePage.person(a,a.db.people().get(0));snap(a,"54-reminder-icons");
+  a.closeAll();Settings.open(a);View outer=a.layers.get(0).content;ScrollView sv=(ScrollView)((android.view.ViewGroup)outer).getChildAt(1);snap(a,"55-settings-before-scroll");sv.scrollTo(0,5000);snap(a,"56-community");
+  a.closeAll();a.showTab(0,false);android.widget.EditText q=a.root.findViewWithTag("quickEntry");q.setText("auto 60 yesterday");snap(a,"57-quick-entry");
+  a.db.setPref("appearance","Dark");a.applyTheme();a.closeAll();a.build();Backup.password(a,false);snap(a,"58-restore-dark");
+ }
+ @Test public void launcherIconSheet() throws Exception {
+  MainActivity a=start(false);Bitmap b=Bitmap.createBitmap(1200,900,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(b);canvas.drawColor(0xFFF4F0E8);Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);paint.setTextSize(22);paint.setColor(0xFF15161A);int i=0;
+  for(String name:Ui.ACCENT_NAMES){int id=a.getResources().getIdentifier("icon_"+name.toLowerCase(java.util.Locale.ROOT),"mipmap",a.getPackageName());android.graphics.drawable.Drawable icon=a.getDrawable(id);int x=(i%6)*200+40,y=(i/6)*280+30;icon.setBounds(x,y,x+120,y+120);icon.draw(canvas);canvas.drawText(name,x,y+158,paint);i++;}
+  try(FileOutputStream out=new FileOutputStream(OUT+"/59-launcher-icons.png")){b.compress(Bitmap.CompressFormat.PNG,100,out);}
+ }
  @Test public void logo() throws Exception {
   MainActivity a = start(false); FrameLayout f = new FrameLayout(a); f.setBackgroundColor(Ui.bg); Charts.Logo l = new Charts.Logo(a); l.t = 1f; Wordmark w = new Wordmark(a, Ui.ink);
   LinearLayout m = Ui.col(a); m.setGravity(Gravity.CENTER_HORIZONTAL); m.addView(l, Ui.lp(Ui.dp(116), Ui.dp(116))); m.addView(w, Ui.lpm(Ui.dp(112), Ui.dp(44), 0, 18, 0, 0)); f.addView(m, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));

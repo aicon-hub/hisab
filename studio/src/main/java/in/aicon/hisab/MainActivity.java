@@ -50,6 +50,7 @@ public class MainActivity extends Activity {
   launching = b == null && Ui.motion(root) && !getIntent().getBooleanExtra("noLaunch", false);
   build();
   if (launching) showLaunch();
+  LauncherIcons.apply(this);
   Reminders.schedule(this, db);
  }
 
@@ -59,6 +60,7 @@ public class MainActivity extends Activity {
   boolean sysDark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
   boolean dark = mode.equals("Dark") || (mode.equals("System") && sysDark);
   Ui.theme(this, dark, db.flag("pureBlack", false), db.pref("accent", "Lime"), db.pref("font", "Inter"));
+  if(root!=null)LauncherIcons.apply(this);
   Window w = getWindow(); w.getDecorView().setBackgroundColor(Ui.bg);
   int flags = w.getDecorView().getSystemUiVisibility();
   w.getDecorView().setSystemUiVisibility(dark ? flags & ~(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | 16) : flags | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | 16);
@@ -246,5 +248,6 @@ public class MainActivity extends Activity {
    } catch (Exception e) { toast("Could not read that contact", null); }
   });
  }
+ @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] grants){super.onRequestPermissionsResult(code,permissions,grants);if(code==71){boolean yes=grants.length>0&&grants[0]==android.content.pm.PackageManager.PERMISSION_GRANTED;db.setPref("smsEnabled",yes?"1":"0");closeAll();BankSms.open(this);toast(yes?"Bank SMS enabled. Link an account":"SMS permission not granted",null);}else if(code==72){if(grants.length>0&&grants[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)BankSms.scan(this);else toast("Inbox access not granted",null);}}
  @Override protected void onResume() { super.onResume(); if (db != null && root != null && !layers.isEmpty() == false) { /* keep state */ } }
 }

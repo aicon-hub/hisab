@@ -21,8 +21,7 @@ final class Kit {
   LinearLayout r = Ui.row(a); r.setPadding(0, Ui.dp(6), 0, Ui.dp(18));
   LinearLayout t = Ui.col(a); t.addView(Ui.text(a, sub, 13, Ui.muted, true)); TextView h = Ui.big(a, title, 32, Ui.ink); h.setPadding(0, Ui.dp(5), 0, 0); t.addView(h); r.addView(t, Ui.weight(1));
   if (avatar) {
-   String nm = a.db.pref("name", "You"); FrameLayout av = new FrameLayout(a); av.setBackground(Ui.shape(Ui.accent, 22));
-   TextView in = Ui.big(a, Ui.initial(nm), 18, Ui.onAccent); av.addView(in, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
+   View av = Profile.avatar(a,44);
    r.addView(av, Ui.lp(Ui.dp(44), Ui.dp(44))); av.setContentDescription("Settings"); Ui.tap(av, () -> Settings.open(a));
   }
   return r;

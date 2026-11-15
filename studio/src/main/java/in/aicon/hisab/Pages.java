@@ -24,7 +24,7 @@ final class Pages {
   Kit.page(a, "Accounts", "plus", add, c -> {
    LinearLayout card = Ui.card(a); card.setPadding(Ui.dp(16), Ui.dp(6), Ui.dp(16), Ui.dp(6)); List<Store.Acc> as = db.accounts();
    for (int i = 0; i < as.size(); i++) { Store.Acc x = as.get(i); if (i > 0) card.addView(Ui.divider(a)); long bal = db.balance(x);
-    card.addView(row(a, accIcon(x.kind), Ui.surface2, x.name, Fmt.title(x.kind), Fmt.money(bal), bal < 0 ? Ui.neg : Ui.ink, () -> Sheets.form(a, "Edit account", new String[]{"Name", "Starting balance"}, new String[]{x.name, plain(x.opening)}, new int[]{Sheets.TEXT, Sheets.NUMBER}, "Save", v -> { if (!v[0].isEmpty()) { x.name = v[0]; x.opening = amt(v[1]); db.updateAccount(x); a.refresh(); } }, () -> { if (!db.deleteAccount(x.id)) a.toast("This account has entries, so it stays", null); a.refresh(); }))); }
+    card.addView(row(a, accIcon(x.kind), Ui.surface2, x.name, BankSms.display(db,x.id)==null?Fmt.title(x.kind):BankSms.display(db,x.id), Fmt.money(bal), bal < 0 ? Ui.neg : Ui.ink, () -> Sheets.form(a, "Edit account", new String[]{"Name", "Starting balance"}, new String[]{x.name, plain(x.opening)}, new int[]{Sheets.TEXT, Sheets.NUMBER}, "Save", v -> { if (!v[0].isEmpty()) { x.name = v[0]; x.opening = amt(v[1]); db.updateAccount(x); a.refresh(); } }, () -> { if (!db.deleteAccount(x.id)) a.toast("Keep one account, and remove its entries before deleting", null); a.refresh(); }))); }
    c.addView(card); c.addView(Ui.text(a, "Balance is the starting balance plus every entry on the account.", 12.5f, Ui.muted, false), Ui.lpm(-2, -2, 4, 12, 0, 0));
   });
  }
@@ -68,14 +68,20 @@ final class Pages {
   });
  }
 
+ static void iconPicker(MainActivity a,String current,java.util.function.Consumer<String> done){
+  LinearLayout body=Sheets.sheetBody(a,"Choose an icon"); MainActivity.Layer[] layer=new MainActivity.Layer[1];
+  String[] icons=Icons.CATEGORY_ICONS;
+  for(int i=0;i<icons.length;i+=4){LinearLayout row=Ui.row(a);for(int j=i;j<Math.min(i+4,icons.length);j++){String icon=icons[j];LinearLayout cell=Ui.col(a);cell.setGravity(Gravity.CENTER);cell.setPadding(Ui.dp(6),Ui.dp(12),Ui.dp(6),Ui.dp(12));cell.addView(Ui.badge(a,icon,48,icon.equals(current)?Ui.accent:Ui.surface2,Ui.ink));cell.addView(Ui.text(a,Fmt.title(icon),11,Ui.muted,false));row.addView(cell,Ui.weight(1));Ui.tap(cell,()->{a.close(layer[0]);done.accept(icon);});}body.addView(row);}
+  layer[0]=Sheets.show(a,body);
+ }
  static void categories(MainActivity a) {
   Store db = a.db;
   Runnable add = () -> Sheets.pick(a, "New category for", Arrays.asList("Spending", "Income"), Arrays.asList("up", "download"), -1, i -> Sheets.form(a, "New category", new String[]{"Name"}, new String[]{""}, new int[]{Sheets.TEXT}, "Add", v -> {
-   if (v[0].isEmpty()) return; List<String> ic = new ArrayList<>(Arrays.asList(Icons.CATEGORY_ICONS)); Sheets.pick(a, "Icon", ic, ic, -1, k -> { db.addCategory(v[0], i == 0 ? "expense" : "income", ic.get(k)); a.refresh(); }); }, null));
+   if (v[0].isEmpty()) return; List<String> ic = new ArrayList<>(Arrays.asList(Icons.CATEGORY_ICONS)); iconPicker(a,"other",icon -> { db.addCategory(v[0], i == 0 ? "expense" : "income", icon); a.refresh(); }); }, null));
   Kit.page(a, "Categories", "plus", add, c -> {
    for (String kind : new String[]{"expense", "income"}) { c.addView(Ui.label(a, kind.equals("expense") ? "Spending" : "Income")); ((LinearLayout.LayoutParams) c.getChildAt(c.getChildCount() - 1).getLayoutParams()).bottomMargin = Ui.dp(8);
     LinearLayout card = Ui.card(a); card.setPadding(Ui.dp(16), Ui.dp(6), Ui.dp(16), Ui.dp(6)); List<Store.Cat> cs = db.categories(kind);
-    for (int i = 0; i < cs.size(); i++) { Store.Cat x = cs.get(i); if (i > 0) card.addView(Ui.divider(a)); card.addView(row(a, x.icon, Kit.tone(x.id), x.name, null, null, 0, () -> Sheets.form(a, "Edit category", new String[]{"Name"}, new String[]{x.name}, new int[]{Sheets.TEXT}, "Save", v -> { if (!v[0].isEmpty()) { x.name = v[0]; db.updateCategory(x); a.refresh(); } }, () -> { db.deleteCategory(x.id); a.refresh(); }))); }
+    for (int i = 0; i < cs.size(); i++) { Store.Cat x = cs.get(i); if (i > 0) card.addView(Ui.divider(a)); card.addView(row(a, x.icon, Kit.tone(x.id), x.name, null, null, 0, () -> Sheets.form(a, "Edit category", new String[]{"Name"}, new String[]{x.name}, new int[]{Sheets.TEXT}, "Save", v -> { if (!v[0].isEmpty()) { x.name = v[0]; db.updateCategory(x); a.refresh(); iconPicker(a,x.icon,icon->{x.icon=icon;db.updateCategory(x);a.refresh();}); } }, () -> { db.deleteCategory(x.id); a.refresh(); }))); }
     c.addView(card, Ui.lpm(-1, -2, 0, 0, 0, 20)); }
   });
  }
