@@ -1,3 +1,9 @@
+# Current: 0.3.0 visual preview
+
+See [PREVIEW-0.3.0.md](PREVIEW-0.3.0.md). Separate application ID, Google sign-in unavailable in that APK, no stable replacement. Existing installation and data untouched. Normal source package/cloud implementation retained.
+
+---
+
 # 0.2.3-dev candidate status
 
 12 November 2026. Development prerelease, not production-ready. Local build/signature and 128 distinct framework methods across 18 classes pass in bounded groups, including all 42 UI methods. These are simulations, not a phone certification. Exact methods and pending checks are in VERIFICATION.md.

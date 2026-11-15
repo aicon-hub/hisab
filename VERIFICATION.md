@@ -1,3 +1,9 @@
+# Current check: 0.3.0 visual preview
+
+104 distinct framework-simulation methods across 11 classes rerun and passed. Native screenshot inspection and APK/variant checks are described in [PREVIEW-0.3.0.md](PREVIEW-0.3.0.md). No real-device testing claimed. Prior full-suite evidence below is historical.
+
+---
+
 # 0.2.3-dev verification
 
 128 distinct passing framework methods across 18 classes, including all 42 LocalUiTest methods. Bounded class/UI groups passed. A final focused rerun passed debt save/repayment/cascade delete and stale/explicit messaging protections. This is Android-framework simulation, not phone testing or a performance comparison with another app.

@@ -1,13 +1,17 @@
 plugins { id 'com.android.application' }
+def visualPreview = project.hasProperty('visualPreview')
 android {
+ buildFeatures { buildConfig true }
  namespace 'in.aicon.pocket.test'
  compileSdk 36
  defaultConfig {
-  applicationId 'in.aicon.pocket.test'
+  applicationId visualPreview ? 'in.aicon.hisab.visualpreview' : 'in.aicon.pocket.test'
+  manifestPlaceholders = [appLabel: visualPreview ? 'Hisab Preview' : 'Hisab']
+  buildConfigField 'boolean', 'VISUAL_PREVIEW', visualPreview.toString()
   minSdk 26
   targetSdk 35
-  versionCode 5
-  versionName '0.2.3-dev'
+  versionCode 6
+  versionName '0.3.0-dev'
  }
  testOptions { unitTests.includeAndroidResources = true; unitTests.all { systemProperty "robolectric.dependency.repo.url", "https://maven-central.storage-download.googleapis.com/maven2"; maxHeapSize = "768m"; forkEvery = 1 } }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
