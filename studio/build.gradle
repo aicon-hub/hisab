@@ -4,13 +4,13 @@ android {
  compileSdk 36
  buildFeatures { buildConfig true }
  defaultConfig {
-  applicationId 'in.aicon.hisab.studio'
+  applicationId 'in.aicon.hisab.studio2'
   minSdk 26
   targetSdk 35
-  versionCode 7
-  versionName '0.4.0-redesign'
+  versionCode 8
+  versionName '0.4.1-crashfix'
  }
- testOptions { unitTests.includeAndroidResources = true; unitTests.all { systemProperty "robolectric.dependency.repo.url", "https://maven-central.storage-download.googleapis.com/maven2"; maxHeapSize = "768m" } }
+ testOptions { unitTests.includeAndroidResources = true; unitTests.all { systemProperty "robolectric.dependency.repo.url", "https://maven-central.storage-download.googleapis.com/maven2"; maxHeapSize = "512m"; forkEvery = 1 } }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies {

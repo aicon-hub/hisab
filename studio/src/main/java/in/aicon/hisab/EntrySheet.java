@@ -81,7 +81,7 @@ final class EntrySheet {
    pad.addView(r);
   }
   c.addView(pad);
-  renderAll[0].run(); return c;
+  renderAll[0].run(); return Sheets.scroll(a, c);
  }
  static void okIcon(View key, S s) {}
 

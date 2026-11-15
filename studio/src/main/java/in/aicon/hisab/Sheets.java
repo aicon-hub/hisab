@@ -17,7 +17,12 @@ final class Sheets {
   return c;
  }
 
- static MainActivity.Layer show(MainActivity a, View v) { MainActivity.Layer l = a.open(() -> v, true); l.build = null; return l; }
+ static MainActivity.Layer show(MainActivity a, View v) { ScrollView scroll = scroll(a, v); MainActivity.Layer l = a.open(() -> scroll, true); l.build = null; return l; }
+
+ static ScrollView scroll(MainActivity a, View content) {
+  ScrollView s = new ScrollView(a); s.setFillViewport(false); s.setVerticalScrollBarEnabled(false);
+  s.addView(content, new FrameLayout.LayoutParams(-1, -2)); return s;
+ }
 
  /** Choose one option. Calls back with the index and closes. */
  static void pick(MainActivity a, String title, List<String> labels, List<String> icons, int selected, IntConsumer done) {

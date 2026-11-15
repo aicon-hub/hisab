@@ -24,7 +24,7 @@ final class Settings {
   Kit.page(a, "Settings", null, null, c -> {
    // profile
    LinearLayout p = Ui.row(a); p.setBackground(Ui.shape(Ui.surface, 26)); p.setPadding(Ui.dp(18), Ui.dp(16), Ui.dp(18), Ui.dp(16));
-   String nm = db.pref("name", "You"); FrameLayout av = new FrameLayout(a); av.setBackground(Ui.shape(Ui.accent, 28)); av.addView(Ui.big(a, nm.substring(0, 1).toUpperCase(Locale.ROOT), 24, Ui.onAccent), new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER)); p.addView(av, Ui.lpm(Ui.dp(56), Ui.dp(56), 0, 0, 16, 0));
+   String nm = db.pref("name", "You"); FrameLayout av = new FrameLayout(a); av.setBackground(Ui.shape(Ui.accent, 28)); av.addView(Ui.big(a, Ui.initial(nm), 24, Ui.onAccent), new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER)); p.addView(av, Ui.lpm(Ui.dp(56), Ui.dp(56), 0, 0, 16, 0));
    LinearLayout m = Ui.col(a); m.addView(Ui.big(a, nm, 20, Ui.ink)); TextView s = Ui.text(a, "Stored only on this phone", 13, Ui.muted, false); s.setPadding(0, Ui.dp(5), 0, 0); m.addView(s); p.addView(m, Ui.weight(1)); p.addView(Ui.icon(a, "edit", 20, Ui.muted));
    Ui.tap(p, () -> Sheets.form(a, "Your name", new String[]{"Name"}, new String[]{nm}, new int[]{Sheets.TEXT}, "Save", v -> { if (!v[0].isEmpty()) { db.setPref("name", v[0]); a.refresh(); a.closeAll(); open(a); } }, null)); c.addView(p);
 
@@ -54,7 +54,7 @@ final class Settings {
 
    c.addView(Kit.sectionHead(a, "About", null, null)); LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
-   ab.addView(Ui.text(a, "Version 0.4.0 test build", 12.5f, Ui.muted, true)); c.addView(ab);
+   ab.addView(Ui.text(a, "Version 0.4.1 test build", 12.5f, Ui.muted, true)); c.addView(ab);
   });
  }
 
@@ -63,6 +63,6 @@ final class Settings {
   StringBuilder b = new StringBuilder("Date,Type,Amount,Account,To account,Category,Person,Note\n");
   for (Store.Tx t : db.txs("0000-01-01", "9999-12-31")) { b.append(t.day).append(',').append(t.kind).append(',').append(Ledger.plain(t.amount)).append(',').append(Ledger.csv(accs.get(t.account) == null ? "" : accs.get(t.account).name)).append(',').append(Ledger.csv(accs.get(t.dest) == null ? "" : accs.get(t.dest).name)).append(',').append(Ledger.csv(cats.get(t.cat) == null ? "" : cats.get(t.cat).name)).append(',').append(Ledger.csv(ppl.get(t.person) == null ? "" : ppl.get(t.person).name)).append(',').append(Ledger.csv(t.note)).append('\n'); }
   Intent i = new Intent(Intent.ACTION_SEND).setType("text/csv").putExtra(Intent.EXTRA_TEXT, b.toString()).putExtra(Intent.EXTRA_SUBJECT, "Hisab entries");
-  a.startActivity(Intent.createChooser(i, "Export entries"));
+  a.launchExternal(Intent.createChooser(i, "Export entries"));
  }
 }
