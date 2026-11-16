@@ -22,7 +22,7 @@ final class Settings {
  static void open(MainActivity a) {
   Store db = a.db;
   Kit.page(a, "Settings", null, null, c -> {
-   // profile
+
    LinearLayout p = Ui.row(a); p.setBackground(Ui.shape(Ui.surface, 26)); p.setPadding(Ui.dp(18), Ui.dp(16), Ui.dp(18), Ui.dp(16));
    String nm = db.pref("name", "You"); View av = Profile.avatar(a,56); p.addView(av, Ui.lpm(Ui.dp(56), Ui.dp(56), 0, 0, 16, 0));
    LinearLayout m = Ui.col(a); m.addView(Ui.big(a, nm, 20, Ui.ink)); TextView s = Ui.text(a, "Stored only on this phone", 13, Ui.muted, false); s.setPadding(0, Ui.dp(5), 0, 0); m.addView(s); p.addView(m, Ui.weight(1)); p.addView(Ui.icon(a, "edit", 20, Ui.muted));
@@ -39,6 +39,10 @@ final class Settings {
    look.addView(Ui.text(a,"Your launcher may refresh the icon with a short delay. Android themed icons can override these colours.",12,Ui.muted,false),Ui.lpm(-1,-2,0,0,0,12)); look.addView(Ui.divider(a));
    LinearLayout pb = Ui.row(a); pb.setPadding(0, Ui.dp(13), 0, Ui.dp(13)); pb.addView(Ui.text(a, "Pure black in dark mode", 15.5f, Ui.ink, true), Ui.weight(1)); Switch sh = new Switch(a); sh.setChecked(db.flag("pureBlack", false)); pb.addView(sh); sh.setOnCheckedChangeListener((v, on) -> { db.setPref("pureBlack", on ? "1" : "0"); a.applyTheme(); a.build(); a.closeAll(); open(a); }); look.addView(pb); look.addView(Ui.divider(a));
    look.addView(item(a, "edit", "Font", db.pref("font", "Inter"), () -> choose(a, "Font", "font", new String[]{"Inter", "System", "Lora", "Poppins"}, db.pref("font", "Inter"), true))); c.addView(look);
+
+   c.addView(item(a,"globe","Language / ഭാഷ",db.pref("language","English"),()->choose(a,"Language / ഭാഷ","language",new String[]{"English","മലയാളം"},db.pref("language","English"),true)));
+   c.addView(Ui.text(a,"Malayalam is a beta interface translation. Technical help may remain in English. Your entries and category names are not changed.",12,Ui.muted,false));
+   c.addView(item(a,"lock","Privacy",null,()->Privacy.open(a)));
 
    c.addView(Kit.sectionHead(a, "Money", null, null)); LinearLayout mo = Ui.card(a); mo.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
    mo.addView(item(a, "wallet", "Accounts", null, () -> Pages.accounts(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "other", "Categories", null, () -> Pages.categories(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "target", "Budgets", null, () -> Pages.budgets(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "flame", "Goals", null, () -> Pages.goals(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "repeat", "Bills and repeats", null, () -> Pages.recurring(a))); mo.addView(Ui.divider(a));
@@ -61,7 +65,7 @@ final class Settings {
 
    c.addView(Kit.sectionHead(a, "About", null, null)); LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
-   ab.addView(Ui.text(a, "Version 0.5.0 test build", 12.5f, Ui.muted, true)); c.addView(ab);
+   ab.addView(Ui.text(a, "Version 0.6.0 test build", 12.5f, Ui.muted, true)); c.addView(ab);
    LinearLayout note=Ui.card(a);note.addView(Ui.text(a,"A note from AiCoN",18,Ui.ink,true));note.addView(Ui.text(a,"Built to make everyday money easier to keep track of. Free to use, open source, and yours to shape. Your records stay on your phone. Thanks for trying Hisab and telling us what needs work.",14,Ui.muted,false),Ui.lpm(-1,-2,0,10,0,14));
    for(String[] link:new String[][]{{"WhatsApp channel","https://whatsapp.com/channel/0029VawGIGTD38CRJde0fl1c","whatsapp"},{"Telegram community","https://t.me/AiCoN4tech","telegram"},{"AiCoN website","https://aicon-hub.github.io/","globe"}}){note.addView(item(a,link[2],link[0],null,()->a.launchExternal(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(link[1])))));}
    c.addView(note,Ui.lpm(-1,-2,0,18,0,20));

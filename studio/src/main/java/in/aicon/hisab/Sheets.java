@@ -39,7 +39,7 @@ final class Sheets {
  }
 
  static EditText field(MainActivity a, String hint, String initial, int type) {
-  EditText e = new EditText(a); e.setHint(hint); e.setHintTextColor(Ui.muted); e.setTextColor(Ui.ink); e.setTextSize(16); e.setTypeface(Ui.body); e.setInputType(type); e.setSingleLine(true); e.setText(initial);
+  EditText e = new EditText(a); e.setHint(L.t(hint)); e.setHintTextColor(Ui.muted); e.setTextColor(Ui.ink); e.setTextSize(16); e.setTypeface(Ui.body); e.setInputType(type); e.setSingleLine(true); e.setText(initial);
   e.setBackground(Ui.outline(Ui.surface2, Ui.surface2, 16, 1)); e.setPadding(Ui.dp(16), Ui.dp(14), Ui.dp(16), Ui.dp(14)); return e;
  }
  static final int TEXT = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES, NUMBER = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL;

@@ -125,18 +125,18 @@ final class Charts {
    super(c);
    path.moveTo(282, 278); path.lineTo(464, 320); path.lineTo(464, 478); path.lineTo(560, 456); path.lineTo(560, 298); path.lineTo(742, 256); path.lineTo(742, 710); path.lineTo(560, 752); path.lineTo(560, 578); path.lineTo(464, 600); path.lineTo(464, 774); path.lineTo(282, 732); path.close();
    pm = new PathMeasure(path, true); len = pm.getLength();
-   fill.setColor(0xFFFFF8F1); stroke.setColor(0xFFFFF8F1); stroke.setStyle(Paint.Style.STROKE); stroke.setStrokeWidth(10); stroke.setStrokeJoin(Paint.Join.ROUND);
-   mark.setColor(0xFFE95B26); mark.setStyle(Paint.Style.STROKE); mark.setStrokeWidth(17); mark.setStrokeCap(Paint.Cap.ROUND);
+   fill.setColor(Ui.onAccent); stroke.setColor(Ui.onAccent); stroke.setStyle(Paint.Style.STROKE); stroke.setStrokeWidth(10); stroke.setStrokeJoin(Paint.Join.ROUND);
+   mark.setColor(Ui.accent); mark.setStyle(Paint.Style.STROKE); mark.setStrokeWidth(17); mark.setStrokeCap(Paint.Cap.ROUND);
    ticks.moveTo(342, 407); ticks.lineTo(404, 421); ticks.moveTo(622, 397); ticks.lineTo(684, 383); ticks.moveTo(342, 656); ticks.lineTo(404, 670); ticks.moveTo(622, 661); ticks.lineTo(684, 647);
   }
   @Override void play() {
    if (!Ui.motion(this)) { t = 1f; return; }
-   t = 0f; ValueAnimator a = ValueAnimator.ofFloat(0f, 1f); a.setDuration(900); a.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+   t = 0f; ValueAnimator a = ValueAnimator.ofFloat(0f, 1f); a.setDuration(720); a.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
    a.addUpdateListener(x -> { t = (float) x.getAnimatedValue(); invalidate(); }); a.start();
   }
   @Override protected void onDraw(Canvas c) {
    float side = Math.min(getWidth(), getHeight()), left = (getWidth() - side) / 2f, top = (getHeight() - side) / 2f;
-   float tile = Math.min(1f, t / 0.28f); float sc = 0.82f + 0.18f * tile; Paint bgp = new Paint(Paint.ANTI_ALIAS_FLAG); bgp.setColor(0xFFE95B26); bgp.setAlpha((int) (255 * tile));
+   float tile = Math.min(1f, t / 0.28f); float sc = 0.82f + 0.18f * tile; Paint bgp = new Paint(Paint.ANTI_ALIAS_FLAG); bgp.setColor(Ui.accent); bgp.setAlpha((int) (255 * tile));
    c.save(); c.scale(sc, sc, getWidth() / 2f, getHeight() / 2f); c.drawRoundRect(new RectF(left, top, left + side, top + side), side * 0.24f, side * 0.24f, bgp);
    float s = side * 0.62f / 500f; c.translate(getWidth() / 2f - 512 * s, getHeight() / 2f - 526 * s); c.scale(s, s);
    float draw = Math.max(0f, Math.min(1f, (t - 0.18f) / 0.5f)), flood = Math.max(0f, (t - 0.6f) / 0.4f);

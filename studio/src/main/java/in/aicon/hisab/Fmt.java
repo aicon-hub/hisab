@@ -33,14 +33,14 @@ final class Fmt {
  }
 
  static LocalDate today() { return LocalDate.now(); }
- static String month(YearMonth m) { return m.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH) + " " + m.getYear(); }
- static String monthShort(YearMonth m) { return m.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH); }
+ static String month(YearMonth m) { return m.getMonth().getDisplayName(TextStyle.FULL, L.locale()) + " " + m.getYear(); }
+ static String monthShort(YearMonth m) { return m.getMonth().getDisplayName(TextStyle.SHORT, L.locale()); }
  static String dayLabel(String iso) {
   LocalDate d = LocalDate.parse(iso), t = today();
   if (d.equals(t)) return "Today"; if (d.equals(t.minusDays(1))) return "Yesterday";
-  return d.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + ", " + d.getDayOfMonth() + " " + d.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+  return d.getDayOfWeek().getDisplayName(TextStyle.SHORT, L.locale()) + ", " + d.getDayOfMonth() + " " + d.getMonth().getDisplayName(TextStyle.SHORT, L.locale());
  }
- static String shortDate(String iso) { LocalDate d = LocalDate.parse(iso); return d.getDayOfMonth() + " " + d.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH); }
+ static String shortDate(String iso) { LocalDate d = LocalDate.parse(iso); return d.getDayOfMonth() + " " + d.getMonth().getDisplayName(TextStyle.SHORT, L.locale()); }
  static String from(YearMonth m) { return m.atDay(1).toString(); }
  static String to(YearMonth m) { return m.atEndOfMonth().toString(); }
  static String title(String s) { return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1); }
