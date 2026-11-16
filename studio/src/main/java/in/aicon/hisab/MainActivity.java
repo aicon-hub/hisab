@@ -55,6 +55,8 @@ public class MainActivity extends Activity {
  }
 
  void applyTheme() {
+  L.language = db.pref("language", "English");
+  Privacy.apply(this);
   Fmt.currency(db.pref("currency", "INR")); Fmt.grouping = db.pref("grouping", "Indian");
   String mode = db.pref("appearance", "System");
   boolean sysDark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
@@ -136,8 +138,8 @@ public class MainActivity extends Activity {
   View v;
   switch (i) { case 1: v = LedgerPage.build(this); break; case 3: v = InsightsPage.build(this); break; case 4: v = PeoplePage.build(this); break; default: v = HomePage.build(this); }
   tabHost.addView(v, new FrameLayout.LayoutParams(-1, -1));
-  if (animate && change) { v.setAlpha(0); v.animate().alpha(1).setDuration(180).start(); }
-  // dock refresh
+  if (animate && change && Ui.motion(root)) { v.setAlpha(0); v.animate().alpha(1).setDuration(180).start(); }
+
   root.removeView(dock); buildDock();
  }
 
@@ -152,7 +154,6 @@ public class MainActivity extends Activity {
   }
  }
 
- // ---- layers
  Layer open(Supplier<View> build, boolean sheet) {
   Layer l = new Layer(); l.build = build; l.sheet = sheet;
   l.holder = new FrameLayout(this); l.holder.setClickable(true);
@@ -176,7 +177,6 @@ public class MainActivity extends Activity {
  void close(Layer l) {
   if (!layers.remove(l)) return;
   Runnable end = () -> { layerHost.removeView(l.holder); if (l.onClose != null) l.onClose.run(); };
-  View.OnClickListener none = null;
   if (Ui.motion(root)) { l.holder.setAlpha(1); l.panel.animate().translationY(l.sheet ? Ui.dp(500) : 0).translationX(l.sheet ? 0 : Ui.dp(120)).alpha(l.sheet ? 1 : 0).setDuration(200).withEndAction(end).start(); l.holder.animate().alpha(0).setDuration(200).start(); }
   else end.run();
   View f = getCurrentFocus(); if (f != null) ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(f.getWindowToken(), 0);
@@ -195,7 +195,6 @@ public class MainActivity extends Activity {
   catch (android.content.ActivityNotFoundException | SecurityException e) { toast("No app available to open this", null); }
  }
 
- // ---- shared actions
  void openEntry(String kind, Store.Tx edit) { EntrySheet.open(this, kind, edit); }
  void openEntryPrefilled(Store.Tx t) { EntrySheet.openPrefilled(this, t); }
  void openTx(Store.Tx t) { Sheets.txDetail(this, t); }
@@ -213,22 +212,32 @@ public class MainActivity extends Activity {
  FrameLayout layerHostRoot() { return root; }
  void dismissToast() { if (toastView != null) { View v = toastView; toastView = null; v.animate().alpha(0).setDuration(160).withEndAction(() -> root.removeView(v)).start(); } }
 
- // ---- launch reveal (cold start only, about 1.6 seconds)
- void showLaunch() {
-  FrameLayout f = new FrameLayout(this); f.setBackgroundColor(Ui.dark ? 0xFF0D0E11 : 0xFFF4F0E8); f.setClickable(true);
+ FrameLayout launchView() {
+  FrameLayout f = new FrameLayout(this); f.setTag("launchReveal"); f.setElevation(Ui.dp(64)); f.setBackgroundColor(Ui.bg);
   LinearLayout m = Ui.col(this); m.setGravity(Gravity.CENTER_HORIZONTAL);
-  Charts.Logo logo = new Charts.Logo(this); m.addView(logo, Ui.lp(Ui.dp(116), Ui.dp(116)));
-  Wordmark w = new Wordmark(this, Ui.ink); w.setAlpha(0); m.addView(w, Ui.lpm(Ui.dp(112), Ui.dp(44), 0, 18, 0, 0));
-  f.addView(m, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER)); root.addView(f, new FrameLayout.LayoutParams(-1, -1));
-  logo.play(); w.animate().alpha(1).setStartDelay(650).setDuration(350).start();
-  f.postDelayed(() -> f.animate().alpha(0).setDuration(280).withEndAction(() -> root.removeView(f)).start(), 1450);
+  Charts.Logo logo = new Charts.Logo(this); logo.setTag("launchLogo"); m.addView(logo, Ui.lp(Ui.dp(112), Ui.dp(112)));
+  Wordmark word = new Wordmark(this, Ui.ink); m.addView(word, Ui.lpm(Ui.dp(112), Ui.dp(44), 0, 20, 0, 0));
+  TextView colour = Ui.text(this, "● " + L.t(db.pref("accent", "Lime")), 13, Ui.ink, true);
+  colour.setBackground(Ui.shape(Ui.accent, 20)); colour.setPadding(Ui.dp(16),Ui.dp(9),Ui.dp(16),Ui.dp(9)); colour.setTextColor(Ui.onAccent);
+  m.addView(colour, Ui.lpm(-2,-2,0,16,0,0));
+  f.addView(m, new FrameLayout.LayoutParams(-2,-2,Gravity.CENTER)); return f;
+ }
+ void showLaunch() {
+  FrameLayout f=launchView(); root.addView(f,new FrameLayout.LayoutParams(-1,-1));
+  View content=f.getChildAt(0); content.setAlpha(0); content.setScaleX(.96f);content.setScaleY(.96f);
+  content.animate().alpha(1).scaleX(1).scaleY(1).setDuration(420).setInterpolator(new DecelerateInterpolator(1.6f)).start();
+  ((Charts.Logo)f.findViewWithTag("launchLogo")).play();
+  f.setClickable(false); f.postDelayed(()->{
+   tabHost.setAlpha(0);tabHost.setTranslationY(Ui.dp(8));
+   tabHost.animate().alpha(1).translationY(0).setDuration(300).start();
+   f.animate().alpha(0).setDuration(300).withEndAction(()->{root.removeView(f);launching=false;}).start();
+  },850);
  }
 
  @Override public void onConfigurationChanged(Configuration c) {
   super.onConfigurationChanged(c); applyTheme(); build();
  }
 
- // ---- activity results
  void request(Intent i, Consumer<Intent> cb) {
   while (results.containsKey(nextRequestCode)) nextRequestCode = nextRequestCode >= 65000 ? 100 : nextRequestCode + 1;
   int code = nextRequestCode++; results.put(code, cb);
@@ -249,5 +258,5 @@ public class MainActivity extends Activity {
   });
  }
  @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] grants){super.onRequestPermissionsResult(code,permissions,grants);if(code==71){boolean yes=grants.length>0&&grants[0]==android.content.pm.PackageManager.PERMISSION_GRANTED;db.setPref("smsEnabled",yes?"1":"0");closeAll();BankSms.open(this);toast(yes?"Bank SMS enabled. Link an account":"SMS permission not granted",null);}else if(code==72){if(grants.length>0&&grants[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)BankSms.scan(this);else toast("Inbox access not granted",null);}}
- @Override protected void onResume() { super.onResume(); if (db != null && root != null && !layers.isEmpty() == false) { /* keep state */ } }
+ @Override protected void onResume() { super.onResume(); if(db!=null && root!=null){Privacy.apply(this); if(tabHost!=null && !launching)refresh();} }
 }

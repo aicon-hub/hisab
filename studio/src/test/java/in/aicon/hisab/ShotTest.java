@@ -75,4 +75,13 @@ public class ShotTest {
   f.measure(View.MeasureSpec.makeMeasureSpec(1080, 1073741824), View.MeasureSpec.makeMeasureSpec(2340, 1073741824)); f.layout(0, 0, 1080, 2340); Bitmap b = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888); f.draw(new Canvas(b));
   try (FileOutputStream o = new FileOutputStream(OUT + "/30-launch.png")) { b.compress(Bitmap.CompressFormat.PNG, 100, o); }
  }
+ @Test public void polish060() throws Exception {
+  MainActivity a=start(false);a.db.setPref("accent","Rose");a.applyTheme();a.build();
+  FrameLayout reveal=a.launchView();((Charts.Logo)reveal.findViewWithTag("launchLogo")).t=1f;a.root.addView(reveal,new FrameLayout.LayoutParams(-1,-1));snap(a,"60-opening-rose");a.root.removeView(reveal);
+  Privacy.open(a);snap(a,"61-privacy");a.closeAll();a.db.setPref("hideAll","1");a.refresh();scroll(a,1450);snap(a,"62-balances-hidden");
+  a.db.setPref("language","മലയാളം");a.applyTheme();a.build();snap(a,"63-home-malayalam");Settings.open(a);snap(a,"64-settings-malayalam");
+  a.closeAll();a.db.setPref("language","English");a.applyTheme();a.build();Pages.iconPicker(a,CategoryIcons.suggest("Gym"),v->{});snap(a,"65-more-icons");
+  a.closeAll();Store.Acc ac=a.db.accounts().get(1);a.db.setPref("smsEnabled","1");a.db.setPref("smsMap:HDFC:1234",""+ac.id);BankSms.apply(a.db,"VM-HDFCBK","A/c XX1234 Avl. Bal is Rs. 1,20,000.00",System.currentTimeMillis());a.db.setPref("hideAll","0");BankSms.open(a);View outer=a.layers.get(0).content;ScrollView sv=(ScrollView)((ViewGroup)outer).getChildAt(1);snap(a,"66-sms-top");sv.scrollTo(0,1050);snap(a,"67-sms-balance");
+ }
+
 }

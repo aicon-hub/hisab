@@ -13,6 +13,22 @@ final class Icons {
  private static String circle(double x, double y, double r) { return "M" + (x - r) + " " + y + "a" + r + " " + r + " 0 1 0 " + (2 * r) + " 0a" + r + " " + r + " 0 1 0 " + (-2 * r) + " 0Z "; }
  static {
 
+  P.put("fitness", "M3 9V15 M6 6V18 M18 6V18 M21 9V15 M6 12H18");
+  P.put("pet", "M7 17C7 12 10 10 12 12C14 10 17 12 17 17C17 21 14 18 12 19C10 18 7 21 7 17Z M5 7V9 M10 4V6 M15 4V6 M20 7V9");
+  P.put("rent", "M4 11L12 4L20 11 M6 10V20H18V10 M10 20V14H14V20 M15 7H18V10");
+  P.put("wifi", "M3 8Q12 1 21 8 M6 12Q12 7 18 12 M9 16Q12 13 15 16 M12 20H12.1");
+  P.put("subscription", "M5 5H19V19H5Z M10 9L15 12L10 15Z");
+  P.put("charity", "M3 14H7L11 17H16L21 12 M7 14V20H16L21 16 M12 11C7 8 9 3 12 6C15 3 17 8 12 11Z");
+  P.put("repair", "M15 4L14 8L17 10L21 8C21 12 18 14 15 13L7 21L3 17L11 9C10 5 12 3 15 4Z");
+  P.put("beauty", "M5 5L19 19 M5 19L19 5 M8 7C8 11 2 11 2 7C2 3 8 3 8 7 M8 17C8 21 2 21 2 17C2 13 8 13 8 17");
+  P.put("work", "M3 8H21V20H3Z M8 8V4H16V8 M3 12L12 15L21 12 M10 15V17H14V15");
+  P.put("baby", "M4 9H20L17 17H8Z M4 5H7L9 17 M10 20H10.1 M16 20H16.1 M12 9V3C17 3 20 5 20 9");
+  P.put("insurance", "M12 3L20 7V12C20 16 17 19 12 22C7 19 4 16 4 12V7Z M8 12L11 15L16 9");
+  P.put("tax", "M5 3H19V21L16 19L12 21L8 19L5 21Z M9 8H9.1 M15 14H15.1 M15 7L9 15");
+  P.put("water", "M12 3C10 7 5 12 5 16A7 7 0 0 0 19 16C19 12 14 7 12 3Z M9 16C9 18 10 19 12 19");
+  P.put("laundry", "M4 3H20V21H4Z M4 8H20 M7 5H7.1 M10 5H10.1 M17 5H17.1 M12 10A4.5 4.5 0 1 0 12 19A4.5 4.5 0 1 0 12 10 M8 14Q12 17 16 14");
+  P.put("electronics", "M4 4H20V16H4Z M9 20H15 M12 16V20 M2 16H22");
+  P.put("eye", "M2 12Q12 0 22 12Q12 24 2 12Z M12 9A3 3 0 1 0 12 15A3 3 0 1 0 12 9");
   P.put("sms", "M4 4H20V17H9L4 21Z M8 8H16 M8 12H14");
   P.put("telegram", "M3 11L21 4L17 21L11 16L8 19L9 14L18 7L7 13Z");
   P.put("globe", circle(12,12,9)+"M3 12H21 M12 3C6 8 6 16 12 21C18 16 18 8 12 3Z");
@@ -69,7 +85,7 @@ final class Icons {
   P.put("flame", "M12 21C8 21 6 18 6 15C6 11 10 9.5 10 5C14 7 18 10.5 18 15C18 18 16 21 12 21Z");
   P.put("spark", "M12 3V8 M12 16V21 M3 12H8 M16 12H21 M6 6L9 9 M15 15L18 18 M18 6L15 9 M9 15L6 18");
  }
- static final String[] CATEGORY_ICONS = {"food", "groceries", "transport", "fuel", "shopping", "bills", "health", "fun", "education", "travel", "phone", "home", "gift", "coin", "other"};
+ static final String[] CATEGORY_ICONS = {"food", "groceries", "transport", "fuel", "shopping", "bills", "health", "fun", "education", "travel", "phone", "home", "gift", "coin", "fitness", "pet", "rent", "wifi", "subscription", "charity", "repair", "beauty", "work", "baby", "insurance", "tax", "water", "laundry", "electronics", "other"};
 
  static Bitmap whatsappBitmap;
  static android.graphics.drawable.Drawable brand(android.content.Context c,String name){

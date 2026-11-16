@@ -34,12 +34,10 @@ final class Store extends SQLiteOpenHelper {
  }
  @Override public void onUpgrade(SQLiteDatabase d, int a, int b) {}
 
- // ---- preferences
  String pref(String k, String def) { try (Cursor c = getReadableDatabase().rawQuery("SELECT v FROM prefs WHERE k=?", new String[]{k})) { return c.moveToFirst() ? c.getString(0) : def; } }
  void setPref(String k, String v) { ContentValues cv = new ContentValues(); cv.put("k", k); cv.put("v", v); getWritableDatabase().insertWithOnConflict("prefs", null, cv, SQLiteDatabase.CONFLICT_REPLACE); }
  boolean flag(String k, boolean def) { return pref(k, def ? "1" : "0").equals("1"); }
 
- // ---- accounts
  List<Acc> accounts() {
   List<Acc> l = new ArrayList<>();
   try (Cursor c = getReadableDatabase().rawQuery("SELECT id,name,kind,opening FROM account ORDER BY id", null)) { while (c.moveToNext()) { Acc a = new Acc(); a.id = c.getLong(0); a.name = c.getString(1); a.kind = c.getString(2); a.opening = c.getLong(3); l.add(a); } }
@@ -66,7 +64,6 @@ final class Store extends SQLiteOpenHelper {
  }
  static int sign(String k) { return (k.equals("income") || k.equals("borrowed") || k.equals("repay_in")) ? 1 : -1; }
 
- // ---- categories
  List<Cat> categories(String kind) {
   List<Cat> l = new ArrayList<>();
   try (Cursor c = getReadableDatabase().rawQuery("SELECT id,name,kind,icon FROM category" + (kind == null ? "" : " WHERE kind=?") + " ORDER BY id", kind == null ? null : new String[]{kind})) { while (c.moveToNext()) { Cat x = new Cat(); x.id = c.getLong(0); x.name = c.getString(1); x.kind = c.getString(2); x.icon = c.getString(3); l.add(x); } }
@@ -78,7 +75,6 @@ final class Store extends SQLiteOpenHelper {
  Map<Long, Cat> categoryMap() { Map<Long, Cat> m = new HashMap<>(); for (Cat c : categories(null)) m.put(c.id, c); return m; }
  private static ContentValues cv(String k, long v) { ContentValues c = new ContentValues(); c.put(k, v); return c; }
 
- // ---- people
  List<Person> people() {
   List<Person> l = new ArrayList<>();
   try (Cursor c = getReadableDatabase().rawQuery("SELECT id,name,phone FROM person ORDER BY name COLLATE NOCASE", null)) { while (c.moveToNext()) { Person p = new Person(); p.id = c.getLong(0); p.name = c.getString(1); p.phone = c.getString(2); l.add(p); } }
@@ -98,7 +94,6 @@ final class Store extends SQLiteOpenHelper {
   return n;
  }
 
- // ---- transactions
  private static Tx tx(Cursor c) { Tx t = new Tx(); t.id = c.getLong(0); t.kind = c.getString(1); t.amount = c.getLong(2); t.day = c.getString(3); t.account = c.getLong(4); t.dest = c.getLong(5); t.cat = c.getLong(6); t.note = c.getString(7); t.person = c.getLong(8); return t; }
  static final String COLS = "id,kind,amount,day,account,dest,cat,note,person";
  List<Tx> txs(String from, String to) {
@@ -125,16 +120,13 @@ final class Store extends SQLiteOpenHelper {
  void deleteTx(long id) { getWritableDatabase().delete("tx", "id=?", new String[]{"" + id}); }
  boolean hasData() { try (Cursor c = getReadableDatabase().rawQuery("SELECT COUNT(*) FROM tx", null)) { c.moveToFirst(); return c.getLong(0) > 0; } }
 
- // ---- budgets
  Map<Long, Long> budgets() { Map<Long, Long> m = new LinkedHashMap<>(); try (Cursor c = getReadableDatabase().rawQuery("SELECT cat,amount FROM budget ORDER BY amount DESC", null)) { while (c.moveToNext()) m.put(c.getLong(0), c.getLong(1)); } return m; }
  void setBudget(long cat, long amount) { if (amount <= 0) { getWritableDatabase().delete("budget", "cat=?", new String[]{"" + cat}); return; } ContentValues v = new ContentValues(); v.put("cat", cat); v.put("amount", amount); getWritableDatabase().insertWithOnConflict("budget", null, v, SQLiteDatabase.CONFLICT_REPLACE); }
 
- // ---- goals
  List<Goal> goals() { List<Goal> l = new ArrayList<>(); try (Cursor c = getReadableDatabase().rawQuery("SELECT id,name,target,saved,icon FROM goal ORDER BY id", null)) { while (c.moveToNext()) { Goal g = new Goal(); g.id = c.getLong(0); g.name = c.getString(1); g.target = c.getLong(2); g.saved = c.getLong(3); g.icon = c.getString(4); l.add(g); } } return l; }
  long saveGoal(Goal g) { ContentValues v = new ContentValues(); v.put("name", g.name); v.put("target", g.target); v.put("saved", g.saved); v.put("icon", g.icon == null ? "target" : g.icon); if (g.id > 0) { getWritableDatabase().update("goal", v, "id=?", new String[]{"" + g.id}); return g.id; } return getWritableDatabase().insert("goal", null, v); }
  void deleteGoal(long id) { getWritableDatabase().delete("goal", "id=?", new String[]{"" + id}); }
 
- // ---- recurring
  List<Rec> recurring() {
   List<Rec> l = new ArrayList<>();
   try (Cursor c = getReadableDatabase().rawQuery("SELECT id,title,kind,amount,account,cat,period,next,active FROM recur ORDER BY next", null)) { while (c.moveToNext()) { Rec r = new Rec(); r.id = c.getLong(0); r.title = c.getString(1); r.kind = c.getString(2); r.amount = c.getLong(3); r.account = c.getLong(4); r.cat = c.getLong(5); r.period = c.getString(6); r.next = c.getString(7); r.active = c.getInt(8) == 1; l.add(r); } }
@@ -150,7 +142,6 @@ final class Store extends SQLiteOpenHelper {
  }
  void skip(Rec r) { r.next = advance(r.next, r.period); saveRec(r); }
 
- // ---- everything (backup, reset)
  void wipe() { SQLiteDatabase d = getWritableDatabase(); for (String t : new String[]{"tx", "budget", "goal", "recur", "person", "category", "account"}) d.delete(t, null, null); setPref("sample", "0"); }
  void seedBasics() {
   if (!categories(null).isEmpty()) return;

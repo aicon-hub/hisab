@@ -55,6 +55,7 @@ final class Ui {
    case "Poppins": body = pop; bodyBold = popB; display = popB; displayBold = popB; break;
    default: body = inter; bodyBold = interB; display = lora; displayBold = loraB;
   }
+  if(L.isMl()){ body=Typeface.create("sans-serif",Typeface.NORMAL);bodyBold=Typeface.create("sans-serif",Typeface.BOLD);display=body;displayBold=bodyBold; }
  }
 
  private static Typeface load(Context c, String name, int weight) {
@@ -76,12 +77,12 @@ final class Ui {
  }
 
  static TextView text(Context c, CharSequence s, float sp, int color, boolean bold) {
-  TextView t = new TextView(c); t.setText(s); t.setTextSize(sp); t.setTextColor(color);
-  t.setTypeface(bold ? bodyBold : body); t.setIncludeFontPadding(false); return t;
+  TextView t = new TextView(c); t.setText(L.t(s)); t.setTextSize(sp); t.setTextColor(color);
+  t.setTypeface(bold ? bodyBold : body); t.setIncludeFontPadding(L.isMl()); return t;
  }
  static TextView big(Context c, CharSequence s, float sp, int color) {
-  TextView t = new TextView(c); t.setText(s); t.setTextSize(sp); t.setTextColor(color);
-  t.setTypeface(displayBold); t.setIncludeFontPadding(false); return t;
+  TextView t = new TextView(c); t.setText(L.t(s)); t.setTextSize(sp); t.setTextColor(color);
+  t.setTypeface(displayBold); t.setIncludeFontPadding(L.isMl()); return t;
  }
  static TextView label(Context c, CharSequence s) {
   TextView t = text(c, s.toString().toUpperCase(java.util.Locale.ROOT), 11, muted, true); t.setLetterSpacing(0.09f); return t;
