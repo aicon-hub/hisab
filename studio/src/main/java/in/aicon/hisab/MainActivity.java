@@ -52,6 +52,9 @@ public class MainActivity extends Activity {
   if (launching) showLaunch();
   LauncherIcons.apply(this);
   Reminders.schedule(this, db);
+  AutoRemind.schedule(this, db);
+  db.normalisePhones();
+  BankSms.autoCatchUp(this);
  }
 
  void applyTheme() {
@@ -257,6 +260,6 @@ public class MainActivity extends Activity {
    } catch (Exception e) { toast("Could not read that contact", null); }
   });
  }
- @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] grants){super.onRequestPermissionsResult(code,permissions,grants);if(code==71){boolean yes=grants.length>0&&grants[0]==android.content.pm.PackageManager.PERMISSION_GRANTED;db.setPref("smsEnabled",yes?"1":"0");closeAll();BankSms.open(this);toast(yes?"Bank SMS enabled. Link an account":"SMS permission not granted",null);}else if(code==72){if(grants.length>0&&grants[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)BankSms.scan(this);else toast("Inbox access not granted",null);}}
+ @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] grants){super.onRequestPermissionsResult(code,permissions,grants);boolean yes=grants.length>0&&grants[0]==android.content.pm.PackageManager.PERMISSION_GRANTED;if(code==71){db.setPref("smsEnabled",yes?"1":"0");closeAll();if(yes)BankSms.finishSetup(this);else BankSms.open(this);toast(yes?"Bank SMS enabled. Link an account":"SMS permission not granted",null);}else if(code==72){if(yes)BankSms.scan(this);else toast("Inbox access not granted",null);}else if(code==73){toast(yes?"SMS reminders will be sent by your phone":"SMS permission not granted. Reminders arrive as notifications instead",null);}}
  @Override protected void onResume() { super.onResume(); if(db!=null && root!=null){Privacy.apply(this); if(tabHost!=null && !launching)refresh();} }
 }
