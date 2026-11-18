@@ -77,7 +77,8 @@ final class SmsTx {
  }
 
  /** Record one SMS as an expense when it is a clear debit for a linked account. Returns true when an entry was created. */
- static synchronized boolean apply(Store db, String sender, String body, long when) {
+ static boolean apply(Store db, String sender, String body, long when) { return apply(db, sender, body, when, null); }
+ static synchronized boolean apply(Store db, String sender, String body, long when, Long balance) {
   if (!db.flag("smsEnabled", false) || !db.flag("smsTxEnabled", false)) return false;
   if (when > System.currentTimeMillis() + 300000L) return false;
   String custom = db.pref("smsSender:" + BankSms.senderKey(sender), "");
@@ -90,7 +91,7 @@ final class SmsTx {
   String pair = pairKey(account, day, t.amount, t.who);
   if (!t.utr.isEmpty() && !db.pref("smsTxUtr:" + t.utr, "").isEmpty()) return false;
   if (!db.pref("smsTx:" + pair, "").isEmpty()) return false; // seen, or imported then deleted: never re-add
-  Store.Tx x = new Store.Tx(); x.kind = "expense"; x.amount = t.amount; x.day = day; x.account = account; x.cat = categoryFor(db, t); x.note = t.who.isEmpty() ? "Bank SMS expense" : pretty(t.who);
+  Store.Tx x = new Store.Tx(); x.kind = "expense"; x.amount = t.amount; x.day = day; x.account = account; x.cat = categoryFor(db, t); x.note = (t.who.isEmpty() ? "Bank SMS expense" : pretty(t.who)) + (balance == null ? "" : " · bal " + BankSms.inr(balance));
   long id = db.save(x);
   db.setPref("smsTx:" + pair, "" + id);
   if (!t.utr.isEmpty()) db.setPref("smsTxUtr:" + t.utr, "" + id);
