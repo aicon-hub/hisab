@@ -81,6 +81,7 @@ final class Store extends SQLiteOpenHelper {
   return l;
  }
  long addPerson(String name, String phone) {
+  phone = Phone.normalise(phone);
   for (Person p : people()) if (p.name.equalsIgnoreCase(name) && (phone.isEmpty() || p.phone.equals(phone) || p.phone.isEmpty())) { if (p.phone.isEmpty() && !phone.isEmpty()) { ContentValues v = new ContentValues(); v.put("phone", phone); getWritableDatabase().update("person", v, "id=?", new String[]{"" + p.id}); } return p.id; }
   ContentValues v = new ContentValues(); v.put("name", name); v.put("phone", phone); return getWritableDatabase().insert("person", null, v);
  }
@@ -141,6 +142,13 @@ final class Store extends SQLiteOpenHelper {
   r.next = advance(r.next, r.period); saveRec(r);
  }
  void skip(Rec r) { r.next = advance(r.next, r.period); saveRec(r); }
+
+ /** One-time pass: normalise phone numbers saved before the +91 fix. */
+ void normalisePhones() {
+  if (flag("phoneFixV1", false)) return;
+  for (Person p : people()) { String n = Phone.normalise(p.phone); if (!n.equals(p.phone)) { ContentValues v = new ContentValues(); v.put("phone", n); getWritableDatabase().update("person", v, "id=?", new String[]{"" + p.id}); } }
+  setPref("phoneFixV1", "1");
+ }
 
  void wipe() { SQLiteDatabase d = getWritableDatabase(); for (String t : new String[]{"tx", "budget", "goal", "recur", "person", "category", "account"}) d.delete(t, null, null); setPref("sample", "0"); }
  void seedBasics() {

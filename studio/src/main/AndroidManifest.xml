@@ -1,11 +1,13 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionCode="10" android:versionName="0.6.0-privacy">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionCode="11" android:versionName="0.7.0-sms">
  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
  <uses-permission android:name="android.permission.RECEIVE_SMS"/>
  <uses-permission android:name="android.permission.READ_SMS"/>
+ <uses-permission android:name="android.permission.SEND_SMS"/>
  <uses-feature android:name="android.hardware.telephony" android:required="false"/>
  <application android:label="Hisab Studio 2" android:theme="@style/AppTheme" android:icon="@mipmap/ic_launcher" android:allowBackup="false" android:supportsRtl="true" android:usesCleartextTraffic="false">
   <receiver android:name="in.aicon.hisab.BankSms" android:exported="true" android:permission="android.permission.BROADCAST_SMS"><intent-filter><action android:name="android.provider.Telephony.SMS_RECEIVED"/></intent-filter></receiver>
+  <receiver android:name="in.aicon.hisab.AutoRemind" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver>
   <receiver android:name="in.aicon.hisab.Reminders" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver>
   <activity android:name="in.aicon.hisab.MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize" android:configChanges="uiMode|orientation|screenSize|keyboardHidden"></activity>
  <activity-alias android:name="in.aicon.hisab.IconLime" android:label="Hisab Studio 2" android:icon="@mipmap/icon_lime" android:enabled="true" android:exported="true" android:targetActivity="in.aicon.hisab.MainActivity"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity-alias>

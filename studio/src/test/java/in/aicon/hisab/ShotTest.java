@@ -38,6 +38,8 @@ public class ShotTest {
   a.closeAll(); a.layers.clear(); a.build(); Settings.open(a); snap(a, "10-settings");
   a.closeAll(); a.layers.clear(); a.build(); Pages.budgets(a); snap(a, "11-budgets");
   a.closeAll(); a.layers.clear(); a.build(); Pages.goals(a); snap(a, "12-goals");
+  a.closeAll(); a.layers.clear(); a.build(); AutoRemind.open(a); snap(a, "70-auto-remind");
+  a.closeAll(); a.layers.clear(); a.build(); BankSms.open(a); snap(a, "71-bank-sms");
  }
  @Test public void dark() throws Exception {
   MainActivity a = start(true);
