@@ -126,6 +126,7 @@ final class Store extends SQLiteOpenHelper {
  long addAttach(long tx, String path) { ContentValues v = new ContentValues(); v.put("tx", tx); v.put("path", path); return getWritableDatabase().insert("attach", null, v); }
  void removeAttach(long id) { getWritableDatabase().delete("attach", "id=?", new String[]{"" + id}); }
  void removeAttachFor(long tx) { getWritableDatabase().delete("attach", "tx=?", new String[]{"" + tx}); }
+ void removeAttachAll() { getWritableDatabase().delete("attach", null, null); }
  boolean hasData() { try (Cursor c = getReadableDatabase().rawQuery("SELECT COUNT(*) FROM tx", null)) { c.moveToFirst(); return c.getLong(0) > 0; } }
 
  Map<Long, Long> budgets() { Map<Long, Long> m = new LinkedHashMap<>(); try (Cursor c = getReadableDatabase().rawQuery("SELECT cat,amount FROM budget ORDER BY amount DESC", null)) { while (c.moveToNext()) m.put(c.getLong(0), c.getLong(1)); } return m; }

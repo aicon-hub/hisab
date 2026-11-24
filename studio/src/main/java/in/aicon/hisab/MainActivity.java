@@ -290,6 +290,7 @@ public class MainActivity extends Activity {
   try { startActivityForResult(i, code); }
   catch (android.content.ActivityNotFoundException | SecurityException e) { results.remove(code); toast("Not available on this phone", null); }
  }
+ @Override protected void onStop() { super.onStop(); try { DriveBackup.auto(this); } catch (Exception ignored) {} }
  @Override protected void onActivityResult(int code, int res, Intent data) { super.onActivityResult(code, res, data); Consumer<Intent> cb = results.remove(code); if (cb != null && res == RESULT_OK) cb.accept(data); }
  /** Contact picker. No contacts permission is needed or requested. */
  void pickContact(BiConsumer<String, String> done) {
