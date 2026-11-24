@@ -64,8 +64,10 @@ final class Settings {
    da.addView(item(a,"lock","Encrypted backup",null,()->Backup.password(a,true)));da.addView(Ui.divider(a));
    da.addView(item(a,"download","Restore encrypted backup",null,()->Backup.password(a,false)));da.addView(Ui.divider(a));
    da.addView(item(a, "share", "Export entries as CSV", null, () -> exportCsv(a))); da.addView(Ui.divider(a));
+   da.addView(item(a, "share", "Export everything (CSV)", "Entries, accounts, categories, people, budgets, goals, repeats", () -> exportEverything(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "upload", "Import entries from CSV", null, () -> importCsv(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "eye", "Import from screenshots or PDF", "Read another app's exports on this phone", () -> OcrImport.open(a))); da.addView(Ui.divider(a));
+   da.addView(item(a, "bills", "Scan a bill photo", "Items and GST read on this phone", () -> BillScan.open(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "download", "Monthly statement (PDF)", null, () -> pickStatementMonth(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "trash", "Clear sample data", db.flag("sample", false) ? "Sample is on" : "Not in use", () -> Sheets.confirm(a, "Clear everything?", "This removes every entry, person, budget and goal on this phone, and starts you with empty cash and bank accounts.", "Clear", () -> { db.wipe(); db.seedBasics(); db.setPref("sample", "0"); a.closeAll(); a.refresh(); a.toast("Cleared", null); })));
    if (!db.flag("sample", false)) { da.addView(Ui.divider(a)); da.addView(item(a, "spark", "Load sample data", null, () -> Sheets.confirm(a, "Replace with sample data?", "Your current entries on this phone will be replaced.", "Replace", () -> { Sample.seed(db); a.closeAll(); a.refresh(); }))); }
@@ -73,7 +75,7 @@ final class Settings {
 
    c.addView(Kit.sectionHead(a, "About", null, null)); LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
-   ab.addView(Ui.text(a, "Version 0.9.2 test build", 12.5f, Ui.muted, true)); c.addView(ab);
+   ab.addView(Ui.text(a, "Version 0.9.4 test build", 12.5f, Ui.muted, true)); c.addView(ab);
    LinearLayout note=Ui.card(a);note.addView(Ui.text(a,"A note from AiCoN",18,Ui.ink,true));note.addView(Ui.text(a,"Built to make everyday money easier to keep track of. Free to use, open source, and yours to shape. Your records stay on your phone. Thanks for trying Hisab and telling us what needs work.",14,Ui.muted,false),Ui.lpm(-1,-2,0,10,0,14));
    for(String[] link:new String[][]{{"WhatsApp channel","https://whatsapp.com/channel/0029VawGIGTD38CRJde0fl1c","whatsapp"},{"Telegram community","https://t.me/AiCoN4tech","telegram"},{"AiCoN website","https://aicon-hub.github.io/","globe"}}){note.addView(item(a,link[2],link[0],null,()->a.launchExternal(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(link[1])))));}
    c.addView(note,Ui.lpm(-1,-2,0,18,0,20));
@@ -83,6 +85,28 @@ final class Settings {
  static void exportCsv(MainActivity a) {
   Intent i = new Intent(Intent.ACTION_SEND).setType("text/csv").putExtra(Intent.EXTRA_TEXT, CsvIo.export(a.db)).putExtra(Intent.EXTRA_SUBJECT, "Hisab entries");
   a.launchExternal(Intent.createChooser(i, "Export entries"));
+ }
+
+ static void exportEverything(MainActivity a) {
+  Store db = a.db; StringBuilder b = new StringBuilder();
+  b.append("# Hisab full export ").append(java.time.LocalDate.now()).append('\n');
+  b.append("# accounts\nName,Kind,Opening balance\n");
+  for (Store.Acc x : db.accounts()) b.append(Ledger.csv(x.name)).append(',').append(x.kind).append(',').append(Ledger.plain(x.opening)).append('\n');
+  b.append("# categories\nName,Kind\n");
+  for (Store.Cat x : db.categories(null)) b.append(Ledger.csv(x.name)).append(',').append(x.kind).append('\n');
+  b.append("# people\nName,Phone\n");
+  for (Store.Person x : db.people()) b.append(Ledger.csv(x.name)).append(',').append(Ledger.csv(x.phone)).append('\n');
+  b.append("# budgets\nCategory,Monthly limit\n");
+  Map<Long, Long> buds = db.budgets(); Map<Long, Store.Cat> cats = db.categoryMap();
+  for (Map.Entry<Long, Long> e : buds.entrySet()) { Store.Cat ct = cats.get(e.getKey()); b.append(Ledger.csv(ct == null ? "" : ct.name)).append(',').append(Ledger.plain(e.getValue())).append('\n'); }
+  b.append("# goals\nName,Target,Saved\n");
+  for (Store.Goal g : db.goals()) b.append(Ledger.csv(g.name)).append(',').append(Ledger.plain(g.target)).append(',').append(Ledger.plain(g.saved)).append('\n');
+  b.append("# recurring\nTitle,Kind,Amount,Account,Category,Period,Next,Active\n");
+  Map<Long, Store.Acc> accs = Kit.accMap(db);
+  for (Store.Rec r : db.recurring()) b.append(Ledger.csv(r.title)).append(',').append(r.kind).append(',').append(Ledger.plain(r.amount)).append(',').append(Ledger.csv(accs.get(r.account) == null ? "" : accs.get(r.account).name)).append(',').append(Ledger.csv(cats.get(r.cat) == null ? "" : cats.get(r.cat).name)).append(',').append(r.period).append(',').append(r.next).append(',').append(r.active ? "yes" : "no").append('\n');
+  b.append("# entries\n").append(CsvIo.export(db));
+  Intent i = new Intent(Intent.ACTION_SEND).setType("text/csv").putExtra(Intent.EXTRA_TEXT, b.toString()).putExtra(Intent.EXTRA_SUBJECT, "Hisab full export");
+  a.launchExternal(Intent.createChooser(i, "Export everything"));
  }
 
  static void importCsv(MainActivity a) {

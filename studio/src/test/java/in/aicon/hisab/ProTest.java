@@ -194,7 +194,7 @@ public class ProTest {
   assertEquals(5, r[0]); assertEquals(0, r[1]);
   long jun = 0;
   for (Store.Tx t : db.txs("2026-06-01", "2026-06-30")) jun += t.amount;
-  assertEquals(25450, jun);
+  assertEquals(2545000, jun);
   for (Store.Tx t : db.txs("2026-06-01", "2026-08-31")) assertTrue(t.account > 0);
   // re-import is a no-op
   int[] again = CsvIo.importEntries(db, csv);

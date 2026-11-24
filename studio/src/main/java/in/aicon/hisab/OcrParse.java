@@ -27,6 +27,7 @@ final class OcrParse {
  }
 
  static final class Result {
+  long gst;
   final List<Day> days = new ArrayList<>();
   final List<Entry> noDate = new ArrayList<>();
   int ignored;

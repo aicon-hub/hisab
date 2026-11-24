@@ -11,7 +11,7 @@ final class InsightsPage {
  static View build(MainActivity a) {
   Store db = a.db; ScrollView[] sv = new ScrollView[1]; LinearLayout c = Kit.column(a, sv, true);
   c.addView(Kit.title(a, "Where it went", "Insights", false));
-  YearMonth ym = a.insightMonth;
+  YearMonth ym = a.insightMonth; boolean pieAll = db.pref("pieScope", "month").equals("all");
   LinearLayout nav = Ui.row(a); nav.setBackground(Ui.shape(Ui.surface, 26)); nav.setPadding(Ui.dp(8), Ui.dp(8), Ui.dp(8), Ui.dp(8));
   FrameLayout l = Ui.badge(a, "left", 38, Ui.surface2, Ui.ink), r = Ui.badge(a, "right", 38, Ui.surface2, Ui.ink);
   nav.addView(l, Ui.lp(Ui.dp(38), Ui.dp(38))); TextView mt = Ui.big(a, Fmt.month(ym), 18, Ui.ink); mt.setGravity(Gravity.CENTER); nav.addView(mt, Ui.weight(1)); nav.addView(r, Ui.lp(Ui.dp(38), Ui.dp(38)));
@@ -23,6 +23,8 @@ final class InsightsPage {
   LinearLayout top = Ui.card(a); long saved = in - out; int rate = in > 0 ? (int) Math.round(100.0 * saved / in) : 0;
   top.addView(Ui.label(a, "Kept this month")); TextView big = Ui.big(a, Fmt.money(saved), 36, saved < 0 ? Ui.neg : Ui.ink); big.setPadding(0, Ui.dp(8), 0, Ui.dp(6)); top.addView(big);
   top.addView(Ui.text(a, in > 0 ? (saved >= 0 ? "You kept " + rate + "% of what came in" : "Spending ran " + Math.abs(rate) + "% above income") : "No income noted this month", 13.5f, Ui.muted, false));
+  long gstM = 0; try { gstM = Long.parseLong(db.pref("gstBills:" + ym.toString(), "0")); } catch (Exception e) {}
+  if (gstM > 0) top.addView(Ui.text(a, "GST from scanned bills this month: " + Fmt.money(gstM), 13, Ui.muted, false));
   Store.Tx dummy = null; LinearLayout pr = Ui.row(a); pr.setPadding(0, Ui.dp(16), 0, 0); pr.addView(HomePage.pill(a, "Income", Fmt.money(in), Ui.pos), Ui.weight(1)); ((LinearLayout.LayoutParams) pr.getChildAt(0).getLayoutParams()).rightMargin = Ui.dp(6); pr.addView(HomePage.pill(a, "Spent", Fmt.money(out), Ui.ink), Ui.weight(1)); ((LinearLayout.LayoutParams) pr.getChildAt(1).getLayoutParams()).leftMargin = Ui.dp(6);
   for (int i = 0; i < 2; i++) pr.getChildAt(i).setBackground(Ui.shape(Ui.surface2, 20)); top.addView(pr); c.addView(top, Ui.lpm(-1, -2, 0, 14, 0, 0));
 
@@ -33,15 +35,17 @@ final class InsightsPage {
   });
 
   // by category
-  c.addView(Kit.sectionHead(a, "By category", null, null));
-  List<Map.Entry<Long, Long>> es = new ArrayList<>(byCat.entrySet()); es.sort((x, y) -> Long.compare(y.getValue(), x.getValue()));
+  c.addView(Kit.sectionHead(a, "By category", pieAll ? "All time" : "This month", () -> { db.setPref("pieScope", pieAll ? "month" : "all"); a.refresh(); }));
+  Map<Long, Long> pieCat = byCat; long pieOut = out;
+  if (pieAll) { pieCat = new HashMap<>(); pieOut = 0; for (Store.Tx t : db.txs("0000-01-01", "9999-12-31")) if (t.kind.equals("expense")) { pieOut += t.amount; pieCat.merge(t.cat, t.amount, Long::sum); } }
+  List<Map.Entry<Long, Long>> es = new ArrayList<>(pieCat.entrySet()); es.sort((x, y) -> Long.compare(y.getValue(), x.getValue()));
   LinearLayout cc = Ui.card(a);
   if (es.isEmpty()) cc.addView(Kit.empty(a, "chart", "No spending", "Nothing noted in this month."));
   else {
    int n = Math.min(es.size(), 6); long[] vals = new long[n + (es.size() > n ? 1 : 0)]; int[] cols = new int[vals.length]; long rest = 0;
    for (int i = 0; i < es.size(); i++) { if (i < n) { vals[i] = es.get(i).getValue(); cols[i] = Kit.tone(es.get(i).getKey()); } else rest += es.get(i).getValue(); } if (rest > 0) { vals[n] = rest; cols[n] = Ui.dark ? 0xFF3A3E49 : 0xFFD9D2C2; }
-   Charts.Donut d = new Charts.Donut(a, vals, cols, Fmt.compact(out), "spent"); cc.addView(d, Ui.lpm(Ui.dp(190), Ui.dp(190), 0, 4, 0, 14)); ((LinearLayout.LayoutParams) d.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
-   for (int i = 0; i < Math.min(es.size(), 7); i++) { Store.Cat ct = cats.get(es.get(i).getKey()); long v = es.get(i).getValue(); int pct = (int) Math.round(100.0 * v / out);
+   Charts.Donut d = new Charts.Donut(a, vals, cols, Fmt.compact(pieOut), pieAll ? "all time" : "spent"); cc.addView(d, Ui.lpm(Ui.dp(190), Ui.dp(190), 0, 4, 0, 14)); ((LinearLayout.LayoutParams) d.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+   for (int i = 0; i < Math.min(es.size(), 7); i++) { Store.Cat ct = cats.get(es.get(i).getKey()); long v = es.get(i).getValue(); int pct = pieOut > 0 ? (int) Math.round(100.0 * v / pieOut) : 0;
     LinearLayout row = Ui.row(a); row.setPadding(0, Ui.dp(8), 0, Ui.dp(8)); row.addView(Ui.badge(a, ct == null ? "other" : ct.icon, 34, Kit.tone(es.get(i).getKey()), 0xFF14151A), Ui.lpm(Ui.dp(34), Ui.dp(34), 0, 0, 12, 0));
     LinearLayout m = Ui.col(a); LinearLayout h = Ui.row(a); h.addView(Ui.text(a, ct == null ? "Other" : ct.name, 14.5f, Ui.ink, true), Ui.weight(1)); h.addView(Ui.text(a, Fmt.money(v) + "  " + pct + "%", 13, Ui.muted, true)); m.addView(h);
     Charts.Pace bar = new Charts.Pace(a, v / (float) es.get(0).getValue(), -1, Kit.tone(es.get(i).getKey()), Ui.surface2); m.addView(bar, Ui.lp(-1, Ui.dp(16))); row.addView(m, Ui.weight(1)); cc.addView(row); }

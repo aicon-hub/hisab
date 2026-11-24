@@ -191,6 +191,7 @@ final class OcrImport {
   for (DayRows g : groups) for (Row row : g.rows) if (row.include) { total += row.entry.amount; n++; }
   String head = n + (n == 1 ? " entry" : " entries") + " · " + Fmt.money(total) + (images > 1 ? " · from " + images + " files" : "");
   if (failed > 0) head += " · " + failed + " unreadable";
+  if (r.gst > 0) head += " · GST " + Fmt.money(r.gst) + " on this bill";
   TextView h = Ui.text(a, head, 14, Ui.muted, false); h.setPadding(0, 0, 0, Ui.dp(8)); c.addView(h);
   boolean anyMismatch = false;
   for (DayRows g : groups) if (g.day.mismatch()) anyMismatch = true;
@@ -208,7 +209,13 @@ final class OcrImport {
 
   final MainActivity.Layer[] ref = new MainActivity.Layer[1];
   TextView save = Ui.button(a, "Add entries", true); c.addView(save, Ui.lpm(-1, -2, 0, 14, 0, 0));
-  Ui.tap(save, () -> { int[] res = save(a, groups); a.close(ref[0]); a.refresh(); a.toast("Imported " + res[0] + (res[1] > 0 ? " · skipped " + res[1] + " already there" : ""), null); });
+  Ui.tap(save, () -> { int[] res = save(a, groups); Store db = a.db;
+   if (r.gst > 0 && res[0] > 0) {
+    db.setPref("gstBills", "" + (Long.parseLong(db.pref("gstBills", "0")) + r.gst));
+    String day = ""; for (DayRows g : groups) if (!g.day.day.isEmpty()) { day = g.day.day; break; }
+    if (!day.isEmpty()) { String mk = "gstBills:" + day.substring(0, 7); db.setPref(mk, "" + (Long.parseLong(db.pref(mk, "0")) + r.gst)); }
+   }
+   a.close(ref[0]); a.refresh(); a.toast("Imported " + res[0] + (res[1] > 0 ? " · skipped " + res[1] + " already there" : "") + (r.gst > 0 && res[0] > 0 ? " · GST " + Fmt.money(r.gst) + " noted" : ""), null); });
   ref[0] = Sheets.show(a, c);
  }
 

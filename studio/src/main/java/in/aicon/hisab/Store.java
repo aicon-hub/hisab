@@ -15,11 +15,12 @@ final class Store extends SQLiteOpenHelper {
  static final class Tx { long id; String kind, day, note; long amount, account, dest, cat, person; }
  static final class Goal { long id; String name, icon; long target, saved; }
  static final class Rec { long id; String title, kind, period, next; long amount, account, cat; boolean active; }
+ static final class Att { long id; long tx; String path; }
 
  static final String[] KINDS = {"expense", "income", "transfer", "lent", "borrowed"};
  final Context ctx;
 
- Store(Context c) { super(c.getApplicationContext(), "hisab_studio.db", null, 1); ctx = c.getApplicationContext(); }
+ Store(Context c) { super(c.getApplicationContext(), "hisab_studio.db", null, 2); ctx = c.getApplicationContext(); }
 
  @Override public void onCreate(SQLiteDatabase d) {
   d.execSQL("CREATE TABLE prefs(k TEXT PRIMARY KEY, v TEXT NOT NULL)");
@@ -31,8 +32,9 @@ final class Store extends SQLiteOpenHelper {
   d.execSQL("CREATE TABLE budget(cat INTEGER PRIMARY KEY, amount INTEGER NOT NULL)");
   d.execSQL("CREATE TABLE goal(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, target INTEGER NOT NULL, saved INTEGER NOT NULL DEFAULT 0, icon TEXT NOT NULL DEFAULT 'target')");
   d.execSQL("CREATE TABLE recur(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, kind TEXT NOT NULL, amount INTEGER NOT NULL, account INTEGER NOT NULL, cat INTEGER NOT NULL, period TEXT NOT NULL, next TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1)");
+  d.execSQL("CREATE TABLE attach(id INTEGER PRIMARY KEY AUTOINCREMENT, tx INTEGER NOT NULL, path TEXT NOT NULL)");
  }
- @Override public void onUpgrade(SQLiteDatabase d, int a, int b) {}
+ @Override public void onUpgrade(SQLiteDatabase d, int a, int b) { if (a < 2) d.execSQL("CREATE TABLE IF NOT EXISTS attach(id INTEGER PRIMARY KEY AUTOINCREMENT, tx INTEGER NOT NULL, path TEXT NOT NULL)"); }
 
  String pref(String k, String def) { try (Cursor c = getReadableDatabase().rawQuery("SELECT v FROM prefs WHERE k=?", new String[]{k})) { return c.moveToFirst() ? c.getString(0) : def; } }
  void setPref(String k, String v) { ContentValues cv = new ContentValues(); cv.put("k", k); cv.put("v", v); getWritableDatabase().insertWithOnConflict("prefs", null, cv, SQLiteDatabase.CONFLICT_REPLACE); }
@@ -120,6 +122,10 @@ final class Store extends SQLiteOpenHelper {
   return getWritableDatabase().insert("tx", null, v);
  }
  void deleteTx(long id) { getWritableDatabase().delete("tx", "id=?", new String[]{"" + id}); }
+ List<Att> attachments(long tx) { List<Att> l = new ArrayList<>(); try (Cursor c = getReadableDatabase().rawQuery("SELECT id,path FROM attach WHERE tx=? ORDER BY id", new String[]{"" + tx})) { while (c.moveToNext()) { Att x = new Att(); x.id = c.getLong(0); x.tx = tx; x.path = c.getString(1); l.add(x); } } return l; }
+ long addAttach(long tx, String path) { ContentValues v = new ContentValues(); v.put("tx", tx); v.put("path", path); return getWritableDatabase().insert("attach", null, v); }
+ void removeAttach(long id) { getWritableDatabase().delete("attach", "id=?", new String[]{"" + id}); }
+ void removeAttachFor(long tx) { getWritableDatabase().delete("attach", "tx=?", new String[]{"" + tx}); }
  boolean hasData() { try (Cursor c = getReadableDatabase().rawQuery("SELECT COUNT(*) FROM tx", null)) { c.moveToFirst(); return c.getLong(0) > 0; } }
 
  Map<Long, Long> budgets() { Map<Long, Long> m = new LinkedHashMap<>(); try (Cursor c = getReadableDatabase().rawQuery("SELECT cat,amount FROM budget ORDER BY amount DESC", null)) { while (c.moveToNext()) m.put(c.getLong(0), c.getLong(1)); } return m; }

@@ -290,7 +290,7 @@ public class MainActivity extends Activity {
   try { startActivityForResult(i, code); }
   catch (android.content.ActivityNotFoundException | SecurityException e) { results.remove(code); toast("Not available on this phone", null); }
  }
- @Override protected void onActivityResult(int code, int res, Intent data) { super.onActivityResult(code, res, data); Consumer<Intent> cb = results.remove(code); if (cb != null && res == RESULT_OK && data != null) cb.accept(data); }
+ @Override protected void onActivityResult(int code, int res, Intent data) { super.onActivityResult(code, res, data); Consumer<Intent> cb = results.remove(code); if (cb != null && res == RESULT_OK) cb.accept(data); }
  /** Contact picker. No contacts permission is needed or requested. */
  void pickContact(BiConsumer<String, String> done) {
   request(new Intent(Intent.ACTION_PICK).setDataAndType(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE), d -> {
