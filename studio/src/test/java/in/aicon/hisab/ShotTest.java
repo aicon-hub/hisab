@@ -48,6 +48,15 @@ public class ShotTest {
   a.showTab(0, false); a.openEntry("lent", null); snap(a, "24-entry-dark");
  }
 
+ @Test public void pro() throws Exception {
+  MainActivity a = start(false);
+  Lock.set(a.db, "4712"); Lock.unlocked = false; a.showLock(); snap(a, "80-lock");
+  Lock.unlocked = true; a.root.removeView(a.lockLayer); a.lockLayer = null;
+  HomeCustom.open(a); snap(a, "81-home-custom");
+  a.closeAll(); a.layers.clear(); a.build(); Settings.customAccent(a); snap(a, "82-custom-accent");
+  a.closeAll(); Lock.clear(a.db);
+ }
+
  @Test public void keyboardRegression() throws Exception {
   MainActivity a=start(true); Settings.open(a);
   CrashTest helper=new CrashTest();helper.a=a;helper.click("You");

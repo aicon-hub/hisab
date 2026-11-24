@@ -7,6 +7,7 @@ import android.service.quicksettings.TileService;
 
 /** Quick-settings tile: tap opens Hisab. */
 public class HisabTile extends TileService {
+ @android.annotation.SuppressLint("StartActivityAndCollapseDeprecated")
  @Override public void onClick() {
   super.onClick();
   Intent i = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
