@@ -66,7 +66,6 @@ final class Settings {
    da.addView(item(a, "share", "Export entries as CSV", null, () -> exportCsv(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "upload", "Import entries from CSV", null, () -> importCsv(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "eye", "Import from screenshots or PDF", "Read another app's exports on this phone", () -> OcrImport.open(a))); da.addView(Ui.divider(a));
-   if (!db.flag("migratedMT", false)) { da.addView(item(a, "download", "Bring in my Money Tracker data", "58 entries, Jun to Nov 2026", () -> migrateTracker(a))); da.addView(Ui.divider(a)); }
    da.addView(item(a, "download", "Monthly statement (PDF)", null, () -> pickStatementMonth(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "trash", "Clear sample data", db.flag("sample", false) ? "Sample is on" : "Not in use", () -> Sheets.confirm(a, "Clear everything?", "This removes every entry, person, budget and goal on this phone, and starts you with empty cash and bank accounts.", "Clear", () -> { db.wipe(); db.seedBasics(); db.setPref("sample", "0"); a.closeAll(); a.refresh(); a.toast("Cleared", null); })));
    if (!db.flag("sample", false)) { da.addView(Ui.divider(a)); da.addView(item(a, "spark", "Load sample data", null, () -> Sheets.confirm(a, "Replace with sample data?", "Your current entries on this phone will be replaced.", "Replace", () -> { Sample.seed(db); a.closeAll(); a.refresh(); }))); }
@@ -107,20 +106,6 @@ final class Settings {
   });
  }
 
- static void migrateTracker(MainActivity a) {
-  Sheets.confirm(a, "Bring in Money Tracker data?", "This adds the 58 entries from June to November 2026 that were read from your old app's screenshots. Entries that already exist are skipped, so running it twice adds nothing. Everything stays on this phone.", "Import", () -> {
-   try {
-    java.io.InputStream in = a.getAssets().open("money-tracker-import.csv");
-    java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream(); byte[] chunk = new byte[8192]; int n;
-    while ((n = in.read(chunk)) > 0) buf.write(chunk, 0, n);
-    in.close();
-    int[] r = CsvIo.importEntries(a.db, buf.toString("UTF-8"));
-    a.db.setPref("migratedMT", "1");
-    a.closeAll(); a.refresh();
-    a.toast("Imported " + r[0] + (r[1] > 0 ? " · skipped " + r[1] + " already there" : ""), null);
-   } catch (Exception e) { a.toast("That data could not be read", null); }
-  });
- }
 
  static void pickStatementMonth(MainActivity a) {
   List<String> names = new ArrayList<>(); List<java.time.YearMonth> months = new ArrayList<>();

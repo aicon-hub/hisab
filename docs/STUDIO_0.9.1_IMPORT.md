@@ -18,9 +18,9 @@ Settings > Your data > Import from screenshots or PDF.
 - Hisab's own export shape imports exactly as before (accounts, categories, people created when missing).
 - Other apps' CSVs: the importer finds the date, amount, title, category, debit/credit and type columns by name, reads ISO, dd/mm/yyyy, dd-MMM-yyyy and month-name dates, rupee signs, thousands commas, parentheses and DR suffixes, and opens the same review screen. Income rows are left out.
 
-## Bring in my Money Tracker data
+## Migrating from another app
 
-One-tap item in Settings > Your data that loads the 58 entries (June to November 2026) read from the old app's screenshots. Duplicate-safe; disappears after running.
+Export a CSV from the old app, keep it in your own Drive, and use the generic CSV import above. The one-tap preload from 0.9.1/0.9.2 was removed in 0.9.3 so no personal data ships inside the app.
 
 ## Notes and limits
 

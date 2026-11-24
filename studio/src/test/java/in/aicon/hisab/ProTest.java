@@ -182,33 +182,23 @@ public class ProTest {
   Lock.clear(locked.db);
  }
 
- @Test public void moneyTrackerMigration() throws Exception {
+ @Test public void csvImport() throws Exception {
   Store db = fresh();
-  java.io.InputStream in = getClass().getResourceAsStream("/money-tracker-import.csv");
-  assertNotNull("migration fixture present", in);
-  String csv = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+  String csv = "Date,Kind,Amount,Account,To,Category,Person,Note\n"
+   + "2026-06-03,expense,450,Cash,,Groceries,,synthetic row\n"
+   + "2026-06-15,income,25000,Bank,,Salary,,synthetic row\n"
+   + "2026-07-01,expense,1200,Cash,,Transport,,synthetic row\n"
+   + "2026-07-20,transfer,5000,Bank,Cash,,,synthetic row\n"
+   + "2026-08-11,lent,800,Cash,,,Test Person,synthetic row\n";
   int[] r = CsvIo.importEntries(db, csv);
-  assertEquals(58, r[0]); assertEquals(0, r[1]);
-  String[][] months = {
-   {"2026-06-01", "2026-06-30", "49300"},
-   {"2026-07-01", "2026-07-31", "1113000"},
-   {"2026-08-01", "2026-08-31", "230354"},
-   {"2026-09-01", "2026-09-30", "406400"},
-   {"2026-10-01", "2026-10-31", "549635"},
-   {"2026-11-01", "2026-11-30", "84300"},
-  };
-  long total = 0;
-  for (String[] m : months) {
-   long sum = 0;
-   for (Store.Tx t : db.txs(m[0], m[1])) { assertEquals("expense", t.kind); sum += t.amount; }
-   assertEquals(m[0], Long.parseLong(m[2]), sum);
-   total += sum;
-  }
-  assertEquals(2432989, total);
-  // every row lands in the Cash account with a category
-  for (Store.Tx t : db.txs("2026-06-01", "2026-11-30")) { assertTrue(t.account > 0); assertTrue(t.cat > 0); }
+  assertEquals(5, r[0]); assertEquals(0, r[1]);
+  long jun = 0;
+  for (Store.Tx t : db.txs("2026-06-01", "2026-06-30")) jun += t.amount;
+  assertEquals(25450, jun);
+  for (Store.Tx t : db.txs("2026-06-01", "2026-08-31")) assertTrue(t.account > 0);
   // re-import is a no-op
   int[] again = CsvIo.importEntries(db, csv);
-  assertEquals(0, again[0]); assertEquals(58, again[1]);
+  assertEquals(0, again[0]); assertEquals(5, again[1]);
  }
 }
+
