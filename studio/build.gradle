@@ -7,8 +7,8 @@ android {
   applicationId 'in.aicon.hisab.studio2'
   minSdk 26
   targetSdk 35
-  versionCode 12
-  versionName '0.8.0-live'
+  versionCode 13
+  versionName '0.9.0-pro'
  }
  testOptions { unitTests.includeAndroidResources = true; unitTests.all { systemProperty "robolectric.dependency.repo.url", "https://maven-central.storage-download.googleapis.com/maven2"; maxHeapSize = "512m"; forkEvery = 1 } }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }

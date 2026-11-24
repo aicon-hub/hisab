@@ -58,12 +58,37 @@ final class Pages {
 
  static void recurring(MainActivity a) {
   Store db = a.db;
-  Kit.page(a, "Bills and repeats", "plus", () -> Sheets.form(a, "New repeat", new String[]{"Name", "Amount", "Next date (yyyy-mm-dd)"}, new String[]{"", "", LocalDate.now().plusDays(7).toString()}, new int[]{Sheets.TEXT, Sheets.NUMBER, InputType.TYPE_CLASS_DATETIME}, "Add", v -> {
-   try { LocalDate d = LocalDate.parse(v[2]); long m = amt(v[1]); if (v[0].isEmpty() || m <= 0) return; Store.Rec r = new Store.Rec(); r.title = v[0]; r.kind = "expense"; r.amount = m; List<Store.Acc> as = db.accounts(); r.account = as.get(0).id; long last = Long.parseLong(db.pref("lastAcc", "0")); for (Store.Acc x : as) if (x.id == last) r.account = x.id; for (Store.Cat ct : db.categories("expense")) if (ct.name.equals("Bills")) r.cat = ct.id; r.period = "monthly"; r.next = d.toString(); r.active = true; db.saveRec(r); a.refresh(); } catch (Exception e) { a.toast("Use a date like 2026-12-01", null); } }, null), c -> {
+  Runnable add = () -> Sheets.form(a, "New repeat", new String[]{"Name", "Amount", "Next date (yyyy-mm-dd)"}, new String[]{"", "", LocalDate.now().plusDays(7).toString()}, new int[]{Sheets.TEXT, Sheets.NUMBER, InputType.TYPE_CLASS_DATETIME}, "Add", v -> {
+   LocalDate d; long m;
+   try { d = LocalDate.parse(v[2]); m = amt(v[1]); } catch (Exception e) { a.toast("Use a date like 2026-12-01", null); return; }
+   if (v[0].isEmpty() || m <= 0) return;
+   Store.Rec r = new Store.Rec(); r.title = v[0]; r.kind = "expense"; r.amount = m; r.next = d.toString(); r.active = true;
+   List<Store.Acc> as = db.accounts(); r.account = as.get(0).id; long last = Long.parseLong(db.pref("lastAcc", "0")); for (Store.Acc x : as) if (x.id == last) r.account = x.id;
+   Sheets.pick(a, "Repeats", Arrays.asList("Weekly", "Monthly", "Yearly"), Arrays.asList("repeat", "calendar", "flame"), 1, pi -> {
+    r.period = pi == 0 ? "weekly" : pi == 2 ? "yearly" : "monthly";
+    List<String> an = new ArrayList<>(), ai = new ArrayList<>(); int sel = -1;
+    for (int i = 0; i < as.size(); i++) { an.add(as.get(i).name); ai.add(accIcon(as.get(i).kind)); if (as.get(i).id == r.account) sel = i; }
+    Sheets.pick(a, "From account", an, ai, sel, aj -> {
+     r.account = as.get(aj).id;
+     List<Store.Cat> cs = db.categories("expense"); List<String> cn = new ArrayList<>(), ci = new ArrayList<>(); int csel = -1;
+     for (int i = 0; i < cs.size(); i++) { cn.add(cs.get(i).name); ci.add(cs.get(i).icon); if (cs.get(i).name.equals("Bills")) csel = i; }
+     cn.add("No category"); ci.add("other");
+     Sheets.pick(a, "Category", cn, ci, csel, ck -> { if (ck < cs.size()) r.cat = cs.get(ck).id; db.saveRec(r); a.refresh(); });
+    });
+   });
+  }, null);
+  Kit.page(a, "Bills and repeats", "plus", add, c -> {
    c.addView(Ui.text(a, "Nothing is added by itself. When a bill is due, you confirm it on the home screen.", 13.5f, Ui.muted, false), Ui.lpm(-2, -2, 2, 0, 0, 14));
    List<Store.Rec> rs = db.recurring(); if (rs.isEmpty()) { LinearLayout em = Ui.card(a); em.addView(Kit.empty(a, "repeat", "No repeats", "Add rent, a subscription or any monthly bill.")); c.addView(em); return; }
    LinearLayout card = Ui.card(a); card.setPadding(Ui.dp(16), Ui.dp(6), Ui.dp(16), Ui.dp(6)); LocalDate today = LocalDate.now();
-   for (int i = 0; i < rs.size(); i++) { Store.Rec r = rs.get(i); if (i > 0) card.addView(Ui.divider(a)); card.addView(row(a, "repeat", Ui.surface2, r.title, "Monthly · next " + Fmt.dayLabel(r.next), Fmt.money(r.amount), Ui.ink, () -> Sheets.pick(a, r.title, Arrays.asList("Add it now", "Skip this one", "Delete"), Arrays.asList("check", "right", "trash"), -1, k -> { if (k == 0) { db.confirm(r); a.toast(r.title + " added", null); } else if (k == 1) db.skip(r); else db.deleteRec(r.id); a.refresh(); }))); }
+   for (int i = 0; i < rs.size(); i++) { Store.Rec r = rs.get(i); if (i > 0) card.addView(Ui.divider(a));
+    String sub = Fmt.title(r.period) + " · next " + Fmt.dayLabel(r.next) + (r.active ? "" : " · paused");
+    card.addView(row(a, "repeat", Ui.surface2, r.title, sub, Fmt.money(r.amount), r.active ? Ui.ink : Ui.muted, () -> Sheets.pick(a, r.title, Arrays.asList("Add it now", "Skip this one", r.active ? "Pause" : "Resume", "Delete"), Arrays.asList("check", "right", r.active ? "close" : "check", "trash"), -1, k -> {
+     if (k == 0) { db.confirm(r); a.toast(r.title + " added", null); }
+     else if (k == 1) db.skip(r);
+     else if (k == 2) { r.active = !r.active; db.saveRec(r); }
+     else db.deleteRec(r.id);
+     a.refresh(); }))); }
    c.addView(card);
   });
  }

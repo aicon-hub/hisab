@@ -85,6 +85,7 @@ final class Store extends SQLiteOpenHelper {
   for (Person p : people()) if (p.name.equalsIgnoreCase(name) && (phone.isEmpty() || p.phone.equals(phone) || p.phone.isEmpty())) { if (p.phone.isEmpty() && !phone.isEmpty()) { ContentValues v = new ContentValues(); v.put("phone", phone); getWritableDatabase().update("person", v, "id=?", new String[]{"" + p.id}); } return p.id; }
   ContentValues v = new ContentValues(); v.put("name", name); v.put("phone", phone); return getWritableDatabase().insert("person", null, v);
  }
+ void updatePerson(Person p) { ContentValues v = new ContentValues(); v.put("name", p.name); v.put("phone", Phone.normalise(p.phone)); getWritableDatabase().update("person", v, "id=?", new String[]{"" + p.id}); }
  void deletePerson(long id) { SQLiteDatabase d = getWritableDatabase(); d.delete("tx", "person=?", new String[]{"" + id}); d.delete("person", "id=?", new String[]{"" + id}); }
  /** Positive: they owe you. Negative: you owe them. */
  long net(long personId) {

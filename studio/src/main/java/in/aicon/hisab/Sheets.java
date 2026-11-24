@@ -78,6 +78,8 @@ final class Sheets {
   r.addView(e, Ui.lpm(0, -2, 0, 0, 6, 0)); ((LinearLayout.LayoutParams) e.getLayoutParams()).weight = 1; r.addView(d, Ui.lpm(0, -2, 6, 0, 0, 0)); ((LinearLayout.LayoutParams) d.getLayoutParams()).weight = 1; c.addView(r, Ui.lpm(-1, -2, 0, 16, 0, 0));
   Ui.tap(e, () -> { a.close(ref[0]); a.openEntry(t.kind, t); });
   Ui.tap(d, () -> { a.close(ref[0]); db.deleteTx(t.id); a.refresh(); a.toast("Entry deleted", () -> { t.id = 0; db.save(t); a.refresh(); }); });
+  TextView dup = Ui.button(a, "Duplicate", false); c.addView(dup, Ui.lpm(-1, -2, 0, 10, 0, 0));
+  Ui.tap(dup, () -> { Store.Tx copy = new Store.Tx(); copy.kind = t.kind; copy.amount = t.amount; copy.day = t.day; copy.account = t.account; copy.dest = t.dest; copy.cat = t.cat; copy.person = t.person; copy.note = t.note; long nid = a.db.save(copy); a.close(ref[0]); a.refresh(); a.toast("Copied " + Fmt.money(t.amount), () -> { a.db.deleteTx(nid); a.refresh(); }); });
   ref[0] = show(a, c);
  }
  static View kv(MainActivity a, String k, String v) { LinearLayout r = Ui.row(a); r.setPadding(0, Ui.dp(13), 0, Ui.dp(13)); r.addView(Ui.text(a, k, 14, Ui.muted, false), Ui.weight(1)); TextView t = Ui.text(a, v, 14.5f, Ui.ink, true); t.setGravity(Gravity.END); t.setMaxWidth(Ui.dp(220)); r.addView(t); return r; }

@@ -55,16 +55,58 @@ public class MainActivity extends Activity {
   AutoRemind.schedule(this, db);
   db.normalisePhones();
   BankSms.autoCatchUp(this);
+  if (Lock.enabled(db) && !Lock.unlocked) showLock();
+  handleQuick(getIntent());
  }
+
+ /** Launcher shortcuts and the quick-settings tile land here. */
+ void handleQuick(Intent i) {
+  if (i == null) return;
+  final String quick = i.getStringExtra("quick");
+  if (quick == null) return;
+  root.post(() -> { if (lockLayer == null && !launching) openEntry(quick, null); else root.postDelayed(() -> { if (lockLayer == null) openEntry(quick, null); }, 1000); });
+ }
+
+ @Override protected void onNewIntent(Intent i) { super.onNewIntent(i); setIntent(i); handleQuick(i); }
+
+ FrameLayout lockLayer;
+
+ /** Full-screen PIN gate. Nothing behind it can be reached until unlocked. */
+ void showLock() {
+  if (lockLayer != null) return;
+  lockLayer = new FrameLayout(this); lockLayer.setBackgroundColor(Ui.bg); lockLayer.setElevation(Ui.dp(96));
+  LinearLayout col = Ui.col(this); col.setGravity(Gravity.CENTER_HORIZONTAL); col.setPadding(Ui.dp(32), 0, Ui.dp(32), 0);
+  col.addView(Ui.badge(this, "lock", 64, Ui.surface2, Ui.ink), Ui.lpm(Ui.dp(64), Ui.dp(64), 0, 0, 0, 0));
+  TextView h = Ui.big(this, "Hisab is locked", 24, Ui.ink); h.setPadding(0, Ui.dp(20), 0, Ui.dp(6)); col.addView(h);
+  col.addView(Ui.text(this, "Enter your PIN to open your ledger", 13.5f, Ui.muted, false));
+  EditText pin = new EditText(this); pin.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+  pin.setHint(L.t("PIN")); pin.setHintTextColor(Ui.muted); pin.setTextColor(Ui.ink); pin.setTextSize(20); pin.setTypeface(Ui.bodyBold); pin.setGravity(Gravity.CENTER);
+  pin.setBackground(Ui.outline(Ui.surface2, Ui.surface2, 16, 1)); pin.setPadding(Ui.dp(16), Ui.dp(14), Ui.dp(16), Ui.dp(14)); pin.setTag("pinField");
+  col.addView(pin, Ui.lpm(-1, -2, 0, 22, 0, 0));
+  TextView err = Ui.text(this, " ", 13, Ui.neg, true); err.setPadding(0, Ui.dp(8), 0, 0); col.addView(err);
+  TextView open = Ui.button(this, "Unlock", true); col.addView(open, Ui.lpm(-1, -2, 0, 14, 0, 0));
+  Runnable go = () -> {
+   if (Lock.verify(db, pin.getText().toString().trim())) { Lock.unlocked = true; root.removeView(lockLayer); lockLayer = null; refresh(); }
+   else { err.setText("Wrong PIN"); pin.setText(""); }
+  };
+  Ui.tap(open, go::run);
+  pin.setOnEditorActionListener((v, id, ev) -> { go.run(); return true; });
+  lockLayer.addView(col, new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER));
+  root.addView(lockLayer, new FrameLayout.LayoutParams(-1, -1));
+ }
+
+ float textScale() { String s = db.pref("textScale", "Standard"); return s.equals("Compact") ? 0.9f : s.equals("Large") ? 1.14f : 1f; }
+ static int parseHex(String s) { try { return (int) (Long.parseLong(s.replace("#", ""), 16) & 0xFFFFFF) | 0xFF000000; } catch (Exception e) { return 0xFFC7F23A; } }
+ static String hexOf(int color) { return String.format(java.util.Locale.US, "#%06X", color & 0xFFFFFF); }
 
  void applyTheme() {
   L.language = db.pref("language", "English");
   Privacy.apply(this);
-  Fmt.currency(db.pref("currency", "INR")); Fmt.grouping = db.pref("grouping", "Indian");
+  Fmt.currency(db.pref("currency", "INR")); Fmt.grouping = db.pref("grouping", "Indian"); Fmt.dateStyle = db.pref("dateStyle", "DMY");
   String mode = db.pref("appearance", "System");
   boolean sysDark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
   boolean dark = mode.equals("Dark") || (mode.equals("System") && sysDark);
-  Ui.theme(this, dark, db.flag("pureBlack", false), db.pref("accent", "Lime"), db.pref("font", "Inter"));
+  Ui.theme(this, dark, db.flag("pureBlack", false), db.pref("accent", "Lime"), db.pref("font", "Inter"), textScale(), parseHex(db.pref("accentHex", "")));
   if(root!=null)LauncherIcons.apply(this);
   Window w = getWindow(); w.getDecorView().setBackgroundColor(Ui.bg);
   int flags = w.getDecorView().getSystemUiVisibility();
@@ -188,6 +230,7 @@ public class MainActivity extends Activity {
  void closeAll() { for (Layer l : new ArrayList<>(layers)) close(l); }
 
  @Override public void onBackPressed() {
+  if (lockLayer != null) { moveTaskToBack(true); return; }
   if (!layers.isEmpty()) { closeTop(); return; }
   if (tab != 0) { showTab(0, true); return; }
   super.onBackPressed();

@@ -6,7 +6,7 @@ import java.util.*;
 
 final class Fmt {
  private Fmt() {}
- static String symbol = "₹", grouping = "Indian";
+ static String symbol = "₹", grouping = "Indian", dateStyle = "DMY";
  static final String[] CURRENCIES = {"INR", "USD", "EUR", "GBP", "AED", "SAR", "SGD", "MYR", "CAD", "AUD"};
  static final String[] SYMBOLS = {"₹", "$", "€", "£", "AED ", "SAR ", "S$", "RM ", "C$", "A$"};
  static void currency(String code) { int i = Arrays.asList(CURRENCIES).indexOf(code); symbol = SYMBOLS[i < 0 ? 0 : i]; }
@@ -40,7 +40,13 @@ final class Fmt {
   if (d.equals(t)) return "Today"; if (d.equals(t.minusDays(1))) return "Yesterday";
   return d.getDayOfWeek().getDisplayName(TextStyle.SHORT, L.locale()) + ", " + d.getDayOfMonth() + " " + d.getMonth().getDisplayName(TextStyle.SHORT, L.locale());
  }
- static String shortDate(String iso) { LocalDate d = LocalDate.parse(iso); return d.getDayOfMonth() + " " + d.getMonth().getDisplayName(TextStyle.SHORT, L.locale()); }
+ static String shortDate(String iso) {
+  LocalDate d = LocalDate.parse(iso);
+  String mon = d.getMonth().getDisplayName(TextStyle.SHORT, L.locale());
+  if (dateStyle.equals("MDY")) return mon + " " + d.getDayOfMonth();
+  if (dateStyle.equals("NUM")) return String.format(Locale.US, "%02d.%02d.%d", d.getDayOfMonth(), d.getMonthValue(), d.getYear());
+  return d.getDayOfMonth() + " " + mon;
+ }
  static String from(YearMonth m) { return m.atDay(1).toString(); }
  static String to(YearMonth m) { return m.atEndOfMonth().toString(); }
  static String title(String s) { return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1); }

@@ -13,6 +13,8 @@ import android.widget.*;
 final class Ui {
  private Ui() {}
  static float density = 3f;
+ static float scale = 1f;
+ static int customHex = 0xFFC7F23A;
  static boolean dark;
  static int bg, surface, surface2, ink, muted, line, accent, onAccent, pos, neg, scrim;
  static Typeface body, bodyBold, display, displayBold;
@@ -35,10 +37,14 @@ final class Ui {
   return ACCENTS[0];
  }
 
- static void theme(Context c, boolean isDark, boolean pureBlack, String accentName, String font) {
+ static void theme(Context c, boolean isDark, boolean pureBlack, String accentName, String font) { theme(c, isDark, pureBlack, accentName, font, 1f, customHex); }
+
+ static void theme(Context c, boolean isDark, boolean pureBlack, String accentName, String font, float textScale, int customAccent) {
   density = c.getResources().getDisplayMetrics().density;
+  scale = textScale <= 0 ? 1f : textScale;
+  customHex = customAccent;
   dark = isDark;
-  accent = accentFor(c, accentName);
+  accent = accentName.equals("Custom") ? customAccent : accentFor(c, accentName);
   onAccent = 0xFF14151A;
   if (isDark) {
    bg = pureBlack ? 0xFF000000 : 0xFF0D0E11; surface = pureBlack ? 0xFF111214 : 0xFF17181D; surface2 = pureBlack ? 0xFF1B1C20 : 0xFF202229;
@@ -77,11 +83,11 @@ final class Ui {
  }
 
  static TextView text(Context c, CharSequence s, float sp, int color, boolean bold) {
-  TextView t = new TextView(c); t.setText(L.t(s)); t.setTextSize(sp); t.setTextColor(color);
+  TextView t = new TextView(c); t.setText(L.t(s)); t.setTextSize(sp * scale); t.setTextColor(color);
   t.setTypeface(bold ? bodyBold : body); t.setIncludeFontPadding(L.isMl()); return t;
  }
  static TextView big(Context c, CharSequence s, float sp, int color) {
-  TextView t = new TextView(c); t.setText(L.t(s)); t.setTextSize(sp); t.setTextColor(color);
+  TextView t = new TextView(c); t.setText(L.t(s)); t.setTextSize(sp * scale); t.setTextColor(color);
   t.setTypeface(displayBold); t.setIncludeFontPadding(L.isMl()); return t;
  }
  static TextView label(Context c, CharSequence s) {

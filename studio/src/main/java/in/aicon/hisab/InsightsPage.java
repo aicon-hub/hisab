@@ -26,6 +26,12 @@ final class InsightsPage {
   Store.Tx dummy = null; LinearLayout pr = Ui.row(a); pr.setPadding(0, Ui.dp(16), 0, 0); pr.addView(HomePage.pill(a, "Income", Fmt.money(in), Ui.pos), Ui.weight(1)); ((LinearLayout.LayoutParams) pr.getChildAt(0).getLayoutParams()).rightMargin = Ui.dp(6); pr.addView(HomePage.pill(a, "Spent", Fmt.money(out), Ui.ink), Ui.weight(1)); ((LinearLayout.LayoutParams) pr.getChildAt(1).getLayoutParams()).leftMargin = Ui.dp(6);
   for (int i = 0; i < 2; i++) pr.getChildAt(i).setBackground(Ui.shape(Ui.surface2, 20)); top.addView(pr); c.addView(top, Ui.lpm(-1, -2, 0, 14, 0, 0));
 
+  TextView shareSum = Ui.button(a, "Share month summary", false); c.addView(shareSum, Ui.lpm(-1, -2, 0, 0, 0, 14));
+  Ui.tap(shareSum, () -> {
+   android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, summary(db, ym));
+   a.launchExternal(android.content.Intent.createChooser(i, "Share month summary"));
+  });
+
   // by category
   c.addView(Kit.sectionHead(a, "By category", null, null));
   List<Map.Entry<Long, Long>> es = new ArrayList<>(byCat.entrySet()); es.sort((x, y) -> Long.compare(y.getValue(), x.getValue()));
@@ -69,4 +75,24 @@ final class InsightsPage {
   Ui.enter(c); return sv[0];
  }
  static View dot(MainActivity a, int color) { View v = new View(a); v.setBackground(Ui.shape(color, 5)); return v; }
+
+ /** Plain-text month recap for sharing anywhere. Amounts use the user's currency. */
+ static String summary(Store db, YearMonth ym) {
+  long in = 0, out = 0; Map<Long, Long> byCat = new HashMap<>();
+  for (Store.Tx t : db.txs(Fmt.from(ym), Fmt.to(ym))) { if (t.kind.equals("income")) in += t.amount; if (t.kind.equals("expense")) { out += t.amount; byCat.merge(t.cat, t.amount, Long::sum); } }
+  Map<Long, Store.Cat> cats = db.categoryMap();
+  StringBuilder b = new StringBuilder();
+  b.append("Hisab · ").append(Fmt.month(ym)).append('\n');
+  b.append("Income ").append(Fmt.money(in)).append(" · Spent ").append(Fmt.money(out)).append(" · Kept ").append(Fmt.money(in - out));
+  List<Map.Entry<Long, Long>> es = new ArrayList<>(byCat.entrySet()); es.sort((x, y) -> Long.compare(y.getValue(), x.getValue()));
+  if (!es.isEmpty()) {
+   b.append("\nTop: ");
+   for (int i = 0; i < Math.min(3, es.size()); i++) {
+    Store.Cat ct = cats.get(es.get(i).getKey());
+    if (i > 0) b.append(", ");
+    b.append(ct == null ? "Other" : ct.name).append(' ').append(Fmt.money(es.get(i).getValue()));
+   }
+  }
+  return b.toString();
+ }
 }
