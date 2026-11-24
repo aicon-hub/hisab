@@ -49,6 +49,7 @@ final class OcrImport {
   ExecutorService pool = Executors.newSingleThreadExecutor();
   pool.execute(() -> {
    List<OcrParse.Result> results = new ArrayList<>();
+   boolean[] modelPending = {false};
    List<List<OcrParse.El>> tableFallback = new ArrayList<>();
    List<Integer> tableWidths = new ArrayList<>();
    int failed = 0;
@@ -73,9 +74,13 @@ final class OcrImport {
       if (bmp == null) { failed++; continue; }
       results.add(OcrParse.parse(ocr(recognizer, bmp), bmp.getWidth(), LocalDate.now()));
      }
-    } catch (Exception e) { failed++; }
+    } catch (Exception e) { failed++; if (modelBusy(e)) modelPending[0] = true; }
    }
    pool.shutdown();
+   if (modelPending[0] && results.isEmpty() && tableFallback.isEmpty()) {
+    a.runOnUiThread(() -> a.toast("The on-device reader is still downloading. Try again in a minute", null));
+    return;
+   }
    OcrParse.Result merged = OcrParse.merge(results);
    if (merged.count() == 0 && !tableFallback.isEmpty()) {
     List<OcrParse.Result> tables = new ArrayList<>();
@@ -86,6 +91,14 @@ final class OcrImport {
    int f = failed;
    a.runOnUiThread(() -> review(a, done, uris.size(), f));
   });
+ }
+
+ static boolean modelBusy(Throwable e) {
+  while (e != null) {
+   if (e instanceof com.google.mlkit.common.MlKitException && ((com.google.mlkit.common.MlKitException) e).getErrorCode() == com.google.mlkit.common.MlKitException.UNAVAILABLE) return true;
+   e = e.getCause();
+  }
+  return false;
  }
 
  static List<OcrParse.El> ocr(TextRecognizer recognizer, Bitmap bmp) throws Exception {

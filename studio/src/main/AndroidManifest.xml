@@ -1,11 +1,12 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionCode="14" android:versionName="0.9.1-pro">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionCode="15" android:versionName="0.9.2-pro">
  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
  <uses-permission android:name="android.permission.RECEIVE_SMS"/>
  <uses-permission android:name="android.permission.READ_SMS"/>
  <uses-permission android:name="android.permission.SEND_SMS"/>
  <uses-feature android:name="android.hardware.telephony" android:required="false"/>
- <application android:label="Hisab Studio 2" android:theme="@style/AppTheme" android:icon="@mipmap/ic_launcher" android:allowBackup="false" android:supportsRtl="true" android:usesCleartextTraffic="false">
+ <application android:label="Hisab Studio 2" android:extractNativeLibs="false" android:theme="@style/AppTheme" android:icon="@mipmap/ic_launcher" android:allowBackup="false" android:supportsRtl="true" android:usesCleartextTraffic="false">
+  <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="ocr"/>
   <receiver android:name="in.aicon.hisab.BankSms" android:exported="true" android:permission="android.permission.BROADCAST_SMS"><intent-filter><action android:name="android.provider.Telephony.SMS_RECEIVED"/></intent-filter></receiver>
   <receiver android:name="in.aicon.hisab.AutoRemind" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver>
   <receiver android:name="in.aicon.hisab.Reminders" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver>
