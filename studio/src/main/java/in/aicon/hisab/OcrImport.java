@@ -44,7 +44,7 @@ final class OcrImport {
  }
 
  static void process(MainActivity a, List<Uri> uris) {
-  a.toast(uris.size() == 1 ? "Reading the screenshot…" : "Reading " + uris.size() + " screenshots…", null);
+  a.toast(uris.size() == 1 ? "Reading the file…" : "Reading " + uris.size() + " files…", null);
   TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
   ExecutorService pool = Executors.newSingleThreadExecutor();
   pool.execute(() -> {
@@ -56,19 +56,17 @@ final class OcrImport {
    for (Uri u : uris) {
     try {
      String type = a.getContentResolver().getType(u);
-     if (type != null && type.equals("application/pdf")) {
-      List<Bitmap> pages = renderPdf(a, u);
-      if (pages.isEmpty()) { failed++; continue; }
+     if (looksLikePdf(type, displayName(a, u))) {
       int before = 0; for (OcrParse.Result x : results) before += x.count();
-      List<OcrParse.El> docEls = new ArrayList<>(); int docWidth = 1;
-      for (Bitmap bmp : pages) {
-       List<OcrParse.El> els = ocr(recognizer, bmp);
-       docEls.addAll(els); docWidth = Math.max(docWidth, bmp.getWidth());
-       OcrParse.Result one = OcrParse.parse(els, bmp.getWidth(), LocalDate.now());
+      List<OcrParse.El> docEls = new ArrayList<>(); final int[] docWidth = {1};
+      boolean ok = readPdf(a, recognizer, u, (els, w) -> {
+       docEls.addAll(els); if (w > docWidth[0]) docWidth[0] = w;
+       OcrParse.Result one = OcrParse.parse(els, w, LocalDate.now());
        if (one.count() > 0) results.add(one);
-      }
+      });
+      if (!ok) { failed++; continue; }
       int after = 0; for (OcrParse.Result x : results) after += x.count();
-      if (after == before) { tableFallback.add(docEls); tableWidths.add(docWidth); }
+      if (after == before) { tableFallback.add(docEls); tableWidths.add(docWidth[0]); }
      } else {
       Bitmap bmp = decode(a, u);
       if (bmp == null) { failed++; continue; }
@@ -111,21 +109,42 @@ final class OcrImport {
   return els;
  }
 
- static List<Bitmap> renderPdf(MainActivity a, Uri u) {
-  List<Bitmap> pages = new ArrayList<>();
+ interface PageSink { void onPage(List<OcrParse.El> els, int width) throws Exception; }
+
+ /** True when the picked file is a PDF, by MIME type or by file name. Some providers report PDFs as application/octet-stream or null, so the name check matters. */
+ static boolean looksLikePdf(String mime, String name) {
+  if (mime != null && mime.toLowerCase(java.util.Locale.ROOT).contains("pdf")) return true;
+  return name != null && name.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf");
+ }
+
+ static String displayName(MainActivity a, Uri u) {
+  try (android.database.Cursor c = a.getContentResolver().query(u, new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+   if (c != null && c.moveToFirst() && !c.isNull(0)) return c.getString(0);
+  } catch (Exception e) {}
+  return null;
+ }
+
+ /** Renders each page, OCRs it, then frees the bitmap before the next page, so a long statement does not run out of memory. */
+ static boolean readPdf(MainActivity a, TextRecognizer recognizer, Uri u, PageSink sink) {
   try (android.os.ParcelFileDescriptor pfd = a.getContentResolver().openFileDescriptor(u, "r");
        android.graphics.pdf.PdfRenderer renderer = new android.graphics.pdf.PdfRenderer(pfd)) {
    int n = Math.min(renderer.getPageCount(), 30);
    for (int i = 0; i < n; i++) {
     android.graphics.pdf.PdfRenderer.Page page = renderer.openPage(i);
-    Bitmap bmp = Bitmap.createBitmap(page.getWidth() * 2, page.getHeight() * 2, Bitmap.Config.ARGB_8888);
+    int scale = 3;
+    while (scale > 2 && Math.max(page.getWidth(), page.getHeight()) * scale > 3200) scale--;
+    Bitmap bmp = Bitmap.createBitmap(page.getWidth() * scale, page.getHeight() * scale, Bitmap.Config.ARGB_8888);
     bmp.eraseColor(Color.WHITE);
     page.render(bmp, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_PRINT);
+    int w = bmp.getWidth();
     page.close();
-    pages.add(bmp);
+    try { sink.onPage(ocr(recognizer, bmp), w); } finally { bmp.recycle(); }
    }
-  } catch (Exception e) { return pages; }
-  return pages;
+   return true;
+  } catch (Exception e) {
+   if (modelBusy(e)) throw new RuntimeException(e);
+   return false;
+  }
  }
 
  static Bitmap decode(MainActivity a, Uri u) {
@@ -152,7 +171,7 @@ final class OcrImport {
 
  static void review(MainActivity a, OcrParse.Result r, int images, int failed) {
   if (r.count() == 0) {
-   a.toast(failed > 0 ? "Could not read those screenshots" : "No entries found. Try clearer screenshots", null);
+   a.toast(failed > 0 ? "Could not read that file" : "No entries found. Try a clearer photo or a different PDF", null);
    return;
   }
   List<DayRows> groups = new ArrayList<>();
@@ -170,7 +189,7 @@ final class OcrImport {
   LinearLayout c = Sheets.sheetBody(a, "Review import");
   long total = 0; int n = 0;
   for (DayRows g : groups) for (Row row : g.rows) if (row.include) { total += row.entry.amount; n++; }
-  String head = n + (n == 1 ? " entry" : " entries") + " · " + Fmt.money(total) + (images > 1 ? " · from " + images + " screenshots" : "");
+  String head = n + (n == 1 ? " entry" : " entries") + " · " + Fmt.money(total) + (images > 1 ? " · from " + images + " files" : "");
   if (failed > 0) head += " · " + failed + " unreadable";
   TextView h = Ui.text(a, head, 14, Ui.muted, false); h.setPadding(0, 0, 0, Ui.dp(8)); c.addView(h);
   boolean anyMismatch = false;

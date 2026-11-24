@@ -74,4 +74,12 @@ public class ImportTest {
   assertEquals("2026-11-09", r.days.get(1).day);
   assertEquals(35000, r.days.get(1).entries.get(0).amount);
  }
+
+ @Test public void pdfDetection() {
+  assertTrue(OcrImport.looksLikePdf("application/pdf", null));
+  assertTrue(OcrImport.looksLikePdf(null, "Statement Nov.pdf"));
+  assertTrue(OcrImport.looksLikePdf("application/octet-stream", "export.PDF"));
+  assertFalse(OcrImport.looksLikePdf("image/png", "shot.png"));
+  assertFalse(OcrImport.looksLikePdf(null, null));
+ }
 }
