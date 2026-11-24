@@ -65,6 +65,8 @@ final class Settings {
    da.addView(item(a,"download","Restore encrypted backup",null,()->Backup.password(a,false)));da.addView(Ui.divider(a));
    da.addView(item(a, "share", "Export entries as CSV", null, () -> exportCsv(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "upload", "Import entries from CSV", null, () -> importCsv(a))); da.addView(Ui.divider(a));
+   da.addView(item(a, "eye", "Import from screenshots or PDF", "Read another app's exports on this phone", () -> OcrImport.open(a))); da.addView(Ui.divider(a));
+   if (!db.flag("migratedMT", false)) { da.addView(item(a, "download", "Bring in my Money Tracker data", "58 entries, Jun to Nov 2026", () -> migrateTracker(a))); da.addView(Ui.divider(a)); }
    da.addView(item(a, "download", "Monthly statement (PDF)", null, () -> pickStatementMonth(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "trash", "Clear sample data", db.flag("sample", false) ? "Sample is on" : "Not in use", () -> Sheets.confirm(a, "Clear everything?", "This removes every entry, person, budget and goal on this phone, and starts you with empty cash and bank accounts.", "Clear", () -> { db.wipe(); db.seedBasics(); db.setPref("sample", "0"); a.closeAll(); a.refresh(); a.toast("Cleared", null); })));
    if (!db.flag("sample", false)) { da.addView(Ui.divider(a)); da.addView(item(a, "spark", "Load sample data", null, () -> Sheets.confirm(a, "Replace with sample data?", "Your current entries on this phone will be replaced.", "Replace", () -> { Sample.seed(db); a.closeAll(); a.refresh(); }))); }
@@ -72,7 +74,7 @@ final class Settings {
 
    c.addView(Kit.sectionHead(a, "About", null, null)); LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
-   ab.addView(Ui.text(a, "Version 0.9.0 test build", 12.5f, Ui.muted, true)); c.addView(ab);
+   ab.addView(Ui.text(a, "Version 0.9.1 test build", 12.5f, Ui.muted, true)); c.addView(ab);
    LinearLayout note=Ui.card(a);note.addView(Ui.text(a,"A note from AiCoN",18,Ui.ink,true));note.addView(Ui.text(a,"Built to make everyday money easier to keep track of. Free to use, open source, and yours to shape. Your records stay on your phone. Thanks for trying Hisab and telling us what needs work.",14,Ui.muted,false),Ui.lpm(-1,-2,0,10,0,14));
    for(String[] link:new String[][]{{"WhatsApp channel","https://whatsapp.com/channel/0029VawGIGTD38CRJde0fl1c","whatsapp"},{"Telegram community","https://t.me/AiCoN4tech","telegram"},{"AiCoN website","https://aicon-hub.github.io/","globe"}}){note.addView(item(a,link[2],link[0],null,()->a.launchExternal(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(link[1])))));}
    c.addView(note,Ui.lpm(-1,-2,0,18,0,20));
@@ -91,11 +93,32 @@ final class Settings {
     java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream(); byte[] chunk = new byte[8192]; int n;
     while ((n = in.read(chunk)) > 0) buf.write(chunk, 0, n);
     String text = buf.toString("UTF-8");
-    Sheets.confirm(a, "Import entries?", "Accounts, categories and people named in the file are created when missing. Entries that already exist are skipped, so importing the same file twice adds nothing. Everything stays on this phone.", "Import", () -> {
-     int[] r = CsvIo.importEntries(a.db, text);
-     a.closeAll(); a.refresh(); a.toast("Imported " + r[0] + (r[1] > 0 ? " · skipped " + r[1] : ""), null);
-    });
+    if (AnyCsv.isHisabShape(CsvIo.parse(text))) {
+     Sheets.confirm(a, "Import entries?", "Accounts, categories and people named in the file are created when missing. Entries that already exist are skipped, so importing the same file twice adds nothing. Everything stays on this phone.", "Import", () -> {
+      int[] r = CsvIo.importEntries(a.db, text);
+      a.closeAll(); a.refresh(); a.toast("Imported " + r[0] + (r[1] > 0 ? " · skipped " + r[1] : ""), null);
+     });
+    } else {
+     OcrParse.Result found = AnyCsv.detect(CsvIo.parse(text), java.time.LocalDate.now());
+     if (found.count() == 0) a.toast("Could not find dated entries in that file", null);
+     else OcrImport.review(a, found, 1, 0);
+    }
    } catch (Exception e) { a.toast("That file could not be read", null); }
+  });
+ }
+
+ static void migrateTracker(MainActivity a) {
+  Sheets.confirm(a, "Bring in Money Tracker data?", "This adds the 58 entries from June to November 2026 that were read from your old app's screenshots. Entries that already exist are skipped, so running it twice adds nothing. Everything stays on this phone.", "Import", () -> {
+   try {
+    java.io.InputStream in = a.getAssets().open("money-tracker-import.csv");
+    java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream(); byte[] chunk = new byte[8192]; int n;
+    while ((n = in.read(chunk)) > 0) buf.write(chunk, 0, n);
+    in.close();
+    int[] r = CsvIo.importEntries(a.db, buf.toString("UTF-8"));
+    a.db.setPref("migratedMT", "1");
+    a.closeAll(); a.refresh();
+    a.toast("Imported " + r[0] + (r[1] > 0 ? " · skipped " + r[1] + " already there" : ""), null);
+   } catch (Exception e) { a.toast("That data could not be read", null); }
   });
  }
 

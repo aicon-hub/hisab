@@ -1,4 +1,5 @@
 plugins { id 'com.android.application' }
+configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22', 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22', 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22' } }
 android {
  namespace 'in.aicon.hisab'
  compileSdk 36
@@ -7,14 +8,15 @@ android {
   applicationId 'in.aicon.hisab.studio2'
   minSdk 26
   targetSdk 35
-  versionCode 13
-  versionName '0.9.0-pro'
+  versionCode 14
+  versionName '0.9.1-pro'
  }
  testOptions { unitTests.includeAndroidResources = true; unitTests.all { systemProperty "robolectric.dependency.repo.url", "https://maven-central.storage-download.googleapis.com/maven2"; maxHeapSize = "512m"; forkEvery = 1 } }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies {
  implementation 'androidx.core:core:1.15.0'
+ implementation 'com.google.mlkit:text-recognition:16.0.1'
  testImplementation 'junit:junit:4.13.2'
  testImplementation 'org.robolectric:robolectric:4.17'
 }
