@@ -81,7 +81,7 @@ final class Kit {
   final MainActivity.Layer[] ref = new MainActivity.Layer[1];
   ref[0] = a.open(() -> {
    LinearLayout outer = Ui.col(a); outer.addView(bar(a, title, ref, actionIcon, action));
-   ScrollView s = new ScrollView(a); s.setVerticalScrollBarEnabled(false); LinearLayout c = Ui.col(a); c.setPadding(Ui.dp(20), Ui.dp(8), Ui.dp(20), Ui.dp(40)); s.addView(c); fill.accept(c); outer.addView(s, Ui.lp(-1, 0)); ((LinearLayout.LayoutParams) s.getLayoutParams()).weight = 1; return outer;
+   ScrollView s = new ScrollView(a); s.setVerticalScrollBarEnabled(false); LinearLayout c = Ui.col(a); c.setPadding(Ui.dp(20), Ui.dp(8), Ui.dp(20), Ui.dp(40)); s.addView(c); fill.accept(c); Ui.enter(c); outer.addView(s, Ui.lp(-1, 0)); ((LinearLayout.LayoutParams) s.getLayoutParams()).weight = 1; return outer;
   }, false);
   return ref[0];
  }

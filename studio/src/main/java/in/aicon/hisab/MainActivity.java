@@ -31,7 +31,7 @@ public class MainActivity extends Activity {
 
  @Override protected void onCreate(Bundle b) {
   super.onCreate(b);
-  db = new Store(this); db.seedBasics();
+  db = new Store(this); db.seedBasics(); Ui.haptics = db.flag("haptics", true); Ui.initVib(this);
   if (!db.hasData() && db.pref("sample", "").isEmpty()) { Sample.seed(db); }
   if (Build.VERSION.SDK_INT >= 30) getWindow().setDecorFitsSystemWindows(false);
   else getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
@@ -83,18 +83,11 @@ public class MainActivity extends Activity {
   col.addView(Ui.badge(this, "lock", 64, Ui.surface2, Ui.ink), Ui.lpm(Ui.dp(64), Ui.dp(64), 0, 0, 0, 0));
   TextView h = Ui.big(this, "Hisab is locked", 24, Ui.ink); h.setPadding(0, Ui.dp(20), 0, Ui.dp(6)); col.addView(h);
   col.addView(Ui.text(this, "Enter your PIN to open your ledger", 13.5f, Ui.muted, false));
-  EditText pin = new EditText(this); pin.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
-  pin.setHint(L.t("PIN")); pin.setHintTextColor(Ui.muted); pin.setTextColor(Ui.ink); pin.setTextSize(20); pin.setTypeface(Ui.bodyBold); pin.setGravity(Gravity.CENTER);
-  pin.setBackground(Ui.outline(Ui.surface2, Ui.surface2, 16, 1)); pin.setPadding(Ui.dp(16), Ui.dp(14), Ui.dp(16), Ui.dp(14)); pin.setTag("pinField");
-  col.addView(pin, Ui.lpm(-1, -2, 0, 22, 0, 0));
-  TextView err = Ui.text(this, " ", 13, Ui.neg, true); err.setPadding(0, Ui.dp(8), 0, 0); col.addView(err);
-  TextView open = Ui.button(this, "Unlock", true); col.addView(open, Ui.lpm(-1, -2, 0, 14, 0, 0));
-  Runnable go = () -> {
-   if (Lock.verify(db, pin.getText().toString().trim())) { Lock.unlocked = true; root.removeView(lockLayer); lockLayer = null; refresh(); }
-   else { err.setText("Wrong PIN"); pin.setText(""); }
-  };
-  Ui.tap(open, go::run);
-  pin.setOnEditorActionListener((v, id, ev) -> { go.run(); return true; });
+  PinPad pad = new PinPad(this, pin -> {
+   if (!Lock.verify(db, pin)) return false;
+   Lock.unlocked = true; Ui.buzzOk(root); root.removeView(lockLayer); lockLayer = null; refresh(); return true;
+  }, true);
+  col.addView(pad.view, Ui.lpm(-2, -2, 0, 18, 0, 0));
   lockLayer.addView(col, new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER));
   root.addView(lockLayer, new FrameLayout.LayoutParams(-1, -1));
   if (Lock.bio(db) && Bio.available(this)) root.postDelayed(() -> Bio.unlock(this, () -> { if (lockLayer != null) { Lock.unlocked = true; root.removeView(lockLayer); lockLayer = null; refresh(); } }), 300);
@@ -250,6 +243,7 @@ public class MainActivity extends Activity {
  void openTx(Store.Tx t) { Sheets.txDetail(this, t); }
 
  void toast(String msg, Runnable undo) {
+  Ui.buzzOk(root);
   if (toastView != null) layerHostRoot().removeView(toastView);
   LinearLayout t = Ui.row(this); t.setBackground(Ui.shape(Ui.dark ? Ui.surface2 : Ui.ink, 20)); t.setPadding(Ui.dp(18), Ui.dp(12), Ui.dp(10), Ui.dp(12)); t.setElevation(Ui.dp(32));
   int fg = Ui.dark ? Ui.ink : 0xFFFFFFFF; t.addView(Ui.text(this, msg, 14, fg, false), Ui.weight(1));

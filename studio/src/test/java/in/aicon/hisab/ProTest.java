@@ -174,12 +174,21 @@ public class ProTest {
   Lock.set(a.db, "4712"); Lock.unlocked = false;
   MainActivity locked = Robolectric.buildActivity(MainActivity.class).setup().get();
   assertNotNull(locked.lockLayer);
-  android.widget.EditText pin = locked.lockLayer.findViewWithTag("pinField");
-  assertNotNull(pin);
-  pin.setText("4712");
-  pin.onEditorAction(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
+  assertNull(locked.lockLayer.findViewWithTag("pinField"));
+  assertEquals(0, countEdits(locked.lockLayer));
+  for (String k : new String[]{"4", "0", "0", "0"}) locked.lockLayer.findViewWithTag("pinKey" + k).performClick();
+  locked.lockLayer.findViewWithTag("pinKeyOk").performClick();
+  assertNotNull(locked.lockLayer);
+  for (String k : new String[]{"4", "7", "1", "2"}) locked.lockLayer.findViewWithTag("pinKey" + k).performClick();
   assertNull(locked.lockLayer); assertTrue(Lock.unlocked);
   Lock.clear(locked.db);
+ }
+
+ static int countEdits(android.view.View v) {
+  if (v instanceof android.widget.EditText) return 1;
+  int n = 0;
+  if (v instanceof android.view.ViewGroup) { android.view.ViewGroup g = (android.view.ViewGroup) v; for (int i = 0; i < g.getChildCount(); i++) n += countEdits(g.getChildAt(i)); }
+  return n;
  }
 
  @Test public void csvImport() throws Exception {

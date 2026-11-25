@@ -122,6 +122,7 @@ final class Ui {
  /** A switch tinted to the theme accent instead of the platform default teal. */
  static Switch toggle(Context c) {
   Switch s = new Switch(c);
+  s.setOnTouchListener((x, e) -> { if (e.getActionMasked() == MotionEvent.ACTION_UP) buzz(x, android.view.HapticFeedbackConstants.CLOCK_TICK); return false; });
   int[][] states = {new int[]{android.R.attr.state_checked}, new int[]{}};
   s.setThumbTintList(new android.content.res.ColorStateList(states, new int[]{accent, dark ? muted : 0xFFFFFFFF}));
   s.setTrackTintList(new android.content.res.ColorStateList(states, new int[]{withAlpha(accent, 0x59), withAlpha(muted, 0x33)}));
@@ -144,12 +145,27 @@ final class Ui {
  }
 
  /** Click handling with a small press scale. */
+ /** Whether Hisab adds its own touch feedback. Still follows the phone's touch vibration setting. */
+ static boolean haptics = true;
+ static android.os.Vibrator vib;
+ static void initVib(Context c) { try { vib = (android.os.Vibrator) c.getSystemService(Context.VIBRATOR_SERVICE); } catch (Throwable t) { vib = null; } }
+ private static void v(View v, long[] pattern, int[] amp, int fallback) {
+  if (!haptics) return;
+  try {
+   if (vib != null && vib.hasVibrator()) { vib.vibrate(android.os.VibrationEffect.createWaveform(pattern, amp, -1)); return; }
+   if (v != null) v.performHapticFeedback(fallback);
+  } catch (Throwable t) { }
+ }
+ static void buzz(View v, int kind) { v(v, new long[]{0, 14}, new int[]{0, 90}, kind); }
+ static void buzzTick(View v) { v(v, new long[]{0, 12}, new int[]{0, 80}, android.view.HapticFeedbackConstants.KEYBOARD_TAP); }
+ static void buzzOk(View v) { v(v, new long[]{0, 18, 40, 22}, new int[]{0, 120, 0, 200}, android.view.HapticFeedbackConstants.LONG_PRESS); }
+ static void buzzNo(View v) { v(v, new long[]{0, 40, 60, 40}, new int[]{0, 220, 0, 220}, android.view.HapticFeedbackConstants.LONG_PRESS); }
  static void tap(View v, Runnable r) {
   v.setClickable(true);
   v.setOnClickListener(x -> r.run());
   v.setOnTouchListener((x, e) -> {
    int a = e.getActionMasked();
-   if (a == MotionEvent.ACTION_DOWN) x.animate().scaleX(.965f).scaleY(.965f).setDuration(90).start();
+   if (a == MotionEvent.ACTION_DOWN) { buzzTick(x); x.animate().scaleX(.965f).scaleY(.965f).setDuration(90).start(); }
    else if (a == MotionEvent.ACTION_UP || a == MotionEvent.ACTION_CANCEL) x.animate().scaleX(1f).scaleY(1f).setDuration(140).setInterpolator(new OvershootInterpolator(2f)).start();
    return false;
   });
