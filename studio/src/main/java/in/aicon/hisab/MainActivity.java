@@ -24,6 +24,7 @@ public class MainActivity extends Activity {
  String ledgerFilter = "all", ledgerQuery = ""; int ledgerDay = 0; boolean ledgerCalendar = false;
  final List<Layer> layers = new ArrayList<>();
  final Map<Integer, Consumer<Intent>> results = new HashMap<>();
+ final Map<Integer, Runnable> cancels = new HashMap<>();
  View toastView; boolean launching;
 
  static final class Layer { FrameLayout holder; FrameLayout panel; Supplier<View> build; boolean sheet; Runnable onClose; View content; }
@@ -56,6 +57,7 @@ public class MainActivity extends Activity {
   db.normalisePhones();
   BankSms.autoCatchUp(this);
   if (Lock.enabled(db) && !Lock.unlocked) showLock();
+  Onboard.maybeShow(this);
   handleQuick(getIntent());
  }
 
@@ -284,14 +286,16 @@ public class MainActivity extends Activity {
   super.onConfigurationChanged(c); applyTheme(); build();
  }
 
- void request(Intent i, Consumer<Intent> cb) {
+ void request(Intent i, Consumer<Intent> cb) { request(i, cb, null); }
+ /** onCancel runs when the activity returns without an OK result, so callers can tell the user instead of staying silent. */
+ void request(Intent i, Consumer<Intent> cb, Runnable onCancel) {
   while (results.containsKey(nextRequestCode)) nextRequestCode = nextRequestCode >= 65000 ? 100 : nextRequestCode + 1;
-  int code = nextRequestCode++; results.put(code, cb);
+  int code = nextRequestCode++; results.put(code, cb); cancels.put(code, onCancel);
   try { startActivityForResult(i, code); }
-  catch (android.content.ActivityNotFoundException | SecurityException e) { results.remove(code); toast("Not available on this phone", null); }
+  catch (android.content.ActivityNotFoundException | SecurityException e) { results.remove(code); cancels.remove(code); toast("Not available on this phone", null); }
  }
  @Override protected void onStop() { super.onStop(); try { DriveBackup.auto(this); } catch (Exception ignored) {} }
- @Override protected void onActivityResult(int code, int res, Intent data) { super.onActivityResult(code, res, data); Consumer<Intent> cb = results.remove(code); if (cb != null && res == RESULT_OK) cb.accept(data); }
+ @Override protected void onActivityResult(int code, int res, Intent data) { super.onActivityResult(code, res, data); Consumer<Intent> cb = results.remove(code); Runnable onCancel = cancels.remove(code); if (res == RESULT_OK) { if (cb != null) cb.accept(data); } else if (onCancel != null) onCancel.run(); }
  /** Contact picker. No contacts permission is needed or requested. */
  void pickContact(BiConsumer<String, String> done) {
   request(new Intent(Intent.ACTION_PICK).setDataAndType(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE), d -> {

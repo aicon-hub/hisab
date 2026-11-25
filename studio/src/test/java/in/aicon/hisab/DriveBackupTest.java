@@ -34,6 +34,24 @@ public class DriveBackupTest {
   assertTrue(body.contains("\"name\":\"hisab-backup.zip\""));
   assertTrue(body.contains("\"parents\":[\"appDataFolder\"]"));
  }
+ @Test public void backupRowShowsFailureLastBackupOrSchedule() {
+  assertEquals("Automatic, every 6 hours", DriveBackup.backupNowValue(0, 0));
+  assertEquals("Backup failed · tap to retry", DriveBackup.backupNowValue(0, 5000));
+  assertEquals("Backup failed · tap to retry", DriveBackup.backupNowValue(4000, 5000));
+  assertTrue(DriveBackup.backupNowValue(5000, 4000).startsWith("Last backup "));
+  assertTrue(DriveBackup.backupNowValue(5000, 0).startsWith("Last backup "));
+ }
+ @Test public void toggleRowShowsAccountOrState() {
+  assertEquals("Off", DriveBackup.toggleValue(false, ""));
+  assertEquals("On", DriveBackup.toggleValue(true, ""));
+  assertEquals("me@example.com", DriveBackup.toggleValue(true, "me@example.com"));
+ }
+ @Test public void driveModifiedTimeParsesWithAndWithoutMillis() {
+  assertTrue(DriveBackup.parseModified("2026-11-25T01:40:00.123Z") > 0);
+  assertTrue(DriveBackup.parseModified("2026-11-25T01:40:00Z") > 0);
+  assertEquals(0, DriveBackup.parseModified(""));
+  assertEquals(0, DriveBackup.parseModified("not a date"));
+ }
  @Test public void scopeIsAppDataFolderOnly() {
   assertEquals("https://www.googleapis.com/auth/drive.appdata", DriveBackup.SCOPE);
   assertEquals("hisab-backup.zip", DriveBackup.FILE);

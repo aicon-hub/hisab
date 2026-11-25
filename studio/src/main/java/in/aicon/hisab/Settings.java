@@ -43,16 +43,18 @@ final class Settings {
    look.addView(item(a, "spark", "Custom accent colour", db.pref("accent", "Lime").equals("Custom") ? db.pref("accentHex", "#C7F23A") : "Off", () -> customAccent(a))); look.addView(Ui.divider(a));
    look.addView(item(a, "home", "Customise Home screen", null, () -> HomeCustom.open(a))); c.addView(look);
 
-   c.addView(item(a,"globe","Language / ഭാഷ",db.pref("language","English"),()->choose(a,"Language / ഭാഷ","language",new String[]{"English","മലയാളം"},db.pref("language","English"),true)));
-   c.addView(Ui.text(a,"Malayalam is a beta interface translation. Technical help may remain in English. Your entries and category names are not changed.",12,Ui.muted,false));
-   c.addView(item(a,"lock","Privacy",null,()->Privacy.open(a)));
+   LinearLayout gn = Ui.card(a); gn.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
+   gn.addView(item(a,"globe","Language / ഭാഷ",db.pref("language","English"),()->choose(a,"Language / ഭാഷ","language",new String[]{"English","മലയാളം"},db.pref("language","English"),true)));
+   gn.addView(Ui.text(a,"Malayalam is a beta interface translation. Technical help may remain in English. Your entries and category names are not changed.",12,Ui.muted,false),Ui.lpm(-1,-2,0,0,0,10));
+   gn.addView(Ui.divider(a));
+   gn.addView(item(a,"lock","Privacy",null,()->Privacy.open(a))); c.addView(gn);
 
    c.addView(Kit.sectionHead(a, "Money", null, null)); LinearLayout mo = Ui.card(a); mo.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
    mo.addView(item(a, "wallet", "Accounts", null, () -> Pages.accounts(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "other", "Categories", null, () -> Pages.categories(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "target", "Budgets", null, () -> Pages.budgets(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "flame", "Goals", null, () -> Pages.goals(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "repeat", "Bills and repeats", null, () -> Pages.recurring(a))); mo.addView(Ui.divider(a));
    mo.addView(item(a, "coin", "Currency", db.pref("currency", "INR"), () -> choose(a, "Currency", "currency", Fmt.CURRENCIES, db.pref("currency", "INR"), true))); mo.addView(Ui.divider(a));
    mo.addView(item(a, "ledger", "Number grouping", db.pref("grouping", "Indian"), () -> choose(a, "Number grouping", "grouping", new String[]{"Indian", "International", "None"}, db.pref("grouping", "Indian"), true))); mo.addView(Ui.divider(a));
-   mo.addView(item(a, "calendar", "Date format", dateStyleName(db.pref("dateStyle", "DMY")), () -> { List<String> labels = Arrays.asList("24 Nov", "Nov 24", "24.11.2026"), codes = Arrays.asList("DMY", "MDY", "NUM"); Sheets.pick(a, "Date format", labels, null, codes.indexOf(db.pref("dateStyle", "DMY")), i -> { db.setPref("dateStyle", codes.get(i)); a.applyTheme(); a.build(); a.closeAll(); open(a); }); })); c.addView(mo);
-   c.addView(item(a,"sms","Bank SMS balances","Experimental",()->BankSms.open(a)));
+   mo.addView(item(a, "calendar", "Date format", dateStyleName(db.pref("dateStyle", "DMY")), () -> { List<String> labels = Arrays.asList("24 Nov", "Nov 24", "24.11.2026"), codes = Arrays.asList("DMY", "MDY", "NUM"); Sheets.pick(a, "Date format", labels, null, codes.indexOf(db.pref("dateStyle", "DMY")), i -> { db.setPref("dateStyle", codes.get(i)); a.applyTheme(); a.build(); a.closeAll(); open(a); }); })); mo.addView(Ui.divider(a));
+   mo.addView(item(a,"sms","Bank SMS balances","Experimental",()->BankSms.open(a))); c.addView(mo);
 
    c.addView(Kit.sectionHead(a, "Reminder", null, null)); LinearLayout rm = Ui.card(a); rm.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
    LinearLayout rr = Ui.row(a); rr.setPadding(0, Ui.dp(14), 0, Ui.dp(14)); rr.addView(Ui.icon(a, "bell", 22, Ui.ink), Ui.lpm(Ui.dp(22), Ui.dp(22), 0, 0, 16, 0)); rr.addView(Ui.text(a, "Daily check", 15.5f, Ui.ink, true), Ui.weight(1)); Switch rs = new Switch(a); rs.setChecked(db.flag("remind", false)); rr.addView(rs);
@@ -63,10 +65,10 @@ final class Settings {
    c.addView(Kit.sectionHead(a, "Your data", null, null)); LinearLayout da = Ui.card(a); da.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
    da.addView(item(a,"lock","Encrypted backup",null,()->Backup.password(a,true)));da.addView(Ui.divider(a));
    da.addView(item(a,"download","Restore encrypted backup",null,()->Backup.password(a,false)));da.addView(Ui.divider(a));
-   da.addView(item(a, "upload", "Google Drive backup", DriveBackup.enabled(db) ? (DriveBackup.account(db).isEmpty() ? "On" : DriveBackup.account(db)) : "Off", () -> DriveBackup.toggle(a))); da.addView(Ui.divider(a));
+   da.addView(item(a, "upload", "Google Drive backup", DriveBackup.toggleValue(DriveBackup.enabled(db), DriveBackup.account(db)), () -> DriveBackup.toggle(a))); da.addView(Ui.divider(a));
    if (DriveBackup.enabled(db)) {
-    da.addView(item(a, "upload", "Back up to Google Drive now", DriveBackup.lastBackup(db), () -> DriveBackup.backupNow(a, false))); da.addView(Ui.divider(a));
-    da.addView(item(a, "download", "Restore from Google Drive", "Replaces everything on this phone", () -> Sheets.confirm(a, "Restore from Google Drive?", "Everything on this phone will be replaced by the latest Google Drive backup. This cannot be undone.", "Continue", () -> DriveBackup.restoreNow(a)))); da.addView(Ui.divider(a));
+    da.addView(item(a, "upload", "Back up to Google Drive now", DriveBackup.backupNowValue(DriveBackup.lastBackupAt(db), DriveBackup.errorAt(db)), () -> DriveBackup.backupNow(a, false))); da.addView(Ui.divider(a));
+    da.addView(item(a, "download", "Restore from Google Drive", "Replaces everything on this phone", () -> DriveBackup.restoreNow(a))); da.addView(Ui.divider(a));
    }
    da.addView(item(a, "share", "Export entries as CSV", null, () -> exportCsv(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "share", "Export everything (CSV)", "Entries, accounts, categories, people, budgets, goals, repeats", () -> exportEverything(a))); da.addView(Ui.divider(a));
@@ -80,9 +82,10 @@ final class Settings {
 
    c.addView(Kit.sectionHead(a, "About", null, null)); LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
-   ab.addView(Ui.text(a, "Version 0.9.5 test build", 12.5f, Ui.muted, true)); c.addView(ab);
+   ab.addView(Ui.text(a, "Version 0.9.6 test build", 12.5f, Ui.muted, true)); c.addView(ab);
    LinearLayout note=Ui.card(a);note.addView(Ui.text(a,"A note from AiCoN",18,Ui.ink,true));note.addView(Ui.text(a,"Built to make everyday money easier to keep track of. Free to use, open source, and yours to shape. Your records stay on your phone. Thanks for trying Hisab and telling us what needs work.",14,Ui.muted,false),Ui.lpm(-1,-2,0,10,0,14));
-   for(String[] link:new String[][]{{"WhatsApp channel","https://whatsapp.com/channel/0029VawGIGTD38CRJde0fl1c","whatsapp"},{"Telegram community","https://t.me/AiCoN4tech","telegram"},{"AiCoN website","https://aicon-hub.github.io/","globe"}}){note.addView(item(a,link[2],link[0],null,()->a.launchExternal(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(link[1])))));}
+   String[][] links={{"WhatsApp channel","https://whatsapp.com/channel/0029VawGIGTD38CRJde0fl1c","whatsapp"},{"Telegram community","https://t.me/AiCoN4tech","telegram"},{"AiCoN website","https://aicon-hub.github.io/","globe"}};
+   for(int li=0;li<links.length;li++){String[] link=links[li];if(li>0)note.addView(Ui.divider(a));note.addView(item(a,link[2],link[0],null,()->a.launchExternal(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(link[1])))));}
    c.addView(note,Ui.lpm(-1,-2,0,18,0,20));
   });
  }

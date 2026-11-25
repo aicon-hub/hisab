@@ -118,10 +118,13 @@ final class Store extends SQLiteOpenHelper {
  Tx txById(long id) { try (Cursor c = getReadableDatabase().rawQuery("SELECT " + COLS + " FROM tx WHERE id=?", new String[]{"" + id})) { return c.moveToFirst() ? tx(c) : null; } }
  long save(Tx t) {
   ContentValues v = new ContentValues(); v.put("kind", t.kind); v.put("amount", t.amount); v.put("day", t.day); v.put("account", t.account); v.put("dest", t.dest); v.put("cat", t.cat); v.put("note", t.note == null ? "" : t.note); v.put("person", t.person);
-  if (t.id > 0) { getWritableDatabase().update("tx", v, "id=?", new String[]{"" + t.id}); return t.id; }
-  return getWritableDatabase().insert("tx", null, v);
+  long id;
+  if (t.id > 0) { getWritableDatabase().update("tx", v, "id=?", new String[]{"" + t.id}); id = t.id; }
+  else id = getWritableDatabase().insert("tx", null, v);
+  try { DriveBackup.dataChanged(this); } catch (Exception ignored) {}
+  return id;
  }
- void deleteTx(long id) { getWritableDatabase().delete("tx", "id=?", new String[]{"" + id}); }
+ void deleteTx(long id) { getWritableDatabase().delete("tx", "id=?", new String[]{"" + id}); try { DriveBackup.dataChanged(this); } catch (Exception ignored) {} }
  List<Att> attachments(long tx) { List<Att> l = new ArrayList<>(); try (Cursor c = getReadableDatabase().rawQuery("SELECT id,path FROM attach WHERE tx=? ORDER BY id", new String[]{"" + tx})) { while (c.moveToNext()) { Att x = new Att(); x.id = c.getLong(0); x.tx = tx; x.path = c.getString(1); l.add(x); } } return l; }
  long addAttach(long tx, String path) { ContentValues v = new ContentValues(); v.put("tx", tx); v.put("path", path); return getWritableDatabase().insert("attach", null, v); }
  void removeAttach(long id) { getWritableDatabase().delete("attach", "id=?", new String[]{"" + id}); }

@@ -1,5 +1,6 @@
 package in.aicon.hisab;
 import android.content.Context;
+import com.google.android.gms.auth.GoogleAuthException;
 import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -29,7 +30,8 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 /** Optional backup to the hidden app-data folder inside the user's OWN Google Drive. Off by default, no server of ours.
-    The backup is one zip: the data snapshot, attachment records, and the attached bill photos/PDFs themselves. */
+    The backup is one zip: the data snapshot, attachment records, and the attached bill photos/PDFs themselves.
+    Status is visible in Settings: the row shows the account, the last backup time, or a failed state with a retry. */
 final class DriveBackup {
  static final String SCOPE = "https://www.googleapis.com/auth/drive.appdata";
  static final String FILE = "hisab-backup.zip";
@@ -39,7 +41,17 @@ final class DriveBackup {
  static boolean playReady(Context c) { return GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(c) == ConnectionResult.SUCCESS; }
  static boolean enabled(Store db) { return db.flag("driveBackup", false); }
  static String account(Store db) { return db.pref("driveBackupAcc", ""); }
- static String lastBackup(Store db) { long t = Long.parseLong(db.pref("driveBackupAt", "0")); return t == 0 ? "Not backed up yet" : "Last backup " + new java.text.SimpleDateFormat("d MMM, h:mm a", java.util.Locale.US).format(new java.util.Date(t)); }
+ static long lastBackupAt(Store db) { return Long.parseLong(db.pref("driveBackupAt", "0")); }
+ static long errorAt(Store db) { return Long.parseLong(db.pref("driveBackupErr", "0")); }
+ static String when(long t) { return new java.text.SimpleDateFormat("d MMM, h:mm a", java.util.Locale.US).format(new java.util.Date(t)); }
+ /** Value shown under "Back up to Google Drive now": failure with retry hint, last backup time, or the schedule. */
+ static String backupNowValue(long lastAt, long errAt) {
+  if (errAt > lastAt) return "Backup failed · tap to retry";
+  if (lastAt > 0) return "Last backup " + when(lastAt);
+  return "Automatic, every 6 hours";
+ }
+ /** Value shown on the main toggle row. */
+ static String toggleValue(boolean on, String account) { return on ? (account.isEmpty() ? "On" : account) : "Off"; }
 
  static GoogleSignInOptions options() { return new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestEmail().requestScopes(new Scope(SCOPE)).build(); }
 
@@ -47,7 +59,7 @@ final class DriveBackup {
   Store db = a.db;
   if (enabled(db)) {
    Sheets.confirm(a, "Turn off Google Drive backup?", "Automatic backups stop. The backup already in your Google Drive stays in your own Google account.", "Turn off", () -> {
-    db.setPref("driveBackup", "0"); db.setPref("driveBackupAcc", "");
+    db.setPref("driveBackup", "0"); db.setPref("driveBackupAcc", ""); db.setPref("driveBackupErr", "0");
     GoogleSignIn.getClient(a, options()).signOut();
     a.closeAll(); Settings.open(a);
    });
@@ -56,12 +68,14 @@ final class DriveBackup {
   if (!playReady(a)) { a.toast("Google Play services is needed for Drive backup", null); return; }
   GoogleSignInAccount acc = GoogleSignIn.getLastSignedInAccount(a);
   if (acc == null || !GoogleSignIn.hasPermissions(acc, new Scope(SCOPE))) {
+   a.toast("Opening Google sign-in...", null);
    a.request(GoogleSignIn.getClient(a, options()).getSignInIntent(), result ->
     GoogleSignIn.getSignedInAccountFromIntent(result)
-     .addOnSuccessListener(x -> { db.setPref("driveBackup", "1"); db.setPref("driveBackupAcc", x.getEmail() == null ? "" : x.getEmail()); backupNow(a, false); })
-     .addOnFailureListener(e -> a.toast("Sign-in did not complete", null)));
+     .addOnSuccessListener(x -> { db.setPref("driveBackup", "1"); db.setPref("driveBackupAcc", x.getEmail() == null ? "" : x.getEmail()); db.setPref("driveBackupErr", "0"); backupNow(a, false); })
+     .addOnFailureListener(e -> { db.setPref("driveBackupErr", "" + System.currentTimeMillis()); a.toast("Sign-in did not complete. Backup stays off", null); a.closeAll(); Settings.open(a); }),
+    () -> a.toast("Sign-in cancelled. Backup stays off", null));
   } else {
-   db.setPref("driveBackup", "1"); db.setPref("driveBackupAcc", acc.getEmail() == null ? "" : acc.getEmail());
+   db.setPref("driveBackup", "1"); db.setPref("driveBackupAcc", acc.getEmail() == null ? "" : acc.getEmail()); db.setPref("driveBackupErr", "0");
    backupNow(a, false);
   }
  }
@@ -71,22 +85,52 @@ final class DriveBackup {
   if (!silent) a.toast("Backing up to your Google Drive...", null);
   new Thread(() -> {
    try {
-    byte[] zip = buildZip(a, db);
+    byte[] zip = buildZip(db);
     String token = token(a, db);
     String id = findFile(token);
     upload(token, id, zip);
     db.setPref("driveBackupAt", "" + System.currentTimeMillis());
-    a.runOnUiThread(() -> { if (!silent) a.toast("Backup saved to your Google Drive", null); });
-   } catch (Exception e) { a.runOnUiThread(() -> { if (!silent) a.toast("Backup failed. Check your connection and sign-in", null); }); }
+    db.setPref("driveBackupErr", "0");
+    a.runOnUiThread(() -> { if (!silent) { a.toast("Backup saved to your Google Drive", null); a.closeAll(); Settings.open(a); } });
+   } catch (Exception e) {
+    db.setPref("driveBackupErr", "" + System.currentTimeMillis());
+    a.runOnUiThread(() -> { if (!silent) { a.toast("Backup failed. Check your connection and sign-in", null); a.closeAll(); Settings.open(a); } });
+   }
   }, "hisab-drive-backup").start();
  }
 
  static void auto(MainActivity a) {
   Store db = a.db;
   if (!enabled(db) || !playReady(a)) return;
-  long last = Long.parseLong(db.pref("driveBackupAt", "0"));
-  if (System.currentTimeMillis() - last < AUTO_EVERY) return;
+  if (System.currentTimeMillis() - lastBackupAt(db) < AUTO_EVERY) return;
   backupNow(a, true);
+ }
+
+ /** Background backup with no Activity and no toasts. Failures are recorded in driveBackupErr so Settings shows them. */
+ static void backupQuiet(Context c, Store db) {
+  new Thread(() -> {
+   try {
+    byte[] zip = buildZip(db);
+    String token = token(c, db);
+    String id = findFile(token);
+    upload(token, id, zip);
+    db.setPref("driveBackupAt", "" + System.currentTimeMillis());
+    db.setPref("driveBackupErr", "0");
+   } catch (Exception e) { db.setPref("driveBackupErr", "" + System.currentTimeMillis()); }
+  }, "hisab-drive-backup").start();
+ }
+
+ private static android.os.Handler changeHandler;
+ private static Runnable pendingChange;
+ private static long lastChangeBackup;
+ /** Entries changed: back up shortly after, batching a burst of edits into one upload. Skips if one just ran. */
+ static synchronized void dataChanged(Store db) {
+  if (!enabled(db) || !playReady(db.ctx)) return;
+  if (System.currentTimeMillis() - lastChangeBackup < 60_000) return;
+  if (changeHandler == null) changeHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+  if (pendingChange != null) changeHandler.removeCallbacks(pendingChange);
+  pendingChange = () -> { lastChangeBackup = System.currentTimeMillis(); backupQuiet(db.ctx, db); };
+  changeHandler.postDelayed(pendingChange, 4000);
  }
 
  static void restoreNow(MainActivity a) {
@@ -96,13 +140,16 @@ final class DriveBackup {
   new Thread(() -> {
    try {
     String token = token(a, db);
-    String id = findFile(token);
-    if (id == null) { a.runOnUiThread(() -> a.toast("No Hisab backup found in your Google Drive", null)); return; }
+    JSONObject meta = findFileMeta(token);
+    if (meta == null) { a.runOnUiThread(() -> a.toast("No Hisab backup found in your Google Drive", null)); return; }
+    String id = meta.getString("id");
+    long modified = parseModified(meta.optString("modifiedTime", ""));
     byte[] zip = download(token, id);
     Map<String, byte[]> entries = zipRead(zip);
     byte[] snap = entries.get("snapshot.json");
     if (snap == null) { a.runOnUiThread(() -> a.toast("That Drive file is not a Hisab backup", null)); return; }
-    a.runOnUiThread(() -> Sheets.confirm(a, "Replace local data?", "Everything on this phone, including attached photos, will be replaced by the Google Drive backup. This cannot be undone.", "Restore", () -> {
+    String title = modified > 0 ? "Restore backup from " + when(modified) + "?" : "Replace local data?";
+    a.runOnUiThread(() -> Sheets.confirm(a, title, "Everything on this phone, including attached photos, will be replaced by this Google Drive backup. This cannot be undone.", "Restore", () -> {
      try {
       Backup.restore(db, snap);
       File dir = a.getExternalFilesDir("attachments"); if (dir != null) dir.mkdirs();
@@ -119,7 +166,7 @@ final class DriveBackup {
        try (FileOutputStream fo = new FileOutputStream(f)) { fo.write(bytes); }
        db.addAttach(row.getLong("tx"), f.getAbsolutePath());
       }
-      db.setPref("driveBackup", "1");
+      db.setPref("driveBackup", "1"); db.setPref("driveBackupErr", "0");
       a.closeAll(); a.applyTheme(); a.build(); Reminders.schedule(a, db); a.toast("Backup restored", null);
      } catch (Exception e) { a.toast("Invalid backup. Your data was not changed", null); }
     }));
@@ -127,8 +174,18 @@ final class DriveBackup {
   }, "hisab-drive-restore").start();
  }
 
+ /** Drive's RFC3339 modifiedTime, with or without milliseconds. Returns 0 when absent or unparseable. */
+ static long parseModified(String s) {
+  if (s == null || s.isEmpty()) return 0;
+  String[] patterns = {"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "yyyy-MM-dd'T'HH:mm:ss'Z'"};
+  for (String p : patterns) {
+   try { java.text.SimpleDateFormat f = new java.text.SimpleDateFormat(p, java.util.Locale.US); f.setTimeZone(java.util.TimeZone.getTimeZone("UTC")); java.util.Date d = f.parse(s); if (d != null) return d.getTime(); } catch (Exception ignored) {}
+  }
+  return 0;
+ }
+
  /** snapshot.json + attachments.json + att/<name> entries. Photos and PDFs are stored uncompressed inside the zip (already-compressed formats), JSON deflated. */
- static byte[] buildZip(MainActivity a, Store db) throws Exception {
+ static byte[] buildZip(Store db) throws Exception {
   LinkedHashMap<String, byte[]> entries = new LinkedHashMap<>();
   entries.put("snapshot.json", Backup.snapshot(db));
   JSONArray rows = new JSONArray();
@@ -192,13 +249,27 @@ final class DriveBackup {
   return out;
  }
 
- static String token(Context c, Store db) throws Exception { return GoogleAuthUtil.getToken(c, account(db), "oauth2:" + SCOPE); }
+ /** Cached tokens can expire or be revoked server-side; clear once and retry so a stale token does not break auto backup. */
+ static String token(Context c, Store db) throws Exception {
+  String acc = account(db);
+  String scope = "oauth2:" + SCOPE;
+  try { return GoogleAuthUtil.getToken(c, acc, scope); }
+  catch (GoogleAuthException e) {
+   try { GoogleAuthUtil.clearToken(c, GoogleAuthUtil.getToken(c, acc, scope)); } catch (Exception ignored) {}
+   return GoogleAuthUtil.getToken(c, acc, scope);
+  }
+ }
 
- static String findFile(String token) throws Exception {
-  HttpURLConnection con = get("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id)&q=" + URLEncoder.encode("name='" + FILE + "'", "UTF-8"), token);
+ static JSONObject findFileMeta(String token) throws Exception {
+  HttpURLConnection con = get("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,modifiedTime)&q=" + URLEncoder.encode("name='" + FILE + "'", "UTF-8"), token);
   String body = read(con);
   JSONArray files = new JSONObject(body).optJSONArray("files");
-  return files == null || files.length() == 0 ? null : files.getJSONObject(0).getString("id");
+  return files == null || files.length() == 0 ? null : files.getJSONObject(0);
+ }
+
+ static String findFile(String token) throws Exception {
+  JSONObject meta = findFileMeta(token);
+  return meta == null ? null : meta.getString("id");
  }
 
  static byte[] download(String token, String id) throws Exception {
