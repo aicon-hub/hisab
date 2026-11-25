@@ -355,4 +355,21 @@ public class PolishTest {
   assertEquals(prev.toString(), db.pref("monthSummaryDone", ""));
   assertFalse(Diary.monthlyCheck(a, db, java.time.LocalDate.now()));
  }
+
+ @Test public void personStatementAndUpi() {
+  Store db = a.db; db.wipe(); db.seedBasics();
+  long pid = db.addPerson("Test Friend", ""); Store.Person q = null; for (Store.Person x : db.people()) if (x.id == pid) q = x;
+  long cash = db.accounts().get(0).id;
+  String[][] es = {{"lent", "100000", "2026-01-01"}, {"repay_in", "30000", "2026-01-05"}, {"borrowed", "90000", "2026-01-09"}};
+  for (String[] e : es) { Store.Tx t = new Store.Tx(); t.kind = e[0]; t.amount = Long.parseLong(e[1]); t.day = e[2]; t.account = cash; t.person = q.id; t.note = ""; db.save(t); }
+  java.util.List<PersonStatement.Row> rows = PersonStatement.rows(db, q.id);
+  assertEquals(3, rows.size()); assertEquals(100000, rows.get(0).balance); assertEquals(70000, rows.get(1).balance); assertEquals(-20000, rows.get(2).balance);
+  assertEquals(db.net(q.id), rows.get(2).balance);
+  assertTrue(PersonStatement.summary("Test Friend", -20000).startsWith("You owe Test Friend"));
+  assertTrue(PersonStatement.validUpi("friend.name@okbank")); assertFalse(PersonStatement.validUpi("friend")); assertFalse(PersonStatement.validUpi("a b@bank"));
+  android.net.Uri u = PersonStatement.upiUri("friend@okbank", "Test Friend", 20050);
+  assertEquals("upi", u.getScheme()); assertEquals("friend@okbank", u.getQueryParameter("pa")); assertEquals("200.50", u.getQueryParameter("am")); assertEquals("INR", u.getQueryParameter("cu")); assertEquals("Test Friend", u.getQueryParameter("pn"));
+  assertNull(PersonStatement.upiUri("bad", "x", 100)); assertNull(PersonStatement.upiUri("friend@okbank", "x", 0));
+  PeoplePage.person(a, q); assertTrue(texts(a.root).contains("Share statement")); assertTrue(texts(a.root).contains("Pay by UPI")); a.closeAll();
+ }
 }
