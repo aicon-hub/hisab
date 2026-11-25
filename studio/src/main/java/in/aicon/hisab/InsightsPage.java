@@ -69,13 +69,43 @@ final class InsightsPage {
   Map<Long, Long> prev = new HashMap<>(); YearMonth pm = ym.minusMonths(1); for (Store.Tx t : db.txs(Fmt.from(pm), Fmt.to(pm))) if (t.kind.equals("expense")) prev.merge(t.cat, t.amount, Long::sum);
   List<long[]> diffs = new ArrayList<>(); for (long k : byCat.keySet()) { long d = byCat.get(k) - prev.getOrDefault(k, 0L); if (Math.abs(d) >= 10000) diffs.add(new long[]{k, d}); } diffs.sort((x, y) -> Long.compare(Math.abs(y[1]), Math.abs(x[1])));
   if (!diffs.isEmpty()) { c.addView(Kit.sectionHead(a, "Versus " + Fmt.month(pm).split(" ")[0], null, null)); LinearLayout dc = Ui.card(a);
-   for (int i = 0; i < Math.min(4, diffs.size()); i++) { Store.Cat ct = cats.get(diffs.get(i)[0]); long d = diffs.get(i)[1]; if (i > 0) dc.addView(Ui.divider(a)); LinearLayout row = Ui.row(a); row.setPadding(0, Ui.dp(11), 0, Ui.dp(11)); row.addView(Ui.icon(a, d > 0 ? "up" : "download", 20, d > 0 ? Ui.neg : Ui.pos), Ui.lpm(Ui.dp(20), Ui.dp(20), 0, 0, 12, 0)); row.addView(Ui.text(a, ct == null ? "Other" : ct.name, 15, Ui.ink, true), Ui.weight(1)); row.addView(Ui.text(a, (d > 0 ? "+" : "-") + Fmt.money(Math.abs(d)), 14, d > 0 ? Ui.neg : Ui.pos, true)); dc.addView(row); }
+   for (int i = 0; i < Math.min(4, diffs.size()); i++) { Store.Cat ct = cats.get(diffs.get(i)[0]); long d = diffs.get(i)[1]; if (i > 0) dc.addView(Ui.divider(a)); LinearLayout row = Ui.row(a); row.setPadding(0, Ui.dp(11), 0, Ui.dp(11)); row.addView(Ui.icon(a, d > 0 ? "up" : "download", 20, d > 0 ? Ui.neg : Ui.pos), Ui.lpm(Ui.dp(20), Ui.dp(20), 0, 0, 12, 0)); row.addView(Ui.text(a, ct == null ? "Other" : ct.name, 15, Ui.ink, true), Ui.weight(1)); long pv = prev.getOrDefault(diffs.get(i)[0], 0L); String pct = pv > 0 ? "  " + Math.round(100.0 * d / pv) + "%" : ""; row.addView(Ui.text(a, (d > 0 ? "+" : "-") + Fmt.money(Math.abs(d)) + pct, 14, d > 0 ? Ui.neg : Ui.pos, true)); dc.addView(row); }
    c.addView(dc); }
 
   // weekday pattern
   c.addView(Kit.sectionHead(a, "Busiest days", null, null)); int hi = 0; for (int i = 1; i < 7; i++) if (week[i] > week[hi]) hi = i;
   LinearLayout wc = Ui.card(a); wc.addView(new Charts.Bars(a, week, new String[]{"M", "T", "W", "T", "F", "S", "S"}, out > 0 ? hi : -1, false), Ui.lp(-1, Ui.dp(130)));
-  wc.addView(Ui.text(a, out > 0 ? "You spend the most on " + java.time.DayOfWeek.of(hi + 1).getDisplayName(java.time.format.TextStyle.FULL, Locale.ENGLISH) + "s." : "No spending to compare yet.", 13, Ui.muted, false), Ui.lpm(-2, -2, 0, 8, 0, 0)); c.addView(wc);
+  wc.addView(Ui.text(a, out > 0 ? "You spend the most on " + java.time.DayOfWeek.of(hi + 1).getDisplayName(java.time.format.TextStyle.FULL, Locale.ENGLISH) + "s." : "No spending to compare yet.", 13, Ui.muted, false), Ui.lpm(-2, -2, 0, 8, 0, 0));
+  if (out > 0) { long wdSum = week[0] + week[1] + week[2] + week[3] + week[4], weSum = week[5] + week[6]; int wdN = 0, weN = 0; for (int dd = 1; dd <= ym.lengthOfMonth(); dd++) { if (ym.atDay(dd).getDayOfWeek().getValue() >= 6) weN++; else wdN++; } wc.addView(Ui.text(a, "Weekdays " + Fmt.money(wdSum / Math.max(1, wdN)) + " a day on average - weekends " + Fmt.money(weSum / Math.max(1, weN)) + ".", 13, Ui.muted, false), Ui.lpm(-2, -2, 0, 6, 0, 0)); }
+  c.addView(wc);
+
+  // spending calendar heatmap
+  c.addView(Kit.sectionHead(a, "Spending calendar", null, null));
+  Map<String, Long> byDay = new HashMap<>(); long maxDay = 0; for (Store.Tx t : month) if (t.kind.equals("expense")) byDay.merge(t.day, t.amount, Long::sum); for (long v : byDay.values()) maxDay = Math.max(maxDay, v);
+  LinearLayout hc = Ui.card(a);
+  LinearLayout dh = Ui.row(a); for (String dw : new String[]{"M","T","W","T","F","S","S"}) { TextView hv = Ui.text(a, dw, 11, Ui.muted, true); hv.setGravity(Gravity.CENTER); dh.addView(hv, Ui.weight(1)); } hc.addView(dh, Ui.lpm(-1, -2, 0, 0, 0, 4));
+  int lead = ym.atDay(1).getDayOfWeek().getValue() - 1, days = ym.lengthOfMonth(), day = 1;
+  for (int rr = 0; rr < 6 && day <= days; rr++) { LinearLayout gRow = Ui.row(a); gRow.setPadding(0, Ui.dp(2), 0, Ui.dp(2));
+   for (int col = 0; col < 7; col++) { TextView cell;
+    if ((rr == 0 && col < lead) || day > days) { cell = Ui.text(a, "", 12, Ui.muted, false); }
+    else { long v = byDay.getOrDefault(ym.atDay(day).toString(), 0L); int alpha = v > 0 ? 40 + (int) (160.0 * v / Math.max(1, maxDay)) : 0;
+     cell = Ui.text(a, "" + day, 12, alpha > 120 ? Ui.onAccent : Ui.ink, v > 0); cell.setGravity(Gravity.CENTER);
+     if (v > 0) cell.setBackground(Ui.shape((alpha << 24) | (Ui.accent & 0xFFFFFF), 10)); day++; }
+    gRow.addView(cell, Ui.weight(1)); cell.getLayoutParams().height = Ui.dp(34); }
+   hc.addView(gRow); }
+  if (maxDay > 0) hc.addView(Ui.text(a, "Darker days saw more spending. Deepest: " + Fmt.money(maxDay) + " in one day.", 12.5f, Ui.muted, false), Ui.lpm(-2, -2, 0, 8, 0, 0));
+  c.addView(hc);
+
+  // cash vs digital split
+  Map<Long, Store.Acc> accMap = Kit.accMap(db); long cashOut = 0, digOut = 0;
+  for (Store.Tx t : month) if (t.kind.equals("expense")) { Store.Acc ac = accMap.get(t.account); if (ac != null && ac.kind.equals("cash")) cashOut += t.amount; else digOut += t.amount; }
+  if (out > 0) { c.addView(Kit.sectionHead(a, "Cash or digital", null, null)); LinearLayout kc = Ui.card(a);
+   LinearLayout kr = Ui.row(a); kr.setPadding(0, Ui.dp(6), 0, Ui.dp(6));
+   LinearLayout k1 = Ui.col(a); k1.addView(Ui.text(a, "Cash", 13, Ui.muted, true)); k1.addView(Ui.big(a, Fmt.money(cashOut), 20, Ui.ink)); kr.addView(k1, Ui.weight(1));
+   LinearLayout k2 = Ui.col(a); k2.addView(Ui.text(a, "Digital (bank, card, wallet)", 13, Ui.muted, true)); k2.addView(Ui.big(a, Fmt.money(digOut), 20, Ui.ink)); kr.addView(k2, Ui.weight(1)); kc.addView(kr);
+   kc.addView(new Charts.Pace(a, out > 0 ? cashOut / (float) out : 0, -1, Ui.accent, Ui.surface2), Ui.lpm(-1, Ui.dp(16), 0, 4, 0, 0));
+   kc.addView(Ui.text(a, "Read from the account each entry uses - UPI itself is not tracked.", 12, Ui.muted, false), Ui.lpm(-2, -2, 0, 8, 0, 0));
+   c.addView(kc); }
 
   // frequent
   List<Map.Entry<String, Long>> ns = new ArrayList<>(byNote.entrySet()); ns.sort((x, y) -> Long.compare(y.getValue(), x.getValue()));

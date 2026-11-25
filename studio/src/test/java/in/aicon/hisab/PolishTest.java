@@ -103,6 +103,20 @@ public class PolishTest {
  @Test public void trashBinRoundTripAndPurge(){Store.Tx t=new Store.Tx();t.kind="expense";t.amount=4200;t.day=Fmt.today().toString();t.cat=a.db.categories("expense").get(0).id;t.account=a.db.accounts().get(0).id;t.note="bin-test";t.tags="";t.id=a.db.save(t);a.db.trashTx(t.id);for(Store.Tx x:a.db.txs("0000-01-01","9999-12-31"))assertNotEquals(t.id,x.id);assertEquals(1,a.db.trash().size());a.db.restoreTx(t.id);boolean back=false;for(Store.Tx x:a.db.txs("0000-01-01","9999-12-31"))if(x.id==t.id)back=true;assertTrue(back);a.db.trashTx(t.id);a.db.getWritableDatabase().execSQL("UPDATE tx SET deleted=? WHERE id=?",new Object[]{System.currentTimeMillis()-31L*24*60*60*1000,t.id});java.util.List<Long> purged=a.db.purgeTrash();assertTrue(purged.contains(t.id));assertTrue(a.db.trash().isEmpty());}
  @Test public void tagsSaveAndSearchRoundTrip(){Store.Tx t=new Store.Tx();t.kind="expense";t.amount=1000;t.day=Fmt.today().toString();t.cat=a.db.categories("expense").get(0).id;t.account=a.db.accounts().get(0).id;t.note="tagtest-note";t.tags="zztag";t.id=a.db.save(t);assertEquals("zztag",a.db.txById(t.id).tags);a.ledgerQuery="zztag";android.view.View v=LedgerPage.build(a);assertTrue(texts(v).contains("tagtest-note"));a.ledgerQuery="";a.db.deleteTx(t.id);}
  @Test public void ledgerCategoryAndAmountFilters(){Store.Cat c=a.db.categories("expense").get(0);Store.Tx t=new Store.Tx();t.kind="expense";t.amount=5000;t.day=Fmt.today().toString();t.cat=c.id;t.account=a.db.accounts().get(0).id;t.note="zzfilter-note";t.tags="";t.id=a.db.save(t);a.ledgerCat=c.id+9999;android.view.View v=LedgerPage.build(a);assertFalse(texts(v).contains("zzfilter-note"));a.ledgerCat=0;a.ledgerMin=900000;v=LedgerPage.build(a);assertFalse(texts(v).contains("zzfilter-note"));a.ledgerMin=0;a.ledgerMax=4900;v=LedgerPage.build(a);assertFalse(texts(v).contains("zzfilter-note"));a.ledgerMax=0;a.ledgerCat=c.id;v=LedgerPage.build(a);assertTrue(texts(v).contains("zzfilter-note"));a.ledgerCat=0;a.db.deleteTx(t.id);}
+ @Test public void insightsCalendarWeekendAndCashSplit() {
+  Store db = a.db; java.time.YearMonth ym = java.time.YearMonth.now();
+  Store.Acc cash = null, bank = null; for (Store.Acc x : db.accounts()) { if (x.kind.equals("cash")) cash = x; if (x.kind.equals("bank")) bank = x; }
+  assertNotNull(cash); assertNotNull(bank);
+  Store.Tx t1 = new Store.Tx(); t1.kind = "expense"; t1.amount = 3000; t1.day = ym.atDay(2).toString(); t1.account = cash.id; t1.cat = 0; t1.note = "zzcash"; t1.person = 0; t1.id = db.save(t1);
+  Store.Tx t2 = new Store.Tx(); t2.kind = "expense"; t2.amount = 7000; t2.day = ym.atDay(3).toString(); t2.account = bank.id; t2.cat = 0; t2.note = "zzdig"; t2.person = 0; t2.id = db.save(t2);
+  a.insightMonth = ym;
+  String tx = texts(InsightsPage.build(a));
+  assertTrue(tx.contains("Spending calendar"));
+  assertTrue(tx.contains("Cash or digital"));
+  assertTrue(tx.contains("Weekdays"));
+  db.deleteTx(t1.id); db.deleteTx(t2.id);
+ }
+
  @Test public void leftTodayCardFollowsLimit() {
   a.db.setPref("dailyLimit", "50000");
   Store.Tx t = new Store.Tx(); t.kind = "expense"; t.amount = 12000; t.day = java.time.LocalDate.now().toString(); t.account = a.db.accounts().get(0).id; t.cat = 0; t.note = "Lunch"; t.person = 0; a.db.save(t);
