@@ -184,6 +184,25 @@ final class Store extends SQLiteOpenHelper {
  boolean hasData() { try (Cursor c = getReadableDatabase().rawQuery("SELECT COUNT(*) FROM tx WHERE deleted=0", null)) { c.moveToFirst(); return c.getLong(0) > 0; } }
 
  Map<Long, Long> budgets() { Map<Long, Long> m = new LinkedHashMap<>(); try (Cursor c = getReadableDatabase().rawQuery("SELECT cat,amount FROM budget ORDER BY amount DESC", null)) { while (c.moveToNext()) m.put(c.getLong(0), c.getLong(1)); } return m; }
+ /** Optional weekly limit for a category, in minor units; 0 when none. */
+ long weeklyLimit(long cat) { try { return Long.parseLong(pref("weekly:" + cat, "0")); } catch (Exception e) { return 0; } }
+ void setWeeklyLimit(long cat, long amount) { setPref("weekly:" + cat, "" + Math.max(0, amount)); changed(); }
+ boolean rollover(long cat) { return flag("rollover:" + cat, false); }
+ void setRollover(long cat, boolean on) { setPref("rollover:" + cat, on ? "1" : "0"); changed(); }
+ long spentIn(long cat, String from, String to) {
+  try (Cursor c = getReadableDatabase().rawQuery("SELECT COALESCE(SUM(amount),0) FROM tx WHERE deleted=0 AND kind='expense' AND cat=? AND day>=? AND day<=?", new String[]{"" + cat, from, to})) { return c.moveToFirst() ? c.getLong(0) : 0; }
+ }
+ /** Spent this Monday-to-Sunday week in a category. */
+ long weekSpent(long cat, LocalDate today) { LocalDate mon = today.minusDays(today.getDayOfWeek().getValue() - 1); return spentIn(cat, mon.toString(), mon.plusDays(6).toString()); }
+ /** Unspent budget left over from the previous month, when rollover is on for the category. */
+ long carry(long cat, YearMonth ym) {
+  if (!rollover(cat)) return 0;
+  Long lim = budgets().get(cat); if (lim == null || lim <= 0) return 0;
+  YearMonth prev = ym.minusMonths(1);
+  return Math.max(0, lim - spentIn(cat, prev.atDay(1).toString(), prev.atEndOfMonth().toString()));
+ }
+ /** Monthly limit plus any rolled-over amount. */
+ long effectiveLimit(long cat, YearMonth ym) { Long lim = budgets().get(cat); return lim == null || lim <= 0 ? 0 : lim + carry(cat, ym); }
  void setBudget(long cat, long amount) { if (amount <= 0) { getWritableDatabase().delete("budget", "cat=?", new String[]{"" + cat}); changed(); return; } ContentValues v = new ContentValues(); v.put("cat", cat); v.put("amount", amount); getWritableDatabase().insertWithOnConflict("budget", null, v, SQLiteDatabase.CONFLICT_REPLACE); changed(); }
 
  List<Goal> goals() { List<Goal> l = new ArrayList<>(); try (Cursor c = getReadableDatabase().rawQuery("SELECT id,name,target,saved,icon FROM goal ORDER BY id", null)) { while (c.moveToNext()) { Goal g = new Goal(); g.id = c.getLong(0); g.name = c.getString(1); g.target = c.getLong(2); g.saved = c.getLong(3); g.icon = c.getString(4); l.add(g); } } return l; }

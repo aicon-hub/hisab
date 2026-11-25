@@ -267,6 +267,30 @@ public class PolishTest {
   Tags.open(a); assertTrue(texts(a.root).contains("No tags yet")); a.closeAll();
  }
 
+ @Test public void weeklyBudgetAndRollover() {
+  Store db = a.db; db.wipe(); db.seedBasics();
+  long cash = db.accounts().get(0).id; long cat = db.categories("expense").get(0).id;
+  java.time.YearMonth ym = java.time.YearMonth.now(); java.time.YearMonth prev = ym.minusMonths(1);
+  db.setBudget(cat, 100000);
+  assertEquals(100000, db.effectiveLimit(cat, ym));
+  Store.Tx old = new Store.Tx(); old.kind = "expense"; old.amount = 30000; old.day = prev.atDay(5).toString(); old.account = cash; old.cat = cat; old.note = "Last month"; db.save(old);
+  assertEquals(0, db.carry(cat, ym));
+  db.setRollover(cat, true);
+  assertEquals(70000, db.carry(cat, ym));
+  assertEquals(170000, db.effectiveLimit(cat, ym));
+  Store.Tx over = new Store.Tx(); over.kind = "expense"; over.amount = 250000; over.day = prev.atDay(6).toString(); over.account = cash; over.cat = cat; over.note = "Big"; db.save(over);
+  assertEquals(0, db.carry(cat, ym));
+  assertEquals(100000, db.effectiveLimit(cat, ym));
+  assertEquals(0, db.weeklyLimit(cat));
+  db.setWeeklyLimit(cat, 25000); assertEquals(25000, db.weeklyLimit(cat));
+  java.time.LocalDate today = java.time.LocalDate.now();
+  Store.Tx now = new Store.Tx(); now.kind = "expense"; now.amount = 4000; now.day = today.toString(); now.account = cash; now.cat = cat; now.note = "Today"; db.save(now);
+  Store.Tx lastWeek = new Store.Tx(); lastWeek.kind = "expense"; lastWeek.amount = 9000; lastWeek.day = today.minusDays(8).toString(); lastWeek.account = cash; lastWeek.cat = cat; lastWeek.note = "Earlier"; db.save(lastWeek);
+  assertEquals(4000, db.weekSpent(cat, today));
+  db.setWeeklyLimit(cat, 0); assertEquals(0, db.weeklyLimit(cat));
+  Pages.budgets(a); assertTrue(texts(a.root).contains("Budgets")); a.closeAll();
+ }
+
  @Test public void transliteratedMalayalamQuickAdd() {
   Store.Tx t = HomePage.parse(a.db, "chaya 40"); assertNotNull(t); assertEquals(4000, t.amount); assertEquals("Food", a.db.categoryMap().get(t.cat).name);
   Store.Tx g = HomePage.parse(a.db, "paal 55"); assertNotNull(g); assertEquals("Groceries", a.db.categoryMap().get(g.cat).name);

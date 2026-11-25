@@ -9,9 +9,10 @@ final class BudgetAlert {
 
  static boolean check(Context c, Store db, long catId) {
   if (c == null || db == null || catId == 0) return false;
-  Long limit = db.budgets().get(catId);
-  if (limit == null || limit <= 0) return false;
+  if (db.budgets().get(catId) == null) return false;
   YearMonth m = YearMonth.now();
+  Long limit = db.effectiveLimit(catId, m);
+  if (limit <= 0) return false;
   long used = 0; for (Store.Tx t : db.txs(Fmt.from(m), Fmt.to(m))) if (t.kind.equals("expense") && t.cat == catId) used += t.amount;
   if (used <= limit) return false;
   String key = "budgetAlert:" + catId + ":" + m;

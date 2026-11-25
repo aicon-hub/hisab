@@ -16,7 +16,7 @@ final class HomePage {
   List<Store.Tx> month = db.txs(Fmt.from(ym), Fmt.to(ym)); Map<Long, Store.Cat> cats = db.categoryMap(); Map<Long, Store.Acc> accs = Kit.accMap(db); Map<Long, Store.Person> people = Kit.peopleMap(db);
   long spent = 0, income = 0, budgeted = 0; Map<Long, Long> budget = db.budgets(), byCat = new HashMap<>();
   for (Store.Tx t : month) { if (t.kind.equals("expense")) { spent += t.amount; byCat.merge(t.cat, t.amount, Long::sum); if (budget.containsKey(t.cat)) budgeted += t.amount; } else if (t.kind.equals("income")) income += t.amount; }
-  long totalBudget = 0; for (long v : budget.values()) totalBudget += v;
+  long totalBudget = 0; for (long k : budget.keySet()) totalBudget += db.effectiveLimit(k, ym);
   Profile.syncGooglePhoto(a);
   c.addView(greeting(a, today));
 

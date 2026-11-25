@@ -71,7 +71,7 @@ public class CrashTest {
  @Test public void configurationChangeWithLayers(){Settings.open(a);click("You");EditText field=fields(top()).get(0);field.setText("Keep me");a.onConfigurationChanged(new android.content.res.Configuration(a.getResources().getConfiguration()));a.build();assertEquals("Keep me",field.getText().toString());}
  @Test public void realFormSaves(){
   Pages.accounts(a);click("Cash");fields(top()).get(0).setText("Pocket");click("Save");assertEquals("Pocket",a.db.accounts().get(0).name);
-  a.closeAll();Pages.budgets(a);click("Food");fields(top()).get(0).setText("2000");click("Save");
+  a.closeAll();Pages.budgets(a);click("Food");click("Monthly limit");fields(top()).get(0).setText("2000");click("Save");
   a.closeAll();Pages.goals(a);click("New laptop");click("Add money");fields(top()).get(0).setText("100");click("Add");
   a.closeAll();Pages.recurring(a);click("Internet");click("Skip this one");a.refresh();
  }

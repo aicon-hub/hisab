@@ -35,8 +35,12 @@ final class Pages {
    YearMonth_ ym = new YearMonth_(); Map<Long, Long> b = db.budgets(), spent = new HashMap<>(); for (Store.Tx t : db.txs(Fmt.from(ym.v), Fmt.to(ym.v))) if (t.kind.equals("expense")) spent.merge(t.cat, t.amount, Long::sum);
    c.addView(Ui.text(a, "Monthly limits. The home screen turns them into a safe amount for today.", 13.5f, Ui.muted, false), Ui.lpm(-2, -2, 2, 0, 0, 14));
    LinearLayout card = Ui.card(a); card.setPadding(Ui.dp(16), Ui.dp(6), Ui.dp(16), Ui.dp(6)); List<Store.Cat> cs = db.categories("expense");
-   for (int i = 0; i < cs.size(); i++) { Store.Cat x = cs.get(i); if (i > 0) card.addView(Ui.divider(a)); long lim = b.getOrDefault(x.id, 0L), used = spent.getOrDefault(x.id, 0L);
-    card.addView(row(a, x.icon, Kit.tone(x.id), x.name, lim > 0 ? Fmt.money(used) + " of " + Fmt.money(lim) : "No limit", lim > 0 ? (used > lim ? "Over" : Fmt.compact(lim - used) + " left") : "Set", lim > 0 && used > lim ? Ui.neg : Ui.muted, () -> Sheets.form(a, x.name + " budget", new String[]{"Monthly limit (0 removes)"}, new String[]{plain(lim)}, new int[]{Sheets.NUMBER}, "Save", v -> { db.setBudget(x.id, amt(v[0])); a.refresh(); }, null))); }
+   for (int i = 0; i < cs.size(); i++) { Store.Cat x = cs.get(i); if (i > 0) card.addView(Ui.divider(a)); long base = b.getOrDefault(x.id, 0L), lim = base > 0 ? db.effectiveLimit(x.id, ym.v) : 0, used = spent.getOrDefault(x.id, 0L), wk = db.weeklyLimit(x.id);
+    String sub = lim > 0 ? Fmt.money(used) + " of " + Fmt.money(lim) + (lim > base ? " (incl. " + Fmt.compact(lim - base) + " carried)" : "") : "No limit"; if (wk > 0) sub += " | week " + Fmt.money(db.weekSpent(x.id, java.time.LocalDate.now())) + " of " + Fmt.money(wk);
+    final long fbase = base, fwk = wk; card.addView(row(a, x.icon, Kit.tone(x.id), x.name, sub, lim > 0 ? (used > lim ? "Over" : Fmt.compact(lim - used) + " left") : "Set", lim > 0 && used > lim ? Ui.neg : Ui.muted, () -> Sheets.pick(a, x.name + " budget", Arrays.asList("Monthly limit", "Weekly limit", "Carry unspent to next month: " + (db.rollover(x.id) ? "On" : "Off")), Arrays.asList("target", "calendar", "repeat"), -1, i2 -> {
+     if (i2 == 0) Sheets.form(a, x.name + " budget", new String[]{"Monthly limit (0 removes)"}, new String[]{plain(fbase)}, new int[]{Sheets.NUMBER}, "Save", v -> { db.setBudget(x.id, amt(v[0])); a.refresh(); }, null);
+     else if (i2 == 1) Sheets.form(a, x.name + " weekly limit", new String[]{"Weekly limit, Monday to Sunday (0 removes)"}, new String[]{plain(fwk)}, new int[]{Sheets.NUMBER}, "Save", v -> { db.setWeeklyLimit(x.id, amt(v[0])); a.refresh(); }, null);
+     else { db.setRollover(x.id, !db.rollover(x.id)); a.refresh(); a.toast(db.rollover(x.id) ? "Unspent budget will carry over" : "Carry-over off", null); } }))); }
    c.addView(card);
   });
  }
