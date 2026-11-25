@@ -201,6 +201,49 @@ public class ProTest {
   assertEquals("12", pad.buf.toString());
  }
 
+ @Test public void exportTablePdfIsRead() {
+  Store db = fresh();
+  java.util.List<OcrParse.El> merged = new java.util.ArrayList<>(), cells = new java.util.ArrayList<>();
+  String[][] rows = {
+   {"2026-02-03", "expense", "120", "Cash", "", "Transport", "", "bus and auto"},
+   {"2026-02-04", "expense", "85.50", "Cash", "", "Groceries", "", "milk, eggs"},
+   {"2026-02-05", "income", "5000", "Bank", "", "Salary", "", "test pay"},
+   {"2026-02-06", "transfer", "1000", "Bank", "Cash", "", "", ""},
+   {"2026-02-07", "lent", "300", "Cash", "", "", "Test Person", "tea"}};
+  int y = 100;
+  merged.add(new OcrParse.El("Date Type Amount Account To account Category Person Note", 10, y, 900, y + 20));
+  cells.add(new OcrParse.El("Date", 10, y, 80, y + 20)); cells.add(new OcrParse.El("Type", 100, y, 160, y + 20));
+  for (String[] r : rows) {
+   y += 40;
+   StringBuilder sb = new StringBuilder(); int x = 10;
+   for (String c : r) { if (c.isEmpty()) continue; sb.append(sb.length() > 0 ? " " : "").append(c); cells.add(new OcrParse.El(c, x, y, x + 80, y + 20)); x += 110; }
+   merged.add(new OcrParse.El(sb.toString(), 10, y, 900, y + 20));
+  }
+  for (java.util.List<OcrParse.El> els : java.util.Arrays.asList(merged, cells)) {
+   Store d = fresh();
+   LedgerPdf.Out o = LedgerPdf.parseDb(d, els, 1000);
+   assertNotNull(o); assertEquals(5, o.rows);
+   int[] r = CsvIo.importEntries(d, o.csv);
+   assertEquals(5, r[0]);
+   long exp = 0; for (Store.Tx t : d.txs("2026-02-01", "2026-02-28")) if (t.kind.equals("expense")) exp += t.amount;
+   assertEquals(20550, exp);
+   int[] again = CsvIo.importEntries(d, o.csv);
+   assertEquals(0, again[0]);
+  }
+  assertNull(LedgerPdf.parseDb(db, new java.util.ArrayList<>(java.util.Arrays.asList(new OcrParse.El("Thanks for shopping", 1, 1, 200, 20))), 1000));
+ }
+
+ @Test public void homeShowsSwitchChipWithSecondProfile() {
+  android.content.Context ctx = org.robolectric.RuntimeEnvironment.getApplication();
+  boolean had = Profiles.hasSecond(ctx); int was = Profiles.active(ctx);
+  try {
+   Profiles.prefs(ctx).edit().putBoolean("has2", true).putInt("active", 0).commit();
+   MainActivity a = Robolectric.buildActivity(MainActivity.class).setup().get();
+   assertNotNull(a.tabHost.findViewWithTag("profileChip"));
+   assertEquals(1, 1 - Profiles.active(a));
+  } finally { Profiles.prefs(ctx).edit().putBoolean("has2", had).putInt("active", was).commit(); Profiles.active(ctx); }
+ }
+
  static int countEdits(android.view.View v) {
   if (v instanceof android.widget.EditText) return 1;
   int n = 0;

@@ -51,6 +51,7 @@ final class OcrImport {
    List<OcrParse.Result> results = new ArrayList<>();
    boolean[] modelPending = {false};
    List<List<OcrParse.El>> tableFallback = new ArrayList<>();
+   final List<LedgerPdf.Out> ledgers = new ArrayList<>();
    List<Integer> tableWidths = new ArrayList<>();
    int failed = 0;
    for (Uri u : uris) {
@@ -58,6 +59,7 @@ final class OcrImport {
      String type = a.getContentResolver().getType(u);
      if (looksLikePdf(type, displayName(a, u))) {
       int before = 0; for (OcrParse.Result x : results) before += x.count();
+      int sizeBefore = results.size();
       List<OcrParse.El> docEls = new ArrayList<>(); final int[] docWidth = {1};
       boolean ok = readPdf(a, recognizer, u, (els, w) -> {
        docEls.addAll(els); if (w > docWidth[0]) docWidth[0] = w;
@@ -65,6 +67,8 @@ final class OcrImport {
        if (one.count() > 0) results.add(one);
       });
       if (!ok) { failed++; continue; }
+      LedgerPdf.Out led = LedgerPdf.parseDb(a.db, docEls, docWidth[0]);
+      if (led != null) { while (results.size() > sizeBefore) results.remove(results.size() - 1); ledgers.add(led); continue; }
       int after = 0; for (OcrParse.Result x : results) after += x.count();
       if (after == before) { tableFallback.add(docEls); tableWidths.add(docWidth[0]); }
      } else {
@@ -87,8 +91,26 @@ final class OcrImport {
    }
    OcrParse.Result done = merged;
    int f = failed;
+   if (!ledgers.isEmpty()) {
+    a.runOnUiThread(() -> confirmLedgers(a, ledgers, done.count() > 0 ? () -> review(a, done, uris.size(), f) : null));
+    return;
+   }
    a.runOnUiThread(() -> review(a, done, uris.size(), f));
   });
+ }
+
+ /** The file is Hisab's own export table: import it with its account, category, person and note, skipping rows already in the ledger. */
+ static void confirmLedgers(MainActivity a, List<LedgerPdf.Out> ledgers, Runnable then) {
+  int rows = 0; for (LedgerPdf.Out o : ledgers) rows += o.rows;
+  final int total = rows;
+  Sheets.confirm(a, "Hisab export found", "This looks like a table exported from Hisab. " + total + " entries were read with their type, account, category and note. Rows already in your ledger are skipped, so importing twice adds nothing. Check the entries afterwards, because reading a PDF can misread a digit.", "Import " + total, () -> {
+   int added = 0, skipped = 0;
+   for (LedgerPdf.Out o : ledgers) { int[] r = CsvIo.importEntries(a.db, o.csv); added += r[0]; skipped += r[1]; }
+   a.refresh();
+   a.toast("Imported " + added + (skipped > 0 ? ", skipped " + skipped : ""), null);
+   if (then != null) then.run();
+  });
+  if (total == 0 && then != null) then.run();
  }
 
  static boolean modelBusy(Throwable e) {

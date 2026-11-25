@@ -72,14 +72,14 @@ final class Profiles {
    LinearLayout card = Ui.card(a); int act = active(a); int n = hasSecond(a) ? 2 : 1;
    for (int i = 0; i < n; i++) { final int idx = i; if (i > 0) card.addView(Ui.divider(a));
     LinearLayout row = Ui.col(a); row.setPadding(0, Ui.dp(12), 0, Ui.dp(12));
-    row.addView(Ui.text(a, name(a, idx), 15.5f, Ui.ink, true)); row.addView(Ui.text(a, idx == act ? "Active. Tap to rename." : "Tap to switch to this profile.", 12.5f, Ui.muted, false));
-    Ui.tap(row, () -> { if (idx == act) Sheets.form(a, "Rename profile", new String[]{"Name"}, new String[]{name(a, idx)}, new int[]{Sheets.TEXT}, "Save", v -> { if (rename(a, idx, v[0])) { a.closeAll(); a.refresh(); open(a); } }, null); else { setActive(a, idx); a.closeAll(); a.recreate(); } });
+    row.addView(Ui.text(a, name(a, idx), 15.5f, Ui.ink, true)); row.addView(Ui.text(a, idx == act ? "Active. Tap to rename." : "Tap to switch to this profile. You can also tap the profile name on Home.", 12.5f, Ui.muted, false));
+    Ui.tap(row, () -> { if (idx == act) Sheets.form(a, "Rename profile", new String[]{"Name"}, new String[]{name(a, idx)}, new int[]{Sheets.TEXT}, "Save", v -> { if (rename(a, idx, v[0])) { a.closeAll(); a.refresh(); open(a); } }, null); else { a.switchProfile(idx); } });
     card.addView(row);
    }
    c.addView(card);
    if (!hasSecond(a)) {
     TextView add = Ui.button(a, "Add a second profile", true); c.addView(add, Ui.lpm(-1, -2, 0, 16, 0, 0));
-    Ui.tap(add, () -> Sheets.confirm(a, "Add a second profile?", "It starts empty. Your current profile and its entries are not touched, and you can switch back any time.", "Add", () -> { if (addSecond(a)) { a.closeAll(); a.recreate(); } }));
+    Ui.tap(add, () -> Sheets.confirm(a, "Add a second profile?", "It starts empty. Your current profile and its entries are not touched, and you can switch back any time.", "Add", () -> { if (addSecond(a)) { a.getIntent().putExtra("profileFade", true); a.closeAll(); a.recreate(); } }));
    }
   });
  }

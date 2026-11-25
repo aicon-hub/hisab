@@ -38,7 +38,13 @@ final class HomePage {
   long pace = Forecast.monthEnd(db, today);
   if (pace > 0) hero.addView(Ui.text(a, "At this pace, " + Fmt.month(ym) + " ends around " + Fmt.money(pace), 12.5f, Ui.onAccentSub, false), Ui.lpm(-1, -2, 0, 10, 0, 0));
   String goalLine = Habits.goalLine(db, today); if (goalLine != null) hero.addView(Ui.text(a, goalLine, 12.5f, Ui.onAccentSub, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
-  if (Profiles.hasSecond(a)) hero.addView(Ui.text(a, "Profile: " + Profiles.name(a, Profiles.active(a)), 12.5f, Ui.onAccentSub, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
+  if (Profiles.hasSecond(a)) {
+   int act = Profiles.active(a);
+   TextView chip = Ui.text(a, "\u21C4  " + Profiles.name(a, act) + "  \u00B7  tap to switch to " + Profiles.name(a, 1 - act), 12.5f, Ui.onAccentSub, true);
+   chip.setContentDescription("Switch profile"); chip.setTag("profileChip"); chip.setPadding(Ui.dp(2), Ui.dp(8), Ui.dp(10), Ui.dp(8));
+   Ui.tap(chip, () -> a.switchProfile(1 - Profiles.active(a)));
+   hero.addView(chip, Ui.lpm(-2, -2, 0, 2, 0, 0));
+  }
   int streak = Habits.streak(db, today); if (streak >= 2) hero.addView(Ui.text(a, streak + "-day entry streak", 12.5f, Ui.onAccentSub, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
   if (secHero) c.addView(hero);
 

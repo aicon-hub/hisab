@@ -48,6 +48,10 @@ public class MainActivity extends Activity {
    }
    return ins;
   });
+  if (getIntent().getBooleanExtra("profileFade", false)) {
+   getIntent().removeExtra("profileFade");
+   if (Ui.motion(root)) { root.setAlpha(0f); root.setScaleX(1.04f); root.setScaleY(1.04f); root.post(() -> root.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(360).setInterpolator(new DecelerateInterpolator(2f)).start()); }
+  }
   launching = b == null && Ui.motion(root) && !getIntent().getBooleanExtra("noLaunch", false);
   build();
   if (launching) showLaunch();
@@ -224,6 +228,14 @@ public class MainActivity extends Activity {
   View f = getCurrentFocus(); if (f != null) ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(f.getWindowToken(), 0);
  }
  void closeTop() { if (!layers.isEmpty()) close(layers.get(layers.size() - 1)); }
+ /** Switches to the other profile with a fade out and a fade in, so there is no flash or restart feel. */
+ void switchProfile(int idx) {
+  if (idx == Profiles.active(this) || (idx == 1 && !Profiles.hasSecond(this))) return;
+  Ui.buzzOk(root);
+  Runnable go = () -> { Profiles.setActive(this, idx); getIntent().putExtra("profileFade", true); closeAll(); recreate(); };
+  if (Ui.motion(root)) root.animate().alpha(0f).scaleX(.96f).scaleY(.96f).setDuration(190).setInterpolator(new AccelerateInterpolator(1.4f)).withEndAction(go).start(); else go.run();
+ }
+
  void closeAll() { for (Layer l : new ArrayList<>(layers)) close(l); }
 
  @Override public void onBackPressed() {
