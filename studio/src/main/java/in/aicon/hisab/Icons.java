@@ -63,6 +63,7 @@ final class Icons {
   P.put("target", circle(12, 12, 8) + circle(12, 12, 4) + "M12 12H12.1");
   P.put("repeat", "M17 3L20 6L17 9 M4 11V10A4 4 0 0 1 8 6H20 M7 21L4 18L7 15 M20 13V14A4 4 0 0 1 16 18H4");
   P.put("calendar", "M4 6H20V20H4Z M4 10H20 M8 3V7 M16 3V7");
+  P.put("filter", "M4 6H20 M7 12H17 M10 18H14");
   P.put("share", "M12 4V15 M8 8L12 4L16 8 M5 13V20H19V13");
   P.put("check", "M5 12.5L10 17.5L19 7");
   P.put("right", "M9 5L16 12L9 19");

@@ -21,7 +21,7 @@ public class MainActivity extends Activity {
  int tab = 0, topInset = 0, bottomInset = 0, keyboardInset = 0;
  int nextRequestCode = 100;
  YearMonth ledgerMonth = YearMonth.now(), insightMonth = YearMonth.now();
- String ledgerFilter = "all", ledgerQuery = ""; int ledgerDay = 0; boolean ledgerCalendar = false;
+ String ledgerFilter = "all", ledgerQuery = "", ledgerFrom = "", ledgerTo = ""; int ledgerDay = 0; long ledgerCat = 0, ledgerMin = 0, ledgerMax = 0; boolean ledgerCalendar = false; int reportYear = java.time.Year.now().getValue();
  final List<Layer> layers = new ArrayList<>();
  final Map<Integer, Consumer<Intent>> results = new HashMap<>();
  final Map<Integer, Runnable> cancels = new HashMap<>();
@@ -56,7 +56,7 @@ public class MainActivity extends Activity {
   AutoRemind.schedule(this, db);
   db.normalisePhones();
   BankSms.autoCatchUp(this);
-  if (Lock.enabled(db) && !Lock.unlocked) showLock();
+  Trash.purge(this); if (Lock.enabled(db) && !Lock.unlocked) showLock();
   Onboard.maybeShow(this);
   handleQuick(getIntent());
  }

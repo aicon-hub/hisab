@@ -88,6 +88,7 @@ final class Settings {
    rm.addView(item(a, "people", "Money due reminders", db.flag("autoRemind", false) ? "On" : "Off", () -> AutoRemind.open(a))); c.addView(rm);
 
    c.addView(Kit.sectionHead(a, "Your data", null, null)); LinearLayout da = Ui.card(a); da.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
+   da.addView(item(a,"ledger","Trash bin",null,()->Trash.open(a)));da.addView(Ui.divider(a));
    da.addView(item(a,"lock","Encrypted backup",null,()->Backup.password(a,true)));da.addView(Ui.divider(a));
    da.addView(item(a,"download","Restore encrypted backup",null,()->Backup.password(a,false)));da.addView(Ui.divider(a));
    da.addView(item(a, "google", "Google Drive backup", DriveBackup.toggleValue(DriveBackup.enabled(db), DriveBackup.account(db)), "Keeps a copy of everything in the hidden app-data folder of your own Google Drive. After every change you make, the copy is updated to match this phone exactly, including deletions. Only you can see it.", () -> DriveBackup.toggle(a))); da.addView(Ui.divider(a));
@@ -107,7 +108,7 @@ final class Settings {
 
    c.addView(Kit.sectionHead(a, "About", null, null)); LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
-   ab.addView(Ui.text(a, "Version 0.9.9 test build", 12.5f, Ui.muted, true));
+   ab.addView(Ui.text(a, "Version 1.0.0 test build", 12.5f, Ui.muted, true));
    ab.addView(Ui.divider(a), Ui.lpm(-1, -2, 0, 14, 0, 0));
    ab.addView(item(a, "share", "Share Hisab with a friend", "Recommend the app and how to install it", () -> shareHisab(a)));
    ab.addView(item(a, "info", "Section guides", "Short explanations, shown once per section · tap to see them again", () -> { a.db.getWritableDatabase().delete("prefs", "k LIKE 'infoSeen_%'", null); a.toast("Guides will show again when you open each section", null); a.closeAll(); open(a); }));

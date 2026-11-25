@@ -28,6 +28,8 @@ final class InsightsPage {
   Store.Tx dummy = null; LinearLayout pr = Ui.row(a); pr.setPadding(0, Ui.dp(16), 0, 0); pr.addView(HomePage.pill(a, "Income", Fmt.money(in), Ui.pos), Ui.weight(1)); ((LinearLayout.LayoutParams) pr.getChildAt(0).getLayoutParams()).rightMargin = Ui.dp(6); pr.addView(HomePage.pill(a, "Spent", Fmt.money(out), Ui.ink), Ui.weight(1)); ((LinearLayout.LayoutParams) pr.getChildAt(1).getLayoutParams()).leftMargin = Ui.dp(6);
   for (int i = 0; i < 2; i++) pr.getChildAt(i).setBackground(Ui.shape(Ui.surface2, 20)); top.addView(pr); c.addView(top, Ui.lpm(-1, -2, 0, 14, 0, 0));
 
+  TextView yearBtn = Ui.button(a, "Year report: months, totals, compare", false); c.addView(yearBtn, Ui.lpm(-1, -2, 0, 0, 0, 10));
+  Ui.tap(yearBtn, () -> YearReport.open(a));
   TextView shareSum = Ui.button(a, "Share month summary", false); c.addView(shareSum, Ui.lpm(-1, -2, 0, 0, 0, 14));
   Ui.tap(shareSum, () -> {
    android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, summary(db, ym));

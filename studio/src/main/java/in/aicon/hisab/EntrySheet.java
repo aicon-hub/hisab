@@ -10,7 +10,7 @@ import java.util.*;
 final class EntrySheet {
  private EntrySheet() {}
 
- static final class S { String kind; StringBuilder expr = new StringBuilder(); long account, dest, cat, person; LocalDate day = LocalDate.now(); String note = ""; long id; }
+ static final class S { String kind; StringBuilder expr = new StringBuilder(); long account, dest, cat, person; LocalDate day = LocalDate.now(); String note = ""; String tags = ""; long id; }
 
  static long eval(String e) {
   if (e.isEmpty()) return -1; long total = 0; int sign = 1; StringBuilder cur = new StringBuilder();
@@ -25,7 +25,7 @@ final class EntrySheet {
  static void open(MainActivity a, String kind, Store.Tx edit) {
   S s = new S(); Store db = a.db; List<Store.Acc> accs = db.accounts(); if (accs.isEmpty()) { a.toast("Add an account first", null); return; }
   s.kind = kind; s.account = accs.get(0).id; long last = Long.parseLong(db.pref("lastAcc", "0")); for (Store.Acc x : accs) if (x.id == last) s.account = x.id;
-  if (edit != null) { s.id = edit.id; s.kind = edit.kind; s.expr.append(Ledger_plain(edit.amount)); s.account = edit.account; s.dest = edit.dest; s.cat = edit.cat; s.person = edit.person; s.day = LocalDate.parse(edit.day); s.note = edit.note; }
+  if (edit != null) { s.id = edit.id; s.kind = edit.kind; s.expr.append(Ledger_plain(edit.amount)); s.account = edit.account; s.dest = edit.dest; s.cat = edit.cat; s.person = edit.person; s.day = LocalDate.parse(edit.day); s.note = edit.note; s.tags = edit.tags == null ? "" : edit.tags; }
   else if (accs.size() > 1) s.dest = accs.get(1).id == s.account ? accs.get(0).id : accs.get(1).id;
   final MainActivity.Layer[] ref = new MainActivity.Layer[1];
   ref[0] = a.open(() -> view(a, s, ref), true); ref[0].build = null;
@@ -54,6 +54,8 @@ final class EntrySheet {
   c.addView(meta); c.addView(cats);
   note = Sheets.field(a, "Add a note", s.note, Sheets.TEXT); note.setTextSize(15); c.addView(note, Ui.lpm(-1, -2, 0, 10, 0, 12));
   note.addTextChangedListener(new android.text.TextWatcher() { public void beforeTextChanged(CharSequence x, int i, int j, int k) {} public void onTextChanged(CharSequence x, int i, int j, int k) { s.note = x.toString().trim(); } public void afterTextChanged(android.text.Editable e) {} });
+  EditText tagsF = Sheets.field(a, "Tags, comma separated (optional)", s.tags, Sheets.TEXT); tagsF.setTextSize(14); c.addView(tagsF, Ui.lpm(-1, -2, 0, 0, 0, 12));
+  tagsF.addTextChangedListener(new android.text.TextWatcher() { public void beforeTextChanged(CharSequence x, int i, int j, int k) {} public void onTextChanged(CharSequence x, int i, int j, int k) { s.tags = x.toString().trim(); } public void afterTextChanged(android.text.Editable e) {} });
   Runnable show = () -> { String e = s.expr.toString(); amountTv[0].setText(e.isEmpty() ? "0" : e.replace("-", " - ").replace("+", " + ")); amountTv[0].setTextColor(e.isEmpty() ? Ui.muted : Ui.ink); amountTv[0].setTextSize(e.length() > 11 ? 30 : e.length() > 8 ? 40 : 54); boolean ops = e.contains("+") || e.contains("-"); long v = eval(e); subTv[0].setText(ops && v > 0 ? "= " + Fmt.money(v) : " "); };
   renderAll[0] = () -> { renderMeta(a, s, meta, ref); renderCats(a, s, cats); show.run(); };
   // keypad
@@ -161,7 +163,7 @@ final class EntrySheet {
   boolean people = s.kind.equals("lent") || s.kind.equals("borrowed") || s.kind.startsWith("repay");
   if (people && s.person == 0) { a.toast("Choose a person first", null); return; }
   if (s.kind.equals("transfer") && (s.dest == 0 || s.dest == s.account)) { a.toast("Pick two different accounts", null); return; }
-  Store.Tx t = new Store.Tx(); t.id = s.id; t.kind = s.kind; t.amount = v; t.day = s.day.toString(); t.account = s.account; t.dest = s.kind.equals("transfer") ? s.dest : 0; t.person = people ? s.person : 0; t.note = s.note;
+  Store.Tx t = new Store.Tx(); t.id = s.id; t.kind = s.kind; t.amount = v; t.day = s.day.toString(); t.account = s.account; t.dest = s.kind.equals("transfer") ? s.dest : 0; t.person = people ? s.person : 0; t.note = s.note; t.tags = s.tags;
   if (s.kind.equals("expense") || s.kind.equals("income")) { t.cat = s.cat; if (t.cat == 0) { List<Store.Cat> cs = a.db.categories(s.kind); if (!cs.isEmpty()) t.cat = cs.get(cs.size() - 1).id; } }
   long id = a.db.save(t); a.db.setPref("lastAcc", "" + s.account); if (t.kind.equals("expense")) BudgetAlert.check(a, a.db, t.cat); a.close(ref[0]); a.refresh();
   final boolean fresh = s.id == 0; a.toast((fresh ? "Added " : "Updated ") + Fmt.money(v), fresh ? () -> { a.db.deleteTx(id); a.refresh(); } : null);
