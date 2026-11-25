@@ -40,6 +40,10 @@ final class Lock {
   return enabled(db) && valid(pin) && hash(db.pref("pinSalt", ""), pin).equals(db.pref("pinHash", ""));
  }
 
+ static boolean bio(Store db) { return db.flag("bioUnlock", false); }
+
+ static void setBio(Store db, boolean on) { db.setPref("bioUnlock", on ? "1" : "0"); }
+
  static void clear(Store db) {
   db.setPref("pinHash", ""); db.setPref("pinSalt", "");
   unlocked = true;

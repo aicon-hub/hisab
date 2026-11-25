@@ -97,4 +97,7 @@ public class PolishTest {
   assertTrue(text, text.contains("New category") && text.contains("Pick an icon") && text.contains("Add category"));
   a.closeAll();
  }
+ @Test public void budgetAlertFiresOncePerCategoryPerMonth(){Store.Cat c=a.db.categories("expense").get(0);java.time.YearMonth m=java.time.YearMonth.now();long base=0;for(Store.Tx t:a.db.txs(Fmt.from(m),Fmt.to(m)))if(t.kind.equals("expense")&&t.cat==c.id)base+=t.amount;a.db.setBudget(c.id,base+5000);assertFalse(BudgetAlert.check(a,a.db,c.id));Store.Tx t=new Store.Tx();t.kind="expense";t.amount=6000;t.cat=c.id;t.day=Fmt.today().toString();a.db.save(t);assertTrue(BudgetAlert.check(a,a.db,c.id));assertFalse(BudgetAlert.check(a,a.db,c.id));a.db.setBudget(c.id,0);a.db.deleteTx(t.id);}
+ @Test public void billsAndPhotosOnEveryEntryType(){Store.Tx t=new Store.Tx();t.kind="expense";t.amount=5000;t.day=Fmt.today().toString();t.cat=a.db.categories("expense").get(0).id;t.account=a.db.accounts().get(0).id;t.note="";t.person=0;t.dest=0;t.id=a.db.save(t);Sheets.txDetail(a,t);assertTrue(texts(a.root).contains("Bills and photos"));a.closeAll();a.db.deleteTx(t.id);}
+ @Test public void biometricUnlockPreferenceRoundTrip(){assertFalse(Lock.bio(a.db));Lock.setBio(a.db,true);assertTrue(Lock.bio(a.db));Lock.setBio(a.db,false);assertFalse(Lock.bio(a.db));}
 }

@@ -41,7 +41,7 @@ public class FeatureTest {
   assertTrue(BankSms.apply(a.db,"VM-HDFCBK",sms,100));assertFalse(BankSms.apply(a.db,"VM-HDFCBK",sms,100));assertFalse(BankSms.apply(a.db,"VM-HDFCBK",sms,99));assertEquals("120050",a.db.pref("smsBalance:"+id,""));assertEquals(ledger,a.db.balance(a.db.account(id)));
  }
  @Test public void quickTextPersistsOnceThroughActualButton(){
-  EditText input=a.root.findViewWithTag("quickEntry");assertNotNull(input);input.setText("auto 60 yesterday");View go=((ViewGroup)input.getParent()).getChildAt(1);int before=a.db.txs("","~").size();go.performClick();assertEquals(before+1,a.db.txs("","~").size());Store.Tx t=a.db.recent(1).get(0); // recent can sort future sample; query by note instead
+  EditText input=a.root.findViewWithTag("quickEntry");assertNotNull(input);input.setText("auto 60 yesterday");ViewGroup row=(ViewGroup)input.getParent();View go=row.getChildAt(row.getChildCount()-1);int before=a.db.txs("","~").size();go.performClick();assertEquals(before+1,a.db.txs("","~").size());Store.Tx t=a.db.recent(1).get(0); // recent can sort future sample; query by note instead
   boolean found=false;for(Store.Tx x:a.db.txs("","~"))if(x.note.equals("Auto")&&x.amount==6000&&x.day.equals(java.time.LocalDate.now().minusDays(1).toString()))found=true;assertTrue(found);
  }
  @Test public void quickDatesCurrencyAndAmbiguity(){

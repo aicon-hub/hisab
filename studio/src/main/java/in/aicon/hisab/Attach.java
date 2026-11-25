@@ -6,7 +6,7 @@ import android.widget.*;
 import java.io.*;
 import java.util.*;
 
-/** Photos and bill images attached to lent and borrowed entries. Files live in the app's own folder on this phone. */
+/** Photos and bill images attached to any entry. Files live in the app's own folder on this phone. */
 final class Attach {
  private Attach() {}
 

@@ -5,6 +5,8 @@
  <uses-permission android:name="android.permission.RECEIVE_SMS"/>
  <uses-permission android:name="android.permission.READ_SMS"/>
  <uses-permission android:name="android.permission.SEND_SMS"/>
+<uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+<uses-permission android:name="android.permission.RECORD_AUDIO"/>
  <uses-feature android:name="android.hardware.telephony" android:required="false"/>
  <application android:label="Hisab Studio 2" android:extractNativeLibs="false" android:theme="@style/AppTheme" android:icon="@mipmap/ic_launcher" android:allowBackup="false" android:supportsRtl="true" android:usesCleartextTraffic="false">
   <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="ocr"/>

@@ -73,8 +73,7 @@ final class Sheets {
   card.addView(kv(a, "Type", Kit.kindName(t.kind))); if (tone) { Store.Cat ct = cats.get(t.cat); card.addView(kv(a, "Category", ct == null ? "None" : ct.name)); }
   card.addView(kv(a, t.kind.equals("transfer") ? "From" : "Account", accs.get(t.account) == null ? "None" : accs.get(t.account).name)); if (t.kind.equals("transfer")) card.addView(kv(a, "To", accs.get(t.dest) == null ? "None" : accs.get(t.dest).name));
   if (t.person != 0 && people.get(t.person) != null) card.addView(kv(a, "Person", people.get(t.person).name)); card.addView(kv(a, "Date", Fmt.dayLabel(t.day) + ", " + t.day)); if (!t.note.isEmpty()) card.addView(kv(a, "Note", t.note));
-  boolean peopleKind = t.kind.equals("lent") || t.kind.equals("borrowed") || t.kind.startsWith("repay");
-  if (peopleKind) { int na = db.attachments(t.id).size(); View pr = kv(a, "Bills and photos", na == 0 ? "None yet - tap to add" : na + (na == 1 ? " attached" : " attached")); card.addView(pr); Ui.tap(pr, () -> Attach.view(a, t)); }
+  int na = db.attachments(t.id).size(); View pr = kv(a, "Bills and photos", na == 0 ? "None yet - tap to add" : na + (na == 1 ? " attached" : " attached")); card.addView(pr); Ui.tap(pr, () -> Attach.view(a, t));
   c.addView(card);
   LinearLayout r = Ui.row(a); TextView e = Ui.button(a, "Edit", true), d = Ui.button(a, "Delete", false); d.setTextColor(Ui.neg);
   r.addView(e, Ui.lpm(0, -2, 0, 0, 6, 0)); ((LinearLayout.LayoutParams) e.getLayoutParams()).weight = 1; r.addView(d, Ui.lpm(0, -2, 6, 0, 0, 0)); ((LinearLayout.LayoutParams) d.getLayoutParams()).weight = 1; c.addView(r, Ui.lpm(-1, -2, 0, 16, 0, 0));

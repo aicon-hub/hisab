@@ -43,6 +43,10 @@ final class Privacy {
     if (Lock.verify(a.db, v[0])) { Lock.clear(a.db); a.toast("App lock is off", null); } else a.toast("Wrong PIN. App lock stays on", null);
     a.closeAll(); open(a);
    }, null));
+   if (Bio.available(a)) {
+    toggle(a,c,"Unlock with fingerprint or face","bioUnlock",false,()->{});
+    c.addView(Ui.text(a,"Uses the phone's own fingerprint or face screen after the app is locked. Hisab never sees or stores anything from the sensor. The PIN still works.",13,Ui.muted,false));
+   }
   }
   c.addView(Ui.divider(a));
   c.addView(Ui.text(a,"Hide account balances",20,Ui.ink,true),Ui.lpm(-1,-2,0,20,0,0));
