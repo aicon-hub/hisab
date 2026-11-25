@@ -372,4 +372,22 @@ public class PolishTest {
   assertNull(PersonStatement.upiUri("bad", "x", 100)); assertNull(PersonStatement.upiUri("friend@okbank", "x", 0));
   PeoplePage.person(a, q); assertTrue(texts(a.root).contains("Share statement")); assertTrue(texts(a.root).contains("Pay by UPI")); a.closeAll();
  }
+
+ @Test public void incomeSourcesGroupAndShare() {
+  Store db = a.db; db.wipe(); db.seedBasics();
+  long cash = db.accounts().get(0).id; java.util.List<Store.Cat> inc = db.categories("income");
+  java.time.LocalDate today = java.time.LocalDate.now();
+  assertEquals(0, IncomeSources.collect(db, 3, today).total);
+  long[][] es = {{300000, 0}, {100000, 0}, {50000, 1}};
+  for (long[] e : es) { Store.Tx t = new Store.Tx(); t.kind = "income"; t.amount = e[0]; t.day = today.toString(); t.account = cash; t.cat = inc.get((int) e[1]).id; t.note = "x"; db.save(t); }
+  Store.Tx old = new Store.Tx(); old.kind = "income"; old.amount = 70000; old.day = today.minusYears(2).toString(); old.account = cash; old.cat = inc.get(0).id; old.note = "old"; db.save(old);
+  Store.Tx ex = new Store.Tx(); ex.kind = "expense"; ex.amount = 99999; ex.day = today.toString(); ex.account = cash; ex.note = "e"; db.save(ex);
+  IncomeSources.Result all = IncomeSources.collect(db, 3, today);
+  assertEquals(520000, all.total); assertEquals(2, all.sources.size()); assertEquals(inc.get(0).name, all.sources.get(0).name); assertEquals(470000, all.sources.get(0).amount);
+  IncomeSources.Result month = IncomeSources.collect(db, 0, today);
+  assertEquals(450000, month.total); assertEquals(1, month.byMonth.size());
+  assertEquals(67, IncomeSources.share(300000, 450000)); assertEquals(0, IncomeSources.share(5, 0));
+  assertTrue(IncomeSources.from(1, java.time.LocalDate.of(2026, 1, 15)).equals("2025-11-01"));
+  IncomeSources.open(a); assertTrue(texts(a.root).contains("Income sources")); assertTrue(texts(a.root).contains(inc.get(0).name)); a.closeAll();
+ }
 }
