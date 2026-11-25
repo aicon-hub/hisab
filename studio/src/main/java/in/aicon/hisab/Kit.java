@@ -14,7 +14,7 @@ final class Kit {
  /** Scrolling column with page padding. Bottom space clears the dock. */
  static LinearLayout column(MainActivity a, ScrollView[] out, boolean dockSpace) {
   ScrollView s = new ScrollView(a); s.setVerticalScrollBarEnabled(false); s.setOverScrollMode(View.OVER_SCROLL_NEVER); s.setFillViewport(false);
-  LinearLayout c = Ui.col(a); c.setPadding(Ui.dp(20), a.topInset + Ui.dp(12), Ui.dp(20), a.bottomInset + Ui.dp(dockSpace ? 126 : 32)); s.addView(c, new FrameLayout.LayoutParams(-1, -2)); out[0] = s; return c;
+  LinearLayout c = Ui.col(a); c.setPadding(Ui.dp(20), a.topInset + Ui.dp(12), Ui.dp(20), a.bottomInset + Ui.dp(dockSpace ? 84 : 32)); s.addView(c, new FrameLayout.LayoutParams(-1, -2)); out[0] = s; return c;
  }
 
  static View title(MainActivity a, String sub, String title, boolean avatar) {
@@ -46,8 +46,8 @@ final class Kit {
 
  static View txRow(MainActivity a, Store.Tx t, Map<Long, Store.Cat> cats, Map<Long, Store.Acc> accs, Map<Long, Store.Person> people, boolean showDate) {
   LinearLayout r = Ui.row(a); r.setPadding(0, Ui.dp(9), 0, Ui.dp(9));
-  Store.Cat c = cats.get(t.cat); int tone = t.kind.equals("expense") || t.kind.equals("income") ? tone(t.cat) : Ui.surface2;
-  FrameLayout b = Ui.badge(a, iconOf(t, cats), 44, t.kind.equals("expense") || t.kind.equals("income") ? tone : Ui.surface2, t.kind.equals("expense") || t.kind.equals("income") ? 0xFF14151A : Ui.ink);
+  Store.Cat c = cats.get(t.cat); int tone = Ui.surface2;
+  FrameLayout b = Ui.badge(a, iconOf(t, cats), 44, t.kind.equals("expense") || t.kind.equals("income") ? tone : Ui.surface2, Ui.ink);
   r.addView(b, Ui.lpm(Ui.dp(44), Ui.dp(44), 0, 0, 14, 0));
   LinearLayout m = Ui.col(a); m.addView(Ui.text(a, titleOf(t, cats, people), 15, Ui.ink, true));
   Store.Acc ac = accs.get(t.account); String sub = (t.kind.equals("expense") || t.kind.equals("income") ? (c == null ? "" : c.name + " · ") : kindName(t.kind) + " · ") + (ac == null ? "" : ac.name) + (t.kind.equals("transfer") && accs.get(t.dest) != null ? " to " + accs.get(t.dest).name : "") + (showDate ? " · " + Fmt.shortDate(t.day) : "");

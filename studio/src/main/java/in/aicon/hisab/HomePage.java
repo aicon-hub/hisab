@@ -21,32 +21,32 @@ final class HomePage {
   c.addView(greeting(a, today));
 
   boolean secHero = HomeCustom.on(db, "hero");
-  LinearLayout hero = Ui.col(a); hero.setBackground(Ui.shape(Ui.accent, 30)); hero.setPadding(Ui.dp(22), Ui.dp(20), Ui.dp(22), Ui.dp(20));
+  LinearLayout hero = Ui.col(a); hero.setPadding(Ui.dp(2), Ui.dp(14), Ui.dp(2), Ui.dp(6));
   int daysLeft = ym.lengthOfMonth() - today.getDayOfMonth() + 1; long left = totalBudget - budgeted;
   String lab; long big; String sub;
   if (totalBudget > 0) {
    if (left >= 0) { lab = "Safe to spend today"; big = left / daysLeft / 100 * 100; sub = L.isMl()?Fmt.money(totalBudget)+" ൽ "+Fmt.money(left)+" ബാക്കി · "+daysLeft+" ദിവസം":Fmt.money(left) + " left of " + Fmt.money(totalBudget) + " · " + daysLeft + (daysLeft == 1 ? " day" : " days") + " to go"; }
    else { lab = "Over budget by"; big = -left; sub = "Budgets total " + Fmt.money(totalBudget) + " this month"; }
   } else { lab = "Spent this month"; big = spent; sub = "Set budgets to see a daily safe amount"; }
-  TextView l1 = Ui.text(a, lab, 13, Ui.onAccentSub, true); hero.addView(l1);
-  TextView amt = Ui.big(a, Fmt.money(big), 46, Ui.onAccent); amt.setPadding(0, Ui.dp(8), 0, Ui.dp(6)); hero.addView(amt);
-  hero.addView(Ui.text(a, sub, 13.5f, Ui.onAccentSub, false));
-  if (totalBudget > 0) { Charts.Pace p = new Charts.Pace(a, Math.max(0f, budgeted / (float) totalBudget), (today.getDayOfMonth() - 1f) / ym.lengthOfMonth(), Ui.onAccent, Ui.onAccentTrack); hero.addView(p, Ui.lpm(-1, Ui.dp(26), 0, 12, 0, 0)); hero.addView(Ui.text(a, "Thin mark shows where the month is today", 11.5f, Ui.onAccentFaint, false)); }
+  TextView l1 = Ui.text(a, lab, 13, Ui.muted, true); hero.addView(l1);
+  TextView amt = Ui.big(a, Fmt.money(big), 46, Ui.ink); amt.setPadding(0, Ui.dp(8), 0, Ui.dp(6)); hero.addView(amt);
+  hero.addView(Ui.text(a, sub, 13.5f, Ui.muted, false));
+  if (totalBudget > 0) { Charts.Pace p = new Charts.Pace(a, Math.max(0f, budgeted / (float) totalBudget), (today.getDayOfMonth() - 1f) / ym.lengthOfMonth(), Ui.ink, Ui.line); hero.addView(p, Ui.lpm(-1, Ui.dp(26), 0, 12, 0, 0)); hero.addView(Ui.text(a, "Thin mark shows where the month is today", 11.5f, Ui.muted, false)); }
   LinearLayout stats = Ui.row(a); stats.setPadding(0, Ui.dp(16), 0, 0);
   stats.addView(stat(a, "Income", Fmt.money(income)), Ui.weight(1)); stats.addView(stat(a, "Spent", Fmt.money(spent)), Ui.weight(1)); stats.addView(stat(a, "Net", Fmt.money(income - spent)), Ui.weight(1));
   hero.addView(stats);
   long pace = Forecast.monthEnd(db, today);
-  if (pace > 0) hero.addView(Ui.text(a, "At this pace, " + Fmt.month(ym) + " ends around " + Fmt.money(pace), 12.5f, Ui.onAccentSub, false), Ui.lpm(-1, -2, 0, 10, 0, 0));
-  String goalLine = Habits.goalLine(db, today); if (goalLine != null) hero.addView(Ui.text(a, goalLine, 12.5f, Ui.onAccentSub, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
+  if (pace > 0) hero.addView(Ui.text(a, "At this pace, " + Fmt.month(ym) + " ends around " + Fmt.money(pace), 12.5f, Ui.muted, false), Ui.lpm(-1, -2, 0, 10, 0, 0));
+  String goalLine = Habits.goalLine(db, today); if (goalLine != null) hero.addView(Ui.text(a, goalLine, 12.5f, Ui.muted, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
   if (Profiles.hasSecond(a)) {
    int act = Profiles.active(a);
-   TextView chip = Ui.text(a, "\u21C4  " + Profiles.name(a, act) + "  \u00B7  tap to switch to " + Profiles.name(a, 1 - act), 12.5f, Ui.onAccentSub, true);
+   TextView chip = Ui.text(a, "\u21C4  " + Profiles.name(a, act) + "  \u00B7  tap to switch to " + Profiles.name(a, 1 - act), 12.5f, Ui.muted, true);
    chip.setContentDescription("Switch profile"); chip.setTag("profileChip"); chip.setPadding(Ui.dp(2), Ui.dp(8), Ui.dp(10), Ui.dp(8));
    Ui.tap(chip, () -> a.switchProfile(1 - Profiles.active(a)));
    hero.addView(chip, Ui.lpm(-2, -2, 0, 2, 0, 0));
   }
-  int streak = Habits.streak(db, today); if (streak >= 2) hero.addView(Ui.text(a, streak + "-day entry streak", 12.5f, Ui.onAccentSub, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
-  if (secHero) c.addView(hero);
+  int streak = Habits.streak(db, today); if (streak >= 2) hero.addView(Ui.text(a, streak + "-day entry streak", 12.5f, Ui.muted, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
+  if (secHero) { c.addView(hero); c.addView(Ui.divider(a), Ui.lpm(-1, 1, 0, 10, 0, 6)); }
 
   long dailyLimit = 0; try { dailyLimit = Long.parseLong(db.pref("dailyLimit", "0")); } catch (Exception e) {}
   if (dailyLimit > 0 && HomeCustom.on(db, "leftToday")) {
@@ -200,7 +200,7 @@ final class HomePage {
   return card;
  }
 
- static View stat(MainActivity a, String k, String v) { LinearLayout l = Ui.col(a); l.addView(Ui.text(a, k, 12, Ui.onAccentSub, true)); TextView t = Ui.text(a, v, 14.5f, Ui.onAccent, true); t.setPadding(0, Ui.dp(4), 0, 0); l.addView(t); return l; }
+ static View stat(MainActivity a, String k, String v) { LinearLayout l = Ui.col(a); l.addView(Ui.text(a, k, 12, Ui.muted, true)); TextView t = Ui.text(a, v, 14.5f, Ui.ink, true); t.setPadding(0, Ui.dp(4), 0, 0); l.addView(t); return l; }
  static View pill(MainActivity a, String k, String v, int color) { LinearLayout l = Ui.col(a); l.setBackground(Ui.shape(Ui.surface, 22)); l.setPadding(Ui.dp(16), Ui.dp(14), Ui.dp(16), Ui.dp(14)); l.addView(Ui.text(a, k, 12.5f, Ui.muted, true)); TextView t = Ui.big(a, v, 21, color); t.setPadding(0, Ui.dp(6), 0, 0); l.addView(t); return l; }
 
  static View dueRow(MainActivity a, Store.Rec r, LocalDate today) {

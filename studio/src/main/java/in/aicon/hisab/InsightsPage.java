@@ -28,21 +28,19 @@ final class InsightsPage {
   Store.Tx dummy = null; LinearLayout pr = Ui.row(a); pr.setPadding(0, Ui.dp(16), 0, 0); pr.addView(HomePage.pill(a, "Income", Fmt.money(in), Ui.pos), Ui.weight(1)); ((LinearLayout.LayoutParams) pr.getChildAt(0).getLayoutParams()).rightMargin = Ui.dp(6); pr.addView(HomePage.pill(a, "Spent", Fmt.money(out), Ui.ink), Ui.weight(1)); ((LinearLayout.LayoutParams) pr.getChildAt(1).getLayoutParams()).leftMargin = Ui.dp(6);
   for (int i = 0; i < 2; i++) pr.getChildAt(i).setBackground(Ui.shape(Ui.surface2, 20)); top.addView(pr); c.addView(top, Ui.lpm(-1, -2, 0, 14, 0, 0));
 
-  TextView yearBtn = Ui.button(a, "Year report: months, totals, compare", false); c.addView(yearBtn, Ui.lpm(-1, -2, 0, 0, 0, 10));
-  Ui.tap(yearBtn, () -> YearReport.open(a));
-  TextView worthBtn = Ui.button(a, "Net worth: accounts and dues", false); c.addView(worthBtn, Ui.lpm(-1, -2, 0, 0, 0, 10));
-  Ui.tap(worthBtn, () -> NetWorth.open(a));
-  TextView subsBtn = Ui.button(a, "Subscriptions: repeating charges", false); c.addView(subsBtn, Ui.lpm(-1, -2, 0, 0, 0, 10));
-  Ui.tap(subsBtn, () -> Subscriptions.open(a));
+  LinearLayout more = Ui.card(a); more.setPadding(Ui.dp(18), Ui.dp(2), Ui.dp(18), Ui.dp(2));
+  more.addView(Settings.item(a, "chart", "Year report", "Months, totals, compare", () -> YearReport.open(a))); more.addView(Ui.divider(a));
+  more.addView(Settings.item(a, "wallet", "Net worth", "Accounts and dues", () -> NetWorth.open(a))); more.addView(Ui.divider(a));
+  more.addView(Settings.item(a, "repeat", "Subscriptions", "Repeating charges", () -> Subscriptions.open(a))); more.addView(Ui.divider(a));
+  more.addView(Settings.item(a, "upload", "Share month summary", null, () -> {
+   android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, summary(db, ym));
+   a.launchExternal(android.content.Intent.createChooser(i, "Share month summary"));
+  }));
+  c.addView(more, Ui.lpm(-1, -2, 0, 0, 0, 14));
   if (RoundUp.step(db) > 0) { LinearLayout ru = Ui.card(a); ru.setPadding(Ui.dp(18), Ui.dp(14), Ui.dp(18), Ui.dp(14));
    LinearLayout rr = Ui.row(a); rr.addView(Ui.text(a, "Round-up pot", 13, Ui.muted, true), Ui.weight(1)); rr.addView(Ui.big(a, Fmt.money(RoundUp.pot(db)), 20, Ui.ink)); ru.addView(rr);
    ru.addView(Ui.text(a, "Spare change if every expense rounded up - counted, not moved.", 12, Ui.muted, false), Ui.lpm(-1, -2, 0, 4, 0, 0));
    c.addView(ru, Ui.lpm(-1, -2, 0, 0, 0, 10)); }
-  TextView shareSum = Ui.button(a, "Share month summary", false); c.addView(shareSum, Ui.lpm(-1, -2, 0, 0, 0, 14));
-  Ui.tap(shareSum, () -> {
-   android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, summary(db, ym));
-   a.launchExternal(android.content.Intent.createChooser(i, "Share month summary"));
-  });
 
   // by category
   c.addView(Kit.sectionHead(a, "By category", pieAll ? "All time" : "This month", () -> { db.setPref("pieScope", pieAll ? "month" : "all"); a.refresh(); }));

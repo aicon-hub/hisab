@@ -9,8 +9,8 @@ android {
   minSdk 26
   targetSdk 35
   ndk { abiFilters 'arm64-v8a' }
-  versionCode 40
-  versionName '1.0.17-pro'
+  versionCode 41
+  versionName '1.0.18-pro'
  }
  testOptions { unitTests.includeAndroidResources = true; unitTests.all { systemProperty "robolectric.dependency.repo.url", "https://maven-central.storage-download.googleapis.com/maven2"; maxHeapSize = "512m"; forkEvery = 1 } }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
