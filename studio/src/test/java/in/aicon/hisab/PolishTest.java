@@ -390,4 +390,20 @@ public class PolishTest {
   assertTrue(IncomeSources.from(1, java.time.LocalDate.of(2026, 1, 15)).equals("2025-11-01"));
   IncomeSources.open(a); assertTrue(texts(a.root).contains("Income sources")); assertTrue(texts(a.root).contains(inc.get(0).name)); a.closeAll();
  }
+
+ @Test public void travelFxConvertsWithTypedRate() {
+  java.math.BigDecimal r = TravelFx.parseRate("83.5");
+  assertNotNull(r); assertEquals(104375, TravelFx.convert(1250, r));
+  assertEquals(1, TravelFx.convert(1, TravelFx.parseRate("0.5")));
+  assertEquals(0, TravelFx.convert(1, new java.math.BigDecimal("0.4")) == 0 ? 0 : 1);
+  for (String bad : new String[]{"0", "-3", "abc", "", "1e5", "9999999", "1.1234567"}) assertNull(bad, TravelFx.parseRate(bad));
+  assertNull(TravelFx.parseRate(null)); assertNotNull(TravelFx.parseRate("1,234.5"));
+  assertEquals(-1, TravelFx.convert(0, r)); assertEquals(-1, TravelFx.convert(100, null)); assertEquals(-1, TravelFx.convert(Long.MAX_VALUE, r));
+  assertEquals("USD", TravelFx.parseCode(" usd ")); assertNull(TravelFx.parseCode("US")); assertNull(TravelFx.parseCode("US1"));
+  assertEquals("USD 12.50 @ 83.5", TravelFx.noteText("USD", 1250, r));
+  assertEquals("EUR 3 @ 90", TravelFx.noteText("EUR", 300, new java.math.BigDecimal("90.000")));
+  a.db.wipe(); a.db.seedBasics(); EntrySheet.open(a, "expense", null);
+  View tv = a.root.findViewWithTag("entryAmount"); assertNotNull(tv); assertNotNull(a.root.findViewWithTag("entryNote"));
+  assertTrue(texts(a.root).contains("Foreign")); a.closeAll();
+ }
 }

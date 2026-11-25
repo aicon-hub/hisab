@@ -49,10 +49,10 @@ final class EntrySheet {
   // amount
   LinearLayout ar = Ui.row(a); ar.setPadding(Ui.dp(4), Ui.dp(10), Ui.dp(4), Ui.dp(2));
   TextView sym = Ui.big(a, Fmt.symbol.trim(), 26, Ui.muted); ar.addView(sym, Ui.lpm(-2, -2, 0, 0, 10, 0));
-  amountTv[0] = Ui.big(a, "", 54, Ui.ink); amountTv[0].setSingleLine(true); ar.addView(amountTv[0], Ui.weight(1)); c.addView(ar);
+  amountTv[0] = Ui.big(a, "", 54, Ui.ink); amountTv[0].setTag("entryAmount"); amountTv[0].setSingleLine(true); ar.addView(amountTv[0], Ui.weight(1)); c.addView(ar);
   subTv[0] = Ui.text(a, " ", 13, Ui.muted, true); subTv[0].setPadding(Ui.dp(6), 0, 0, Ui.dp(8)); c.addView(subTv[0]);
   c.addView(meta); c.addView(cats);
-  note = Sheets.field(a, "Add a note", s.note, Sheets.TEXT); note.setTextSize(15); c.addView(note, Ui.lpm(-1, -2, 0, 10, 0, 12));
+  note = Sheets.field(a, "Add a note", s.note, Sheets.TEXT); note.setTextSize(15); note.setTag("entryNote"); c.addView(note, Ui.lpm(-1, -2, 0, 10, 0, 12));
   note.addTextChangedListener(new android.text.TextWatcher() { public void beforeTextChanged(CharSequence x, int i, int j, int k) {} public void onTextChanged(CharSequence x, int i, int j, int k) { s.note = x.toString().trim(); } public void afterTextChanged(android.text.Editable e) {} });
   EditText tagsF = Sheets.field(a, "Tags, comma separated (optional)", s.tags, Sheets.TEXT); tagsF.setTextSize(14); c.addView(tagsF, Ui.lpm(-1, -2, 0, 0, 0, 12));
   tagsF.addTextChangedListener(new android.text.TextWatcher() { public void beforeTextChanged(CharSequence x, int i, int j, int k) {} public void onTextChanged(CharSequence x, int i, int j, int k) { s.tags = x.toString().trim(); } public void afterTextChanged(android.text.Editable e) {} });
@@ -94,6 +94,12 @@ final class EntrySheet {
   row.addView(chip(a, "wallet", (transfer ? "From " : "") + (am.get(s.account) == null ? "Account" : am.get(s.account).name), () -> { List<String> n = new ArrayList<>(), ic = new ArrayList<>(); int sel = -1; for (int i = 0; i < accs.size(); i++) { n.add(accs.get(i).name + "   " + Privacy.amount(db,accs.get(i),db.balance(accs.get(i)))); ic.add(accs.get(i).kind.equals("cash") ? "cash" : accs.get(i).kind.equals("bank") ? "bank" : accs.get(i).kind.equals("card") ? "card" : "wallet"); if (accs.get(i).id == s.account) sel = i; } Sheets.pick(a, "Account", n, ic, sel, i -> { s.account = accs.get(i).id; renderMeta(a, s, meta, ref); }); }));
   if (transfer) row.addView(chip(a, "right", "To " + (am.get(s.dest) == null ? "Account" : am.get(s.dest).name), () -> { List<String> n = new ArrayList<>(), ic = new ArrayList<>(); int sel = -1; for (int i = 0; i < accs.size(); i++) { n.add(accs.get(i).name); ic.add("wallet"); if (accs.get(i).id == s.dest) sel = i; } Sheets.pick(a, "Move to", n, ic, sel, i -> { s.dest = accs.get(i).id; renderMeta(a, s, meta, ref); }); }));
   row.addView(chip(a, "calendar", Fmt.dayLabel(s.day.toString()), () -> DateSheet.show(a, s.day, d -> { s.day = d; renderMeta(a, s, meta, ref); })));
+  if (!transfer && !people) row.addView(chip(a, "globe", "Foreign", () -> TravelFx.ask(a, (home, text) -> {
+   s.expr.setLength(0); s.expr.append(Ledger.plain(home));
+   View root = meta.getRootView(); View tv = root.findViewWithTag("entryAmount"); if (tv instanceof TextView) { ((TextView) tv).setText(Ledger.plain(home)); ((TextView) tv).setTextColor(Ui.ink); }
+   s.note = s.note == null || s.note.isEmpty() ? text : s.note + " " + text;
+   View nv = root.findViewWithTag("entryNote"); if (nv instanceof EditText) ((EditText) nv).setText(s.note);
+  })));
   row.addView(infoChip(a));
   if (people) row.addView(chip(a, "user", pm.get(s.person) == null ? "Choose person" : pm.get(s.person).name, () -> { List<Store.Person> ps = db.people(); List<String> n = new ArrayList<>(), ic = new ArrayList<>(); int sel = -1; for (int i = 0; i < ps.size(); i++) { n.add(ps.get(i).name); ic.add("user"); if (ps.get(i).id == s.person) sel = i; } n.add("New from contacts"); ic.add("people"); n.add("New by name"); ic.add("plus"); final int cnt = ps.size();
    Sheets.pick(a, "Person", n, ic, sel, i -> { if (i < cnt) { s.person = ps.get(i).id; renderMeta(a, s, meta, ref); } else if (i == cnt) a.pickContact((nm, ph) -> { s.person = db.addPerson(nm, ph); renderMeta(a, s, meta, ref); }); else Sheets.form(a, "New person", new String[]{"Name"}, new String[]{""}, new int[]{Sheets.TEXT}, "Add", v -> { if (!v[0].isEmpty()) { s.person = db.addPerson(v[0], ""); renderMeta(a, s, meta, ref); } }, null); }); }));
