@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:id="@+id/widgetRoot"
+ android:layout_width="match_parent"
+ android:layout_height="match_parent"
+ android:orientation="horizontal"
+ android:gravity="center_vertical"
+ android:background="@drawable/widget_bg"
+ android:padding="16dp">
+
+ <LinearLayout
+  android:layout_width="0dp"
+  android:layout_height="wrap_content"
+  android:layout_weight="1"
+  android:orientation="vertical">
+
+  <TextView
+   android:id="@+id/widgetLabel"
+   android:layout_width="wrap_content"
+   android:layout_height="wrap_content"
+   android:text="Today"
+   android:textSize="12sp"
+   android:textColor="#FF9A9CA6"
+   android:textStyle="bold"/>
+
+  <TextView
+   android:id="@+id/widgetToday"
+   android:layout_width="wrap_content"
+   android:layout_height="wrap_content"
+   android:layout_marginTop="2dp"
+   android:text="₹0"
+   android:textSize="24sp"
+   android:textColor="#FFF2F0EA"
+   android:textStyle="bold"/>
+
+  <TextView
+   android:id="@+id/widgetTotal"
+   android:layout_width="wrap_content"
+   android:layout_height="wrap_content"
+   android:layout_marginTop="6dp"
+   android:text="₹0"
+   android:textSize="12sp"
+   android:textColor="#FF9A9CA6"/>
+ </LinearLayout>
+
+ <TextView
+  android:id="@+id/widgetPlus"
+  android:layout_width="48dp"
+  android:layout_height="48dp"
+  android:gravity="center"
+  android:background="@drawable/widget_plus"
+  android:text="+"
+  android:textSize="28sp"
+  android:textColor="#FF14151A"
+  android:textStyle="bold"
+  android:contentDescription="Add expense"/>
+</LinearLayout>

@@ -34,7 +34,10 @@ final class HomePage {
   if (totalBudget > 0) { Charts.Pace p = new Charts.Pace(a, Math.max(0f, budgeted / (float) totalBudget), (today.getDayOfMonth() - 1f) / ym.lengthOfMonth(), Ui.onAccent, Ui.onAccentTrack); hero.addView(p, Ui.lpm(-1, Ui.dp(26), 0, 12, 0, 0)); hero.addView(Ui.text(a, "Thin mark shows where the month is today", 11.5f, Ui.onAccentFaint, false)); }
   LinearLayout stats = Ui.row(a); stats.setPadding(0, Ui.dp(16), 0, 0);
   stats.addView(stat(a, "Income", Fmt.money(income)), Ui.weight(1)); stats.addView(stat(a, "Spent", Fmt.money(spent)), Ui.weight(1)); stats.addView(stat(a, "Net", Fmt.money(income - spent)), Ui.weight(1));
-  hero.addView(stats); if (secHero) c.addView(hero);
+  hero.addView(stats);
+  long pace = Forecast.monthEnd(db, today);
+  if (pace > 0) hero.addView(Ui.text(a, "At this pace, " + Fmt.month(ym) + " ends around " + Fmt.money(pace), 12.5f, Ui.onAccentSub, false), Ui.lpm(-1, -2, 0, 10, 0, 0));
+  if (secHero) c.addView(hero);
 
   long dailyLimit = 0; try { dailyLimit = Long.parseLong(db.pref("dailyLimit", "0")); } catch (Exception e) {}
   if (dailyLimit > 0 && HomeCustom.on(db, "leftToday")) {

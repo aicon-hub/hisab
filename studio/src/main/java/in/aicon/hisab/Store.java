@@ -43,7 +43,7 @@ final class Store extends SQLiteOpenHelper {
  void setPref(String k, String v) { ContentValues cv = new ContentValues(); cv.put("k", k); cv.put("v", v); getWritableDatabase().insertWithOnConflict("prefs", null, cv, SQLiteDatabase.CONFLICT_REPLACE); }
  boolean flag(String k, boolean def) { return pref(k, def ? "1" : "0").equals("1"); }
  /** Any stored data changed: ask DriveBackup to mirror it (no-op when backup is off). */
- private void changed() { try { DriveBackup.dataChanged(this); } catch (Exception ignored) {} }
+ private void changed() { try { DriveBackup.dataChanged(this); } catch (Exception ignored) {} try { HisabWidget.refresh(ctx); } catch (Exception ignored) {} }
 
  List<Acc> accounts() {
   List<Acc> l = new ArrayList<>();

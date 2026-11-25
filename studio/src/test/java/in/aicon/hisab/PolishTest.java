@@ -228,6 +228,24 @@ public class PolishTest {
   assertNull(YearReview.biggestDay(db, 2025));
  }
 
+ @Test public void widgetAmountsAndForecast() {
+  Store db = a.db;
+  db.wipe(); db.seedBasics();
+  long cash = db.accounts().get(0).id;
+  String today = java.time.LocalDate.now().toString();
+  Store.Tx e1 = new Store.Tx(); e1.kind = "expense"; e1.amount = 4000; e1.day = today; e1.account = cash; e1.note = "Tea"; db.save(e1);
+  Store.Tx e2 = new Store.Tx(); e2.kind = "expense"; e2.amount = 1000; e2.day = "2020-01-10"; e2.account = cash; e2.note = "Old"; db.save(e2);
+  Store.Tx i1 = new Store.Tx(); i1.kind = "income"; i1.amount = 9000; i1.day = today; i1.account = cash; i1.note = "Salary"; db.save(i1);
+  assertEquals(4000, HisabWidget.todaySpend(db));
+  assertEquals(5000, HisabWidget.totalExpense(db));
+  java.time.YearMonth ym = java.time.YearMonth.now();
+  Store.Tx m1 = new Store.Tx(); m1.kind = "expense"; m1.amount = 15000; m1.day = ym.atDay(1).toString(); m1.account = cash; m1.note = "Big"; db.save(m1);
+  java.time.LocalDate mid = ym.atDay(Math.min(15, ym.lengthOfMonth()));
+  long spent = 15000 + (today.startsWith(ym.toString()) ? 4000 : 0);
+  assertEquals(Math.round(spent * (double) ym.lengthOfMonth() / mid.getDayOfMonth()), Forecast.monthEnd(db, mid));
+  assertEquals(0, Forecast.monthEnd(db, ym.atDay(1)));
+ }
+
  @Test public void transliteratedMalayalamQuickAdd() {
   Store.Tx t = HomePage.parse(a.db, "chaya 40"); assertNotNull(t); assertEquals(4000, t.amount); assertEquals("Food", a.db.categoryMap().get(t.cat).name);
   Store.Tx g = HomePage.parse(a.db, "paal 55"); assertNotNull(g); assertEquals("Groceries", a.db.categoryMap().get(g.cat).name);

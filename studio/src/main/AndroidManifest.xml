@@ -10,6 +10,7 @@
  <uses-feature android:name="android.hardware.telephony" android:required="false"/>
  <application android:label="Hisab Studio 2" android:extractNativeLibs="false" android:theme="@style/AppTheme" android:icon="@mipmap/ic_launcher" android:allowBackup="false" android:supportsRtl="true" android:usesCleartextTraffic="false">
   <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="ocr"/>
+  <receiver android:name="in.aicon.hisab.HisabWidget" android:exported="false"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_quick_info"/></receiver>
   <receiver android:name="in.aicon.hisab.BankSms" android:exported="true" android:permission="android.permission.BROADCAST_SMS"><intent-filter><action android:name="android.provider.Telephony.SMS_RECEIVED"/></intent-filter></receiver>
   <receiver android:name="in.aicon.hisab.AutoRemind" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver>
   <receiver android:name="in.aicon.hisab.Reminders" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver>
