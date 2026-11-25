@@ -333,4 +333,26 @@ public class PolishTest {
  }
 
  @Test public void yearReportRenders(){YearReport.open(a);assertTrue(texts(a.root).contains("Year report"));a.closeAll();}
+
+ @Test public void diaryAndMonthlySummary() {
+  Store db = a.db; db.wipe(); db.seedBasics(); db.getWritableDatabase().delete("prefs", "k LIKE ? OR k LIKE ?", new String[]{"diary:%", "monthSummary%"});
+  String d = java.time.LocalDate.now().toString();
+  assertEquals("", Diary.get(db, d)); assertTrue(Diary.all(db).isEmpty());
+  Diary.set(db, d, "  Chai with Anu  "); Diary.set(db, "2020-01-02", "older");
+  assertEquals("Chai with Anu", Diary.get(db, d));
+  assertEquals(2, Diary.all(db).size()); assertEquals(d, Diary.all(db).get(0).day);
+  Diary.set(db, d, ""); assertEquals("", Diary.get(db, d)); assertEquals(1, Diary.all(db).size());
+  Diary.open(a); assertTrue(texts(a.root).contains("older")); a.closeAll();
+  java.time.YearMonth prev = java.time.YearMonth.now().minusMonths(1);
+  assertNull(Diary.summary(db, prev));
+  long cash = db.accounts().get(0).id; java.util.List<Store.Cat> cats = db.categories("expense");
+  Store.Tx e = new Store.Tx(); e.kind = "expense"; e.amount = 50000; e.day = prev.atDay(5).toString(); e.account = cash; e.cat = cats.get(0).id; e.note = "x"; db.save(e);
+  Store.Tx i = new Store.Tx(); i.kind = "income"; i.amount = 200000; i.day = prev.atDay(6).toString(); i.account = cash; i.note = "pay"; db.save(i);
+  String sum = Diary.summary(db, prev); assertNotNull(sum); assertTrue(sum, sum.contains(cats.get(0).name));
+  assertFalse(Diary.monthlyCheck(a, db, java.time.LocalDate.now()));
+  db.setPref("monthSummary", "1");
+  assertTrue(Diary.monthlyCheck(a, db, java.time.LocalDate.now()));
+  assertEquals(prev.toString(), db.pref("monthSummaryDone", ""));
+  assertFalse(Diary.monthlyCheck(a, db, java.time.LocalDate.now()));
+ }
 }

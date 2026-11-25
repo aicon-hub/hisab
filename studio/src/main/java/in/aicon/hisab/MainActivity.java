@@ -54,6 +54,7 @@ public class MainActivity extends Activity {
   LauncherIcons.apply(this);
   Reminders.schedule(this, db);
   AutoRemind.schedule(this, db);
+  Diary.monthlyCheck(this, db, java.time.LocalDate.now());
   QuickAddNotif.apply(this, db);
   db.normalisePhones();
   BankSms.autoCatchUp(this);
