@@ -151,9 +151,10 @@ final class Pages {
     List<Long> ids = new ArrayList<>();
     List<Store.Acc> as = db.accounts(); long acc = as.isEmpty() ? 0 : as.get(0).id;
     for (long pid : sel) { Store.Tx x = new Store.Tx(); x.kind = "lent"; x.amount = base; x.day = LocalDate.now().toString(); x.account = acc; x.person = pid; x.cat = cat[0]; x.note = "Shared bill"; ids.add(db.save(x)); }
+    Store.Tx me = new Store.Tx(); me.kind = "expense"; me.amount = mine; me.day = LocalDate.now().toString(); me.account = acc; me.cat = cat[0]; me.note = "Shared bill - my share"; ids.add(db.save(me));
     a.refresh();
     LinearLayout r2 = Sheets.sheetBody(a, "Saved - each owes " + Fmt.money(base));
-    r2.addView(Ui.text(a, sel.size() + " people owe you their share of " + Fmt.money(totalV) + ". It is on their page in People.", 14.5f, Ui.ink, false));
+    r2.addView(Ui.text(a, sel.size() + " people owe you their share of " + Fmt.money(totalV) + ", and your share " + Fmt.money(mine) + " is added as spent. It is all on their page in People and in Recent.", 14.5f, Ui.ink, false));
     TextView done = Ui.button(a, "Done", true); r2.addView(done, Ui.lpm(-1, -2, 0, 18, 0, 0));
     final MainActivity.Layer[] r2ref = new MainActivity.Layer[1];
     Ui.tap(done, () -> a.close(r2ref[0])); r2ref[0] = Sheets.show(a, r2);
