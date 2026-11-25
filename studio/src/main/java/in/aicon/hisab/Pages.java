@@ -62,7 +62,7 @@ final class Pages {
 
  static void recurring(MainActivity a) {
   Store db = a.db;
-  Runnable add = () -> Sheets.form(a, "New repeat", new String[]{"Name", "Amount", "Next date (yyyy-mm-dd)"}, new String[]{"", "", LocalDate.now().plusDays(7).toString()}, new int[]{Sheets.TEXT, Sheets.NUMBER, InputType.TYPE_CLASS_DATETIME}, "Add", v -> {
+  Runnable add = () -> Sheets.form(a, "New repeat", new String[]{"Name", "Amount", "Next date"}, new String[]{"", "", LocalDate.now().plusDays(7).toString()}, new int[]{Sheets.TEXT, Sheets.NUMBER, Sheets.DATE}, "Add", v -> {
    LocalDate d; long m;
    try { d = LocalDate.parse(v[2]); m = amt(v[1]); } catch (Exception e) { a.toast("Use a date like 2026-12-01", null); return; }
    if (v[0].isEmpty() || m <= 0) return;

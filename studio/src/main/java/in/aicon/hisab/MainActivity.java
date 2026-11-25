@@ -128,7 +128,8 @@ public class MainActivity extends Activity {
    }
   }
   if (dock != null) {
-   dock.setPadding(0, 0, 0, bottomInset);
+   FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) dock.getLayoutParams();
+   lp.bottomMargin = Ui.dp(14) + bottomInset; dock.setLayoutParams(lp);
   }
   FrameLayout.LayoutParams hp = (FrameLayout.LayoutParams) layerHost.getLayoutParams();
   hp.bottomMargin = keyboardInset; layerHost.setLayoutParams(hp);
@@ -152,29 +153,27 @@ public class MainActivity extends Activity {
  }
 
  void buildDock() {
-  dock = Ui.col(this); dock.setBackgroundColor(Ui.bg); dock.setElevation(Ui.dp(2));
-  dock.addView(Ui.divider(this));
-  LinearLayout bar = Ui.row(this); bar.setGravity(Gravity.CENTER); bar.setPadding(Ui.dp(6), Ui.dp(4), Ui.dp(6), Ui.dp(4));
+  dock = Ui.row(this); dock.setGravity(Gravity.CENTER);
+  dock.setBackground(Ui.outline(Ui.dark ? Ui.surface2 : Ui.ink, Ui.dark ? Ui.line : Ui.ink, 34, 1));
+  dock.setPadding(Ui.dp(8), Ui.dp(8), Ui.dp(8), Ui.dp(8)); dock.setElevation(Ui.dp(10));
   String[] icons = {"home", "ledger", "plus", "chart", "people"}, names = {"Home", "Ledger", "", "Insights", "People"};
+  int idle = Ui.dark ? Ui.muted : 0xB3FFFFFF;
   for (int i = 0; i < 5; i++) {
    final int idx = i;
-   LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(0, Ui.dp(52), 1);
    if (i == 2) {
-    FrameLayout plus = Ui.badge(this, "plus", 44, Ui.ink, Ui.bg); FrameLayout cell = new FrameLayout(this);
-    cell.addView(plus, new FrameLayout.LayoutParams(Ui.dp(44), Ui.dp(44), Gravity.CENTER));
-    Ui.tap(cell, () -> openEntry(Store.KINDS[0], null)); cell.setContentDescription("Add entry"); bar.addView(cell, wp); continue;
+    FrameLayout plus = Ui.badge(this, "plus", 52, Ui.accentOnDark, Ui.onAccentOnDark); LinearLayout.LayoutParams p = Ui.lpm(Ui.dp(52), Ui.dp(52), 6, 0, 6, 0); dock.addView(plus, p);
+    Ui.tap(plus, () -> openEntry(Store.KINDS[0], null)); plus.setContentDescription("Add entry"); continue;
    }
-   LinearLayout item = Ui.col(this); item.setGravity(Gravity.CENTER); boolean on = tab == i;
-   View mark = new View(this); mark.setBackgroundColor(on ? Ui.ink : 0); item.addView(mark, Ui.lp(Ui.dp(18), Ui.dp(2)));
-   item.addView(Ui.icon(this, icons[i], 22, on ? Ui.ink : Ui.muted), Ui.lpm(Ui.dp(22), Ui.dp(22), 0, 5, 0, 0));
-   TextView t = Ui.text(this, names[i], 10.5f, on ? Ui.ink : Ui.muted, on); t.setGravity(Gravity.CENTER); item.addView(t, Ui.lpm(-2, -2, 0, 2, 0, 0));
+   LinearLayout item = Ui.row(this); item.setGravity(Gravity.CENTER); boolean on = tab == i;
+   item.setPadding(Ui.dp(on ? 14 : 12), Ui.dp(12), Ui.dp(on ? 16 : 12), Ui.dp(12));
+   if (on) item.setBackground(Ui.shape(Ui.accentOnDark, 24));
+   item.addView(Ui.icon(this, icons[i], 22, on ? Ui.onAccentOnDark : idle));
+   if (on) { TextView t = Ui.text(this, names[i], 13, Ui.onAccentOnDark, true); t.setPadding(Ui.dp(7), 0, 0, 0); item.addView(t); }
    item.setContentDescription(names[i]);
    Ui.tap(item, () -> { if (tab != idx) showTab(idx, true); });
-   bar.addView(item, wp);
+   dock.addView(item, Ui.lp(-2, -2));
   }
-  dock.addView(bar);
-  dock.setPadding(0, 0, 0, bottomInset);
-  FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM);
+  FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL); lp.bottomMargin = Ui.dp(14) + bottomInset;
   root.addView(dock, lp);
   if (layerHost != null) layerHost.bringToFront();
  }
@@ -261,7 +260,7 @@ public class MainActivity extends Activity {
   LinearLayout t = Ui.row(this); t.setBackground(Ui.shape(Ui.dark ? Ui.surface2 : Ui.ink, 20)); t.setPadding(Ui.dp(18), Ui.dp(12), Ui.dp(10), Ui.dp(12)); t.setElevation(Ui.dp(32));
   int fg = Ui.dark ? Ui.ink : 0xFFFFFFFF; t.addView(Ui.text(this, msg, 14, fg, false), Ui.weight(1));
   if (undo != null) { TextView u = Ui.text(this, "Undo", 14, Ui.accentOnDark, true); u.setPadding(Ui.dp(16), Ui.dp(6), Ui.dp(10), Ui.dp(6)); t.addView(u); Ui.tap(u, () -> { undo.run(); dismissToast(); }); }
-  FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM); lp.setMargins(Ui.dp(20), 0, Ui.dp(20), Ui.dp(70) + bottomInset);
+  FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM); lp.setMargins(Ui.dp(20), 0, Ui.dp(20), Ui.dp(94) + bottomInset);
   toastView = t; layerHostRoot().addView(t, lp);
   if (Ui.motion(root)) { t.setTranslationY(Ui.dp(30)); t.setAlpha(0); t.animate().translationY(0).alpha(1).setDuration(220).start(); }
   final View mine = t; t.postDelayed(() -> { if (toastView == mine) dismissToast(); }, 4200);

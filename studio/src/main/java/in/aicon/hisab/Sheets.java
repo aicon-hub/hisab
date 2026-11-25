@@ -42,12 +42,24 @@ final class Sheets {
   EditText e = new EditText(a); e.setHint(L.t(hint)); e.setHintTextColor(Ui.muted); e.setTextColor(Ui.ink); e.setTextSize(16); e.setTypeface(Ui.body); e.setInputType(type); e.setSingleLine(true); e.setText(initial);
   e.setBackground(Ui.outline(Ui.surface2, Ui.surface2, 16, 1)); e.setPadding(Ui.dp(16), Ui.dp(14), Ui.dp(16), Ui.dp(14)); return e;
  }
+ /** Field type: tap to pick a date from a calendar instead of typing yyyy-mm-dd. */
+ static final int DATE = -7;
  static final int TEXT = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES, NUMBER = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL;
+
+ /** Turns a field into a date picker: tap opens a calendar, long-press clears it. Value is yyyy-mm-dd or empty. */
+ static void dateField(MainActivity a, EditText e) {
+  e.setFocusable(false); e.setFocusableInTouchMode(false); e.setCursorVisible(false); e.setHint(L.t("Tap to pick a date"));
+  e.setOnClickListener(v -> {
+   java.time.LocalDate d; try { d = java.time.LocalDate.parse(e.getText().toString().trim()); } catch (Exception x) { d = java.time.LocalDate.now(); }
+   new android.app.DatePickerDialog(a, (p, y, m, day) -> e.setText(String.format(java.util.Locale.US, "%04d-%02d-%02d", y, m + 1, day)), d.getYear(), d.getMonthValue() - 1, d.getDayOfMonth()).show();
+  });
+  e.setOnLongClickListener(v -> { e.setText(""); return true; });
+ }
 
  /** Form with labelled fields. Calls back with the values, in order. */
  static void form(MainActivity a, String title, String[] labels, String[] initial, int[] types, String action, Consumer<String[]> done, Runnable delete) {
   LinearLayout c = sheetBody(a, title); EditText[] es = new EditText[labels.length];
-  for (int i = 0; i < labels.length; i++) { TextView l = Ui.label(a, labels[i]); l.setPadding(Ui.dp(4), Ui.dp(10), 0, Ui.dp(6)); c.addView(l); es[i] = field(a, labels[i], initial[i], types[i]); c.addView(es[i]); }
+  for (int i = 0; i < labels.length; i++) { TextView l = Ui.label(a, labels[i]); l.setPadding(Ui.dp(4), Ui.dp(10), 0, Ui.dp(6)); c.addView(l); es[i] = field(a, labels[i], initial[i], types[i] == DATE ? InputType.TYPE_CLASS_TEXT : types[i]); if (types[i] == DATE) dateField(a, es[i]); c.addView(es[i]); }
   final MainActivity.Layer[] ref = new MainActivity.Layer[1];
   TextView ok = Ui.button(a, action, true); c.addView(ok, Ui.lpm(-1, -2, 0, 20, 0, 0));
   Ui.tap(ok, () -> { String[] v = new String[es.length]; for (int i = 0; i < es.length; i++) v[i] = es[i].getText().toString().trim(); done.accept(v); a.close(ref[0]); });

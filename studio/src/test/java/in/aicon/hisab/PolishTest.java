@@ -332,6 +332,8 @@ public class PolishTest {
   assertFalse(money.contains("Share Hisab with a friend"));
  }
 
+ @Test public void profilesAndTouchShowWithoutDrive(){a.db.setPref("driveBackup","0");a.settingsSection="data";Settings.open(a);String t=texts(a.root).toString();assertTrue(t.contains("Profiles"));assertTrue(t.contains("Touch and motion"));a.settingsSection="";a.closeAll();}
+ @Test public void repeatDateIsPickedNotTyped(){android.widget.EditText e=Sheets.field(a,"d","2026-12-01",android.text.InputType.TYPE_CLASS_TEXT);Sheets.dateField(a,e);assertFalse(e.isFocusable());assertTrue(e.hasOnClickListeners());}
  @Test public void yearReportRenders(){YearReport.open(a);assertTrue(texts(a.root).contains("Year report"));a.closeAll();}
 
  @Test public void diaryAndMonthlySummary() {

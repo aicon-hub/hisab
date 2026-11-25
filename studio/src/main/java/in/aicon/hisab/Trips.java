@@ -33,7 +33,7 @@ final class Trips {
 
  static void open(MainActivity a) {
   Store db = a.db;
-  Kit.page(a, "Trips and events", "plus", () -> Sheets.form(a, "New trip or event", new String[]{"Name", "Starts (yyyy-mm-dd, optional)", "Ends (optional)"}, new String[]{"", "", ""}, new int[]{Sheets.TEXT, Sheets.TEXT, Sheets.TEXT}, "Add", v -> { if (!v[0].isEmpty()) { List<Trip> trips = read(db); Trip t = new Trip(); t.name = v[0]; t.from = v[1].trim(); t.to = v[2].trim(); trips.add(t); write(db, trips); a.closeAll(); open(a); } }, null), c -> {
+  Kit.page(a, "Trips and events", "plus", () -> Sheets.form(a, "New trip or event", new String[]{"Name", "Starts (optional, hold to clear)", "Ends (optional)"}, new String[]{"", "", ""}, new int[]{Sheets.TEXT, Sheets.DATE, Sheets.DATE}, "Add", v -> { if (!v[0].isEmpty()) { List<Trip> trips = read(db); Trip t = new Trip(); t.name = v[0]; t.from = v[1].trim(); t.to = v[2].trim(); trips.add(t); write(db, trips); a.closeAll(); open(a); } }, null), c -> {
    List<Trip> trips = read(db);
    if (trips.isEmpty()) { c.addView(Kit.empty(a, "spark", "No trips yet", "Add a trip, then tag its entries with trip:name in the Tags field.")); return; }
    for (int i = 0; i < trips.size(); i++) { final int idx = i; Trip t = trips.get(i); long[] tot = totals(db, t.name);

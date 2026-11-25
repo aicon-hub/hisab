@@ -14,7 +14,7 @@ final class Kit {
  /** Scrolling column with page padding. Bottom space clears the dock. */
  static LinearLayout column(MainActivity a, ScrollView[] out, boolean dockSpace) {
   ScrollView s = new ScrollView(a); s.setVerticalScrollBarEnabled(false); s.setOverScrollMode(View.OVER_SCROLL_NEVER); s.setFillViewport(false);
-  LinearLayout c = Ui.col(a); c.setPadding(Ui.dp(20), a.topInset + Ui.dp(12), Ui.dp(20), a.bottomInset + Ui.dp(dockSpace ? 84 : 32)); s.addView(c, new FrameLayout.LayoutParams(-1, -2)); out[0] = s; return c;
+  LinearLayout c = Ui.col(a); c.setPadding(Ui.dp(20), a.topInset + Ui.dp(12), Ui.dp(20), a.bottomInset + Ui.dp(dockSpace ? 126 : 32)); s.addView(c, new FrameLayout.LayoutParams(-1, -2)); out[0] = s; return c;
  }
 
  static View title(MainActivity a, String sub, String title, boolean avatar) {
