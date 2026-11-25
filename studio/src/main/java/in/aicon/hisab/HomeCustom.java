@@ -9,6 +9,7 @@ final class HomeCustom {
 
  static final String[][] SECTIONS = {
   {"hero", "Top card"},
+  {"leftToday", "Left today"},
   {"quickAdd", "Quick add box"},
   {"kinds", "Shortcut buttons"},
   {"comingUp", "Coming up"},

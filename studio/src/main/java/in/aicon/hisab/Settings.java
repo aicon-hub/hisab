@@ -46,6 +46,9 @@ final class Settings {
 
  static String titleOf(String s) { switch (s) { case "look": return "Look"; case "general": return "Language and privacy"; case "money": return "Money"; case "remind": return "Reminders"; case "data": return "Your data"; case "about": return "About"; default: return "Settings"; } }
 
+ static String dailyLimitValue(Store db) { long v = 0; try { v = Long.parseLong(db.pref("dailyLimit", "0")); } catch (Exception e) {} return v > 0 ? Fmt.money(v) : "Off"; }
+ static void editDailyLimit(MainActivity a) { long cur = 0; try { cur = Long.parseLong(a.db.pref("dailyLimit", "0")); } catch (Exception e) {} Sheets.form(a, "Daily spending limit", new String[]{"Limit per day (0 turns off)"}, new String[]{cur > 0 ? Ledger.plain(cur) : ""}, new int[]{Sheets.NUMBER}, "Save", v -> { long lim = v[0].trim().isEmpty() ? 0 : Ledger.parse(v[0].trim()); if (lim < 0) lim = 0; a.db.setPref("dailyLimit", "" + lim); a.closeAll(); open(a); }, null); }
+
  static void open(MainActivity a) {
   Store db = a.db;
   Kit.page(a, a.settingsSection.isEmpty() ? "Settings" : titleOf(a.settingsSection), null, null, c -> {
@@ -91,7 +94,7 @@ final class Settings {
 
    if (sec.equals("money")) {
    LinearLayout mo = Ui.card(a); mo.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
-   mo.addView(item(a, "wallet", "Accounts", null, () -> Pages.accounts(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "other", "Categories", null, () -> Pages.categories(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "target", "Budgets", null, () -> Pages.budgets(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "flame", "Goals", null, () -> Pages.goals(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "repeat", "Bills and repeats", null, () -> Pages.recurring(a))); mo.addView(Ui.divider(a));
+   mo.addView(item(a, "wallet", "Accounts", null, () -> Pages.accounts(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "other", "Categories", null, () -> Pages.categories(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "target", "Budgets", null, () -> Pages.budgets(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "flame", "Goals", null, () -> Pages.goals(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "coin", "Daily spending limit", dailyLimitValue(db), () -> editDailyLimit(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "repeat", "Bills and repeats", null, () -> Pages.recurring(a))); mo.addView(Ui.divider(a));
    mo.addView(item(a, "coin", "Currency", db.pref("currency", "INR"), () -> choose(a, "Currency", "currency", Fmt.CURRENCIES, db.pref("currency", "INR"), true))); mo.addView(Ui.divider(a));
    mo.addView(item(a, "ledger", "Number grouping", db.pref("grouping", "Indian"), () -> choose(a, "Number grouping", "grouping", new String[]{"Indian", "International", "None"}, db.pref("grouping", "Indian"), true))); mo.addView(Ui.divider(a));
    mo.addView(item(a, "calendar", "Date format", dateStyleName(db.pref("dateStyle", "DMY")), () -> { List<String> labels = Arrays.asList("24 Nov", "Nov 24", "24.11.2026"), codes = Arrays.asList("DMY", "MDY", "NUM"); Sheets.pick(a, "Date format", labels, null, codes.indexOf(db.pref("dateStyle", "DMY")), i -> { db.setPref("dateStyle", codes.get(i)); a.applyTheme(); a.build(); a.closeAll(); open(a); }); })); mo.addView(Ui.divider(a));
@@ -130,7 +133,7 @@ final class Settings {
    if (sec.equals("about")) {
    LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
-   ab.addView(Ui.text(a, "Version 1.0.0 test build", 12.5f, Ui.muted, true));
+   ab.addView(Ui.text(a, "Version 1.0.1 test build", 12.5f, Ui.muted, true));
    ab.addView(Ui.divider(a), Ui.lpm(-1, -2, 0, 14, 0, 0));
    ab.addView(item(a, "share", "Share Hisab with a friend", "Recommend the app and how to install it", () -> shareHisab(a)));
    ab.addView(item(a, "info", "Section guides", "Short explanations, shown once per section · tap to see them again", () -> { a.db.getWritableDatabase().delete("prefs", "k LIKE 'infoSeen_%'", null); a.toast("Guides will show again when you open each section", null); a.closeAll(); open(a); }));

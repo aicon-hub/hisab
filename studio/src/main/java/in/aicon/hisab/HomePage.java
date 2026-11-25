@@ -36,6 +36,18 @@ final class HomePage {
   stats.addView(stat(a, "Income", Fmt.money(income)), Ui.weight(1)); stats.addView(stat(a, "Spent", Fmt.money(spent)), Ui.weight(1)); stats.addView(stat(a, "Net", Fmt.money(income - spent)), Ui.weight(1));
   hero.addView(stats); if (secHero) c.addView(hero);
 
+  long dailyLimit = 0; try { dailyLimit = Long.parseLong(db.pref("dailyLimit", "0")); } catch (Exception e) {}
+  if (dailyLimit > 0 && HomeCustom.on(db, "leftToday")) {
+   long todaySpent = 0; for (Store.Tx t : db.txs(today.toString(), today.toString())) if (t.kind.equals("expense")) todaySpent += t.amount;
+   long leftToday = dailyLimit - todaySpent;
+   LinearLayout dl = Ui.card(a); dl.setPadding(Ui.dp(18), Ui.dp(14), Ui.dp(18), Ui.dp(16));
+   LinearLayout dlr = Ui.row(a); dlr.addView(Ui.text(a, "Left today", 13, Ui.muted, true), Ui.weight(1));
+   dlr.addView(Ui.big(a, (leftToday < 0 ? "Over by " : "") + Fmt.money(leftToday < 0 ? -leftToday : leftToday), 20, leftToday < 0 ? Ui.neg : Ui.ink)); dl.addView(dlr);
+   dl.addView(Ui.text(a, "Spent " + Fmt.money(todaySpent) + " of " + Fmt.money(dailyLimit) + " today", 12.5f, Ui.muted, false), Ui.lpm(-1, -2, 0, 4, 0, 0));
+   dl.addView(new Charts.Pace(a, Math.max(0f, todaySpent / (float) dailyLimit), -1f, leftToday < 0 ? Ui.neg : Ui.accent, Ui.surface2), Ui.lpm(-1, Ui.dp(16), 0, 10, 0, 0));
+   c.addView(dl, Ui.lpm(-1, -2, 0, 12, 0, 0));
+  }
+
   if(Privacy.backupDue(db)){TextView backup=Ui.button(a,"Keep a backup of your entries",false);c.addView(backup,Ui.lpm(-1,-2,0,12,0,0));Ui.tap(backup,()->Backup.password(a,true));}
   if (HomeCustom.on(db, "quickAdd")) c.addView(quickAdd(a), Ui.lpm(-1, -2, 0, 14, 0, 0));
   LinearLayout kinds = Ui.row(a); kinds.setPadding(0, Ui.dp(12), 0, 0);

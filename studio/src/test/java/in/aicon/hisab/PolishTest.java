@@ -103,6 +103,28 @@ public class PolishTest {
  @Test public void trashBinRoundTripAndPurge(){Store.Tx t=new Store.Tx();t.kind="expense";t.amount=4200;t.day=Fmt.today().toString();t.cat=a.db.categories("expense").get(0).id;t.account=a.db.accounts().get(0).id;t.note="bin-test";t.tags="";t.id=a.db.save(t);a.db.trashTx(t.id);for(Store.Tx x:a.db.txs("0000-01-01","9999-12-31"))assertNotEquals(t.id,x.id);assertEquals(1,a.db.trash().size());a.db.restoreTx(t.id);boolean back=false;for(Store.Tx x:a.db.txs("0000-01-01","9999-12-31"))if(x.id==t.id)back=true;assertTrue(back);a.db.trashTx(t.id);a.db.getWritableDatabase().execSQL("UPDATE tx SET deleted=? WHERE id=?",new Object[]{System.currentTimeMillis()-31L*24*60*60*1000,t.id});java.util.List<Long> purged=a.db.purgeTrash();assertTrue(purged.contains(t.id));assertTrue(a.db.trash().isEmpty());}
  @Test public void tagsSaveAndSearchRoundTrip(){Store.Tx t=new Store.Tx();t.kind="expense";t.amount=1000;t.day=Fmt.today().toString();t.cat=a.db.categories("expense").get(0).id;t.account=a.db.accounts().get(0).id;t.note="tagtest-note";t.tags="zztag";t.id=a.db.save(t);assertEquals("zztag",a.db.txById(t.id).tags);a.ledgerQuery="zztag";android.view.View v=LedgerPage.build(a);assertTrue(texts(v).contains("tagtest-note"));a.ledgerQuery="";a.db.deleteTx(t.id);}
  @Test public void ledgerCategoryAndAmountFilters(){Store.Cat c=a.db.categories("expense").get(0);Store.Tx t=new Store.Tx();t.kind="expense";t.amount=5000;t.day=Fmt.today().toString();t.cat=c.id;t.account=a.db.accounts().get(0).id;t.note="zzfilter-note";t.tags="";t.id=a.db.save(t);a.ledgerCat=c.id+9999;android.view.View v=LedgerPage.build(a);assertFalse(texts(v).contains("zzfilter-note"));a.ledgerCat=0;a.ledgerMin=900000;v=LedgerPage.build(a);assertFalse(texts(v).contains("zzfilter-note"));a.ledgerMin=0;a.ledgerMax=4900;v=LedgerPage.build(a);assertFalse(texts(v).contains("zzfilter-note"));a.ledgerMax=0;a.ledgerCat=c.id;v=LedgerPage.build(a);assertTrue(texts(v).contains("zzfilter-note"));a.ledgerCat=0;a.db.deleteTx(t.id);}
+ @Test public void leftTodayCardFollowsLimit() {
+  a.db.setPref("dailyLimit", "50000");
+  Store.Tx t = new Store.Tx(); t.kind = "expense"; t.amount = 12000; t.day = java.time.LocalDate.now().toString(); t.account = a.db.accounts().get(0).id; t.cat = 0; t.note = "Lunch"; t.person = 0; a.db.save(t);
+  a.refresh();
+  String today = java.time.LocalDate.now().toString(); long spent = 0; for (Store.Tx x : a.db.txs(today, today)) if (x.kind.equals("expense")) spent += x.amount;
+  assertTrue(texts(a.root).contains("Left today"));
+  assertTrue(texts(a.root).contains("Spent " + Fmt.money(spent) + " of " + Fmt.money(50000)));
+  a.db.setPref("dailyLimit", "0"); a.refresh();
+  assertFalse(texts(a.root).contains("Left today"));
+ }
+
+ @Test public void netWorthAddsUp() {
+  Store db = a.db;
+  long inAccounts = 0; for (Store.Acc x : db.accounts()) inAccounts += db.balance(x);
+  long owed = 0, owe = 0; for (Store.Person p : db.people()) { long n = db.net(p.id); if (n > 0) owed += n; else owe -= n; }
+  NetWorth.open(a);
+  String text = texts(a.layers.get(a.layers.size() - 1).panel);
+  assertTrue(text.contains("Net worth"));
+  assertTrue(text.contains(Fmt.money(inAccounts + owed - owe)));
+  assertTrue(text.contains("Owed to you"));
+ }
+
  @Test public void malayalamDigits() {
   Store.Tx t = HomePage.parse(a.db, "\u0D1A\u0D3E\u0D2F \u0D6A\u0D66");
   assertNotNull(t); assertEquals(4000, t.amount);

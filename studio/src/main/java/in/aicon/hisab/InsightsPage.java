@@ -30,6 +30,8 @@ final class InsightsPage {
 
   TextView yearBtn = Ui.button(a, "Year report: months, totals, compare", false); c.addView(yearBtn, Ui.lpm(-1, -2, 0, 0, 0, 10));
   Ui.tap(yearBtn, () -> YearReport.open(a));
+  TextView worthBtn = Ui.button(a, "Net worth: accounts and dues", false); c.addView(worthBtn, Ui.lpm(-1, -2, 0, 0, 0, 10));
+  Ui.tap(worthBtn, () -> NetWorth.open(a));
   TextView shareSum = Ui.button(a, "Share month summary", false); c.addView(shareSum, Ui.lpm(-1, -2, 0, 0, 0, 14));
   Ui.tap(shareSum, () -> {
    android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, summary(db, ym));
