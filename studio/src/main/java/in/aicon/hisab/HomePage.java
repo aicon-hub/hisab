@@ -104,7 +104,7 @@ final class HomePage {
    LinearLayout inner = Ui.col(a);
    LinearLayout hd = Ui.row(a); LinearLayout tt = Ui.col(a);
    tt.addView(Ui.big(a, Fmt.money(sum), 24, Ui.ink));
-   TextView rng = Ui.text(a, Fmt.shortDate(start.toString()) + " - " + Fmt.shortDate(end.toString()) + (back[0] > 0 ? "  ·  swipe to move" : "  ·  swipe for earlier weeks"), 11.5f, Ui.muted, false); rng.setPadding(0, Ui.dp(3), 0, 0); tt.addView(rng);
+   TextView rng = Ui.text(a, Fmt.shortDate(start.toString()) + " - " + Fmt.shortDate(end.toString()) + (back[0] > 0 ? " · swipe to move" : " · swipe for earlier"), 11.5f, Ui.muted, false); rng.setPadding(0, Ui.dp(3), 0, 0); tt.addView(rng);
    hd.addView(tt, Ui.weight(1)); hd.addView(Ui.text(a, "avg " + Fmt.money(sum / 7 / 100 * 100) + " a day", 12.5f, Ui.muted, true));
    inner.addView(hd);
    inner.addView(new Charts.Bars(a, v, lb, back[0] == 0 ? 6 : -1, true), Ui.lpm(-1, Ui.dp(150), 0, 12, 0, 0));

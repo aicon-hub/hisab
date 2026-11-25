@@ -184,6 +184,23 @@ public class ProTest {
   Lock.clear(locked.db);
  }
 
+ @Test public void pinPadFitsNarrowScreen() {
+  MainActivity a = Robolectric.buildActivity(MainActivity.class).setup().get();
+  PinPad pad = new PinPad(a, p -> true, false);
+  int w = Ui.dp(312);
+  pad.view.measure(android.view.View.MeasureSpec.makeMeasureSpec(PinPad.width(a), android.view.View.MeasureSpec.EXACTLY), android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED));
+  pad.view.layout(0, 0, pad.view.getMeasuredWidth(), pad.view.getMeasuredHeight());
+  assertTrue(pad.view.getMeasuredWidth() > 0 && pad.view.getMeasuredWidth() <= w);
+  for (String k : new String[]{"pinKey1", "pinKey3", "pinKey6", "pinKey9", "pinKeyOk", "pinKeyDel", "pinKey0"}) {
+   android.view.View v = pad.view.findViewWithTag(k);
+   android.graphics.Rect r = new android.graphics.Rect(); v.getHitRect(r);
+   android.view.View row = (android.view.View) v.getParent();
+   assertTrue(k, row.getLeft() + r.right <= pad.view.getMeasuredWidth() && r.width() >= Ui.dp(40));
+  }
+  pad.press("1"); pad.press("2");
+  assertEquals("12", pad.buf.toString());
+ }
+
  static int countEdits(android.view.View v) {
   if (v instanceof android.widget.EditText) return 1;
   int n = 0;

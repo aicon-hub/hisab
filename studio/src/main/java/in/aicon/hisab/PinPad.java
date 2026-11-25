@@ -24,7 +24,7 @@ final class PinPad {
   this.a = a; this.submit = submit; this.auto = auto;
   view = Ui.col(a); view.setGravity(Gravity.CENTER_HORIZONTAL); view.setTag("pinPad");
   dots = Ui.row(a); dots.setGravity(Gravity.CENTER); dots.setTag("pinDots");
-  view.addView(dots, Ui.lpm(-2, Ui.dp(30), 0, 6, 0, 0));
+  view.addView(dots, Ui.lpm(-1, Ui.dp(30), 0, 6, 0, 0));
   msg = Ui.text(a, " ", 13, Ui.neg, true); msg.setGravity(Gravity.CENTER); msg.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); msg.setTag("pinMsg"); view.addView(msg);
   String[][] keys = {{"1", "2", "3"}, {"4", "5", "6"}, {"7", "8", "9"}, {"del", "0", "ok"}};
   for (String[] rk : keys) {
@@ -35,13 +35,16 @@ final class PinPad {
     else if (k.equals("ok")) { key = Ui.badge(a, "check", 64, Ui.dark ? Ui.accent : Ui.ink, Ui.dark ? Ui.onAccent : 0xFFFFFFFF); key.setContentDescription("Confirm PIN"); key.setTag("pinKeyOk"); }
     else { TextView t = Ui.big(a, k, 26, Ui.ink); t.setGravity(Gravity.CENTER); t.setBackground(Ui.shape(Ui.surface2, 32)); t.setContentDescription(k); t.setTag("pinKey" + k); key = t; }
     if (k.equals("del") || k.equals("ok")) key.setBackground(Ui.shape(k.equals("ok") ? (Ui.dark ? Ui.accent : Ui.ink) : Ui.surface2, 32));
-    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(72), Ui.dp(64)); lp.setMargins(Ui.dp(8), Ui.dp(6), Ui.dp(8), Ui.dp(6)); r.addView(key, lp);
+    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, Ui.dp(64), 1); lp.setMargins(Ui.dp(7), Ui.dp(6), Ui.dp(7), Ui.dp(6)); r.addView(key, lp);
     Ui.tap(key, () -> press(k));
    }
-   view.addView(r);
+   view.addView(r, new LinearLayout.LayoutParams(-1, -2));
   }
   render(false);
  }
+
+ /** Pad width: 300dp, or the screen minus margins on narrow phones. */
+ static int width(MainActivity a) { return Math.min(Ui.dp(300), a.getResources().getDisplayMetrics().widthPixels - Ui.dp(72)); }
 
  void press(String k) {
   msg.setText(" ");
@@ -88,7 +91,7 @@ final class PinPad {
    c.setGravity(Gravity.CENTER_HORIZONTAL);
    TextView s = Ui.text(a, sub, 14, Ui.muted, false); s.setGravity(Gravity.CENTER); c.addView(s, Ui.lpm(-1, -2, 0, 24, 0, 8));
    PinPad p = new PinPad(a, pin -> { a.close(ref[0]); Ui.buzzOk(a.root); a.root.post(() -> got.accept(pin)); return true; }, false);
-   c.addView(p.view, Ui.lpm(-2, -2, 0, 0, 0, 0));
+   c.addView(p.view, Ui.lpm(width(a), -2, 0, 0, 0, 0));
   });
  }
 }

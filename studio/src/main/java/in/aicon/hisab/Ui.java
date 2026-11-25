@@ -151,15 +151,21 @@ final class Ui {
  static void initVib(Context c) { try { vib = (android.os.Vibrator) c.getSystemService(Context.VIBRATOR_SERVICE); } catch (Throwable t) { vib = null; } }
  private static void v(View v, long[] pattern, int[] amp, int fallback) {
   if (!haptics) return;
+  boolean done = false;
   try {
-   if (vib != null && vib.hasVibrator()) { vib.vibrate(android.os.VibrationEffect.createWaveform(pattern, amp, -1)); return; }
-   if (v != null) v.performHapticFeedback(fallback);
+   if (vib != null && vib.hasVibrator()) {
+    android.os.VibrationEffect e = pattern.length == 2 ? android.os.VibrationEffect.createOneShot(pattern[1], android.os.VibrationEffect.DEFAULT_AMPLITUDE) : android.os.VibrationEffect.createWaveform(pattern, -1);
+    // Alarm usage so the phone's "touch vibration" switch does not mute it
+    vib.vibrate(e, new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+    done = true;
+   }
   } catch (Throwable t) { }
+  if (!done) { try { if (v != null) v.performHapticFeedback(fallback, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING); } catch (Throwable t) { } }
  }
- static void buzz(View v, int kind) { v(v, new long[]{0, 14}, new int[]{0, 90}, kind); }
- static void buzzTick(View v) { v(v, new long[]{0, 12}, new int[]{0, 80}, android.view.HapticFeedbackConstants.KEYBOARD_TAP); }
- static void buzzOk(View v) { v(v, new long[]{0, 18, 40, 22}, new int[]{0, 120, 0, 200}, android.view.HapticFeedbackConstants.LONG_PRESS); }
- static void buzzNo(View v) { v(v, new long[]{0, 40, 60, 40}, new int[]{0, 220, 0, 220}, android.view.HapticFeedbackConstants.LONG_PRESS); }
+ static void buzz(View v, int kind) { v(v, new long[]{0, 30}, null, kind); }
+ static void buzzTick(View v) { v(v, new long[]{0, 28}, null, android.view.HapticFeedbackConstants.KEYBOARD_TAP); }
+ static void buzzOk(View v) { v(v, new long[]{0, 35, 50, 45}, null, android.view.HapticFeedbackConstants.LONG_PRESS); }
+ static void buzzNo(View v) { v(v, new long[]{0, 80, 70, 80}, null, android.view.HapticFeedbackConstants.LONG_PRESS); }
  static void tap(View v, Runnable r) {
   v.setClickable(true);
   v.setOnClickListener(x -> r.run());

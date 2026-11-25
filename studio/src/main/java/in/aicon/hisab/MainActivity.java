@@ -81,13 +81,13 @@ public class MainActivity extends Activity {
   lockLayer = new FrameLayout(this); lockLayer.setBackgroundColor(Ui.bg); lockLayer.setElevation(Ui.dp(96));
   LinearLayout col = Ui.col(this); col.setGravity(Gravity.CENTER_HORIZONTAL); col.setPadding(Ui.dp(32), 0, Ui.dp(32), 0);
   col.addView(Ui.badge(this, "lock", 64, Ui.surface2, Ui.ink), Ui.lpm(Ui.dp(64), Ui.dp(64), 0, 0, 0, 0));
-  TextView h = Ui.big(this, "Hisab is locked", 24, Ui.ink); h.setPadding(0, Ui.dp(20), 0, Ui.dp(6)); col.addView(h);
-  col.addView(Ui.text(this, "Enter your PIN to open your ledger", 13.5f, Ui.muted, false));
+  TextView h = Ui.big(this, "Hisab is locked", 24, Ui.ink); h.setPadding(0, Ui.dp(20), 0, Ui.dp(6)); h.setGravity(Gravity.CENTER); col.addView(h, new LinearLayout.LayoutParams(-1, -2));
+  TextView sub = Ui.text(this, "Enter your PIN to open your ledger", 13.5f, Ui.muted, false); sub.setGravity(Gravity.CENTER); col.addView(sub, new LinearLayout.LayoutParams(-1, -2));
   PinPad pad = new PinPad(this, pin -> {
    if (!Lock.verify(db, pin)) return false;
    Lock.unlocked = true; Ui.buzzOk(root); root.removeView(lockLayer); lockLayer = null; refresh(); return true;
   }, true);
-  col.addView(pad.view, Ui.lpm(-2, -2, 0, 18, 0, 0));
+  col.addView(pad.view, Ui.lpm(PinPad.width(this), -2, 0, 18, 0, 0));
   lockLayer.addView(col, new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER));
   root.addView(lockLayer, new FrameLayout.LayoutParams(-1, -1));
   if (Lock.bio(db) && Bio.available(this)) root.postDelayed(() -> Bio.unlock(this, () -> { if (lockLayer != null) { Lock.unlocked = true; root.removeView(lockLayer); lockLayer = null; refresh(); } }), 300);
