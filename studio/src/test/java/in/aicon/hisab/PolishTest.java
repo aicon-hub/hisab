@@ -291,6 +291,28 @@ public class PolishTest {
   Pages.budgets(a); assertTrue(texts(a.root).contains("Budgets")); a.closeAll();
  }
 
+ @Test public void streakAndSavingsGoal() {
+  Store db = a.db; db.wipe(); db.seedBasics();
+  long cash = db.accounts().get(0).id; java.time.LocalDate today = java.time.LocalDate.now();
+  assertEquals(0, Habits.streak(db, today));
+  for (int back : new int[]{0, 1, 2, 4}) { Store.Tx x = new Store.Tx(); x.kind = "expense"; x.amount = 1000; x.day = today.minusDays(back).toString(); x.account = cash; x.note = "d" + back; db.save(x); }
+  assertEquals(3, Habits.streak(db, today));
+  assertEquals(2, Habits.streak(db, today.minusDays(1)));
+  db.wipe(); db.seedBasics(); cash = db.accounts().get(0).id;
+  Store.Tx y = new Store.Tx(); y.kind = "expense"; y.amount = 1000; y.day = today.minusDays(1).toString(); y.account = cash; y.note = "y"; db.save(y);
+  assertEquals(1, Habits.streak(db, today));
+  assertEquals(0, Habits.goalPct(db)); assertNull(Habits.goalLine(db, today));
+  db.setPref("saveGoalPct", "20");
+  assertNull(Habits.savedPct(db, today));
+  Store.Tx inc = new Store.Tx(); inc.kind = "income"; inc.amount = 100000; inc.day = today.toString(); inc.account = cash; inc.note = "Pay"; db.save(inc);
+  Store.Tx ex = new Store.Tx(); ex.kind = "expense"; ex.amount = 70000; ex.day = today.toString(); ex.account = cash; ex.note = "Rent"; db.save(ex);
+  long yOut = today.minusDays(1).getMonth() == today.getMonth() ? 1000 : 0; assertEquals(Integer.valueOf((int) Math.round((100000 - 70000 - yOut) * 100.0 / 100000)), Habits.savedPct(db, today));
+  assertTrue(Habits.goalLine(db, today).contains("on track"));
+  db.setPref("saveGoalPct", "50");
+  assertFalse(Habits.goalLine(db, today).contains("on track"));
+  Settings.editSaveGoal(a); a.closeAll();
+ }
+
  @Test public void transliteratedMalayalamQuickAdd() {
   Store.Tx t = HomePage.parse(a.db, "chaya 40"); assertNotNull(t); assertEquals(4000, t.amount); assertEquals("Food", a.db.categoryMap().get(t.cat).name);
   Store.Tx g = HomePage.parse(a.db, "paal 55"); assertNotNull(g); assertEquals("Groceries", a.db.categoryMap().get(g.cat).name);

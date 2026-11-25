@@ -37,6 +37,8 @@ final class HomePage {
   hero.addView(stats);
   long pace = Forecast.monthEnd(db, today);
   if (pace > 0) hero.addView(Ui.text(a, "At this pace, " + Fmt.month(ym) + " ends around " + Fmt.money(pace), 12.5f, Ui.onAccentSub, false), Ui.lpm(-1, -2, 0, 10, 0, 0));
+  String goalLine = Habits.goalLine(db, today); if (goalLine != null) hero.addView(Ui.text(a, goalLine, 12.5f, Ui.onAccentSub, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
+  int streak = Habits.streak(db, today); if (streak >= 2) hero.addView(Ui.text(a, streak + "-day entry streak", 12.5f, Ui.onAccentSub, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
   if (secHero) c.addView(hero);
 
   long dailyLimit = 0; try { dailyLimit = Long.parseLong(db.pref("dailyLimit", "0")); } catch (Exception e) {}
