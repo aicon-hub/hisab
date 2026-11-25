@@ -107,8 +107,9 @@ final class Settings {
 
    c.addView(Kit.sectionHead(a, "About", null, null)); LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
-   ab.addView(Ui.text(a, "Version 0.9.7 test build", 12.5f, Ui.muted, true));
+   ab.addView(Ui.text(a, "Version 0.9.8 test build", 12.5f, Ui.muted, true));
    ab.addView(Ui.divider(a), Ui.lpm(-1, -2, 0, 14, 0, 0));
+   ab.addView(item(a, "share", "Share Hisab with a friend", "Recommend the app and how to install it", () -> shareHisab(a)));
    ab.addView(item(a, "info", "Section guides", "Short explanations, shown once per section · tap to see them again", () -> { a.db.getWritableDatabase().delete("prefs", "k LIKE 'infoSeen_%'", null); a.toast("Guides will show again when you open each section", null); a.closeAll(); open(a); }));
    c.addView(ab);
    LinearLayout note=Ui.card(a);note.addView(Ui.text(a,"A note from AiCoN",18,Ui.ink,true));note.addView(Ui.text(a,"Built to make everyday money easier to keep track of. Free to use, open source, and yours to shape. Your records stay on your phone. Thanks for trying Hisab and telling us what needs work.",14,Ui.muted,false),Ui.lpm(-1,-2,0,10,0,14));
@@ -203,5 +204,12 @@ final class Settings {
   TextView back = Ui.button(a, "Back to named colours", false); c.addView(back, Ui.lpm(-1, -2, 0, 10, 0, 0));
   Ui.tap(back, () -> { if (a.db.pref("accent", "Lime").equals("Custom")) { a.db.setPref("accent", "Lime"); a.applyTheme(); a.build(); } a.close(ref[0]); });
   ref[0] = Sheets.show(a, c);
+ }
+
+ /** Share the app with a friend: a personal recommendation, not a referral, plus the public download link. */
+ static void shareHisab(MainActivity a) {
+  String msg = "I like Hisab, so I'm recommending it. It's a simple money diary: quick entries, budgets, dues with people, and backups to your own Google Drive. This is not a referral - join if you want.\n\nGet the latest app here: https://github.com/aicon-hub/hisab/releases\nOpen the newest release, download the APK under Assets, and tap it to install. Android may warn about apps from outside the Play Store; allow it once for this file.";
+  try { Intent send = new Intent(Intent.ACTION_SEND); send.setType("text/plain"); send.putExtra(Intent.EXTRA_SUBJECT, "Hisab - a simple money diary"); send.putExtra(Intent.EXTRA_TEXT, msg); a.startActivity(Intent.createChooser(send, "Share Hisab")); }
+  catch (Exception e) { a.toast("No app can share right now", null); }
  }
 }

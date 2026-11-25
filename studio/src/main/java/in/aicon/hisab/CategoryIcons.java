@@ -21,7 +21,11 @@ final class CategoryIcons {
   {"repair","repair maintenance service mechanic അറ്റകുറ്റപ്പണി"},{"beauty","salon haircut beauty cosmetics barber മുടി"},
   {"work","work office freelance client salary income ജോലി ശമ്പളം"},{"baby","baby child kids diaper toy"},
   {"insurance","insurance takaful"},{"tax","tax gst income-tax"},{"water","water വെള്ളം"},{"laundry","laundry wash cleaning"},
-  {"electronics","electronics laptop computer keyboard mouse gadget"}
+  {"electronics","electronics laptop computer keyboard mouse gadget"},
+  {"printer","print printing photocopy xerox scan stationery സ്റ്റേഷനറി പ്രിന്റ്"},
+  {"pen","pen pencil stationery ഓട്ടോ"} ,
+  {"cap","tuition exam exams graduation degree scholarship ട്യൂഷൻ പരീക്ഷ"},
+  {"cycle","cycle bicycle bike"}
  };
  static String suggest(String text){if(text==null)return "other";String s=text.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{M}0-9-]+"," ").trim();Set<String> words=new HashSet<>(Arrays.asList(s.split("\\s+")));for(String[] r:RULES)for(String w:r[1].split(" "))if(words.contains(w))return r[0];return "other";}
  static String existingCategory(String icon){switch(icon){case "rent":case "wifi":case "subscription":case "water":case "insurance":case "tax":return "Bills";case "fitness":return "Health";case "electronics":case "beauty":case "baby":case "pet":case "repair":case "laundry":return "Shopping";default:for(String[] r:HomePage.WORDS)if(r[0].equalsIgnoreCase(icon))return r[0];return null;}}

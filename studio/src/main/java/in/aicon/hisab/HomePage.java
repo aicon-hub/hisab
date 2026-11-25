@@ -72,9 +72,12 @@ final class HomePage {
 
   if (HomeCustom.on(db, "week")) {
   c.addView(Kit.sectionHead(a, "Last 7 days", null, null));
-  final int[] back = {0}; // whole weeks back from the current one
+  final int[] back = {0}; // whole weeks back from the current one; swipe left goes as far back as there is history
   LinearLayout wc = Ui.card(a); FrameLayout holder = new FrameLayout(a); wc.addView(holder, Ui.lpm(-1, -2, 0, 0, 0, 0));
-  Runnable drawWeek = () -> {
+  final int[] lastBack = {0};
+  final Runnable[] drawWeekRef = new Runnable[1];
+  Runnable drawWeek = drawWeekRef[0] = () -> {
+   int dir = Integer.compare(back[0], lastBack[0]); lastBack[0] = back[0];
    holder.removeAllViews();
    LocalDate end = today.minusDays(7L * back[0]), start = end.minusDays(6);
    long[] v = new long[7]; String[] lb = new String[7]; List<Store.Tx> wk = db.txs(start.toString(), end.toString());
@@ -83,21 +86,27 @@ final class HomePage {
    LinearLayout inner = Ui.col(a);
    LinearLayout hd = Ui.row(a); LinearLayout tt = Ui.col(a);
    tt.addView(Ui.big(a, Fmt.money(sum), 24, Ui.ink));
-   TextView rng = Ui.text(a, Fmt.shortDate(start.toString()) + " - " + Fmt.shortDate(end.toString()) + (back[0] > 0 ? "  ·  swipe for this week" : ""), 11.5f, Ui.muted, false); rng.setPadding(0, Ui.dp(3), 0, 0); tt.addView(rng);
-   hd.addView(tt, Ui.weight(1)); hd.addView(Ui.text(a, "avg " + Fmt.money(sum / 7 / 100 * 100) + " a day", 12.5f, Ui.muted, true)); inner.addView(hd);
+   TextView rng = Ui.text(a, Fmt.shortDate(start.toString()) + " - " + Fmt.shortDate(end.toString()) + (back[0] > 0 ? "  ·  swipe or tap arrows to move" : "  ·  swipe for earlier weeks"), 11.5f, Ui.muted, false); rng.setPadding(0, Ui.dp(3), 0, 0); tt.addView(rng);
+   hd.addView(tt, Ui.weight(1)); hd.addView(Ui.text(a, "avg " + Fmt.money(sum / 7 / 100 * 100) + " a day", 12.5f, Ui.muted, true));
+   FrameLayout older = Ui.badge(a, "left", 30, Ui.surface2, Ui.ink), newer = Ui.badge(a, "right", 30, Ui.surface2, Ui.ink);
+   Ui.tap(older, () -> { back[0]++; drawWeekRef[0].run(); }); Ui.tap(newer, () -> { if (back[0] > 0) { back[0]--; drawWeekRef[0].run(); } });
+   hd.addView(Ui.hspace(a, 8)); hd.addView(older, Ui.lp(Ui.dp(30), Ui.dp(30))); hd.addView(Ui.hspace(a, 6)); hd.addView(newer, Ui.lp(Ui.dp(30), Ui.dp(30)));
+   inner.addView(hd);
    inner.addView(new Charts.Bars(a, v, lb, back[0] == 0 ? 6 : -1, true), Ui.lpm(-1, Ui.dp(150), 0, 12, 0, 0));
    holder.addView(inner);
+   if (Ui.motion(holder) && dir != 0) { inner.setTranslationX(dir * Ui.dp(36)); inner.setAlpha(0f); inner.animate().translationX(0).alpha(1f).setDuration(180).start(); }
   };
   drawWeek.run();
+  if (Ui.motion(holder) && !db.flag("weekSwipeHint", false)) { db.setPref("weekSwipeHint", "1"); holder.postDelayed(() -> { if (back[0] == 0) holder.animate().translationX(-Ui.dp(26)).setDuration(280).withEndAction(() -> holder.animate().translationX(0).setDuration(380).start()).start(); }, 900); }
   final float[] downX = {0};
   wc.setOnTouchListener((vv, e) -> {
-   if (e.getAction() == android.view.MotionEvent.ACTION_DOWN) downX[0] = e.getX();
-   else if (e.getAction() == android.view.MotionEvent.ACTION_UP) {
+   if (e.getAction() == android.view.MotionEvent.ACTION_DOWN) { downX[0] = e.getX(); return true; }
+   if (e.getAction() == android.view.MotionEvent.ACTION_UP) {
     float dx = e.getX() - downX[0];
-    if (dx < -Ui.dp(48)) { back[0]++; drawWeek.run(); }        // swipe left: previous 7 days
+    if (dx < -Ui.dp(48)) { back[0]++; drawWeek.run(); }        // swipe left: earlier 7 days, no limit
     else if (dx > Ui.dp(48) && back[0] > 0) { back[0]--; drawWeek.run(); } // swipe right: towards this week
    }
-   return false;
+   return true;
   });
   c.addView(wc);
   }

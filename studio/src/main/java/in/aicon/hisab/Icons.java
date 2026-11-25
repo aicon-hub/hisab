@@ -84,8 +84,13 @@ final class Icons {
   P.put("split", "M12 4V10 M12 10L6 16V20 M12 10L18 16V20");
   P.put("flame", "M12 21C8 21 6 18 6 15C6 11 10 9.5 10 5C14 7 18 10.5 18 15C18 18 16 21 12 21Z");
   P.put("spark", "M12 3V8 M12 16V21 M3 12H8 M16 12H21 M6 6L9 9 M15 15L18 18 M18 6L15 9 M9 15L6 18");
+  P.put("printer", "M6 9V3H18V9 M6 18H4A2 2 0 0 1 2 16V11A2 2 0 0 1 4 9H20A2 2 0 0 1 22 11V16A2 2 0 0 1 20 18H18 M6 14H18V21H6Z");
+  P.put("laptop", "M5 5H19V15H5Z M2 19H22 M5 15L2 19 M19 15L22 19");
+  P.put("pen", "M17 3A2.83 2.83 0 1 1 21 7L7.5 20.5L2 22L3.5 16.5Z");
+  P.put("cap", "M22 10L12 5L2 10L12 15L22 10Z M6 12V17C9 19 15 19 18 17V12 M22 10V16");
+  P.put("cycle", circle(5.5, 17.5, 3.5) + circle(18.5, 17.5, 3.5) + "M5.5 17.5L9 8H14 M12 6H15L18.5 17.5");
  }
- static final String[] CATEGORY_ICONS = {"food", "groceries", "transport", "fuel", "shopping", "bills", "health", "fun", "education", "travel", "phone", "home", "gift", "coin", "fitness", "pet", "rent", "wifi", "subscription", "charity", "repair", "beauty", "work", "baby", "insurance", "tax", "water", "laundry", "electronics", "other"};
+ static final String[] CATEGORY_ICONS = {"food", "groceries", "transport", "fuel", "shopping", "bills", "health", "fun", "education", "travel", "phone", "home", "gift", "coin", "fitness", "pet", "rent", "wifi", "subscription", "charity", "repair", "beauty", "work", "baby", "insurance", "tax", "water", "laundry", "electronics", "printer", "laptop", "pen", "cap", "cycle", "other"};
 
  /** Google's multicolour G mark (48 unit grid, fill paths from Google's sign-in brand asset). */
  static android.graphics.drawable.Drawable google() {

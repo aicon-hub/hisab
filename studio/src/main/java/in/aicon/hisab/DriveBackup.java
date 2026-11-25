@@ -116,7 +116,7 @@ final class DriveBackup {
     upload(token, id, zip);
     db.setPref("driveBackupAt", "" + System.currentTimeMillis());
     db.setPref("driveBackupErr", "0");
-   } catch (Exception e) { db.setPref("driveBackupErr", "" + System.currentTimeMillis()); }
+   } catch (Exception e) { db.setPref("driveBackupErr", "" + System.currentTimeMillis()); notifyFailure(c); }
   }, "hisab-drive-backup").start();
  }
 
@@ -173,6 +173,19 @@ final class DriveBackup {
     }));
    } catch (Exception e) { a.runOnUiThread(() -> a.toast("Could not reach Google Drive. Check your connection", null)); }
   }, "hisab-drive-restore").start();
+ }
+
+ /** Quiet backup failed: say so with a notification ("Instant updates"), which is a no-op when notifications are off. */
+ static void notifyFailure(Context c) {
+  try {
+   android.app.NotificationManager nm = (android.app.NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+   if (nm == null) return;
+   if (android.os.Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(new android.app.NotificationChannel("backup_v1", "Backup updates", android.app.NotificationManager.IMPORTANCE_DEFAULT));
+   android.content.Intent open = new android.content.Intent(c, MainActivity.class).putExtra("noLaunch", true);
+   android.app.Notification.Builder b = android.os.Build.VERSION.SDK_INT >= 26 ? new android.app.Notification.Builder(c, "backup_v1") : new android.app.Notification.Builder(c);
+   b.setSmallIcon(R.drawable.notification_hisab).setContentTitle("Google backup failed").setContentText("Tap to open Hisab and retry from Settings.").setAutoCancel(true).setContentIntent(android.app.PendingIntent.getActivity(c, 42, open, android.app.PendingIntent.FLAG_IMMUTABLE));
+   nm.notify(42, b.build());
+  } catch (Exception ignored) {}
  }
 
  /** Drive's RFC3339 modifiedTime, with or without milliseconds. Returns 0 when absent or unparseable. */

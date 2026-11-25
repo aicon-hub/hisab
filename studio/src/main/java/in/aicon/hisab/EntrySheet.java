@@ -91,11 +91,32 @@ final class EntrySheet {
   boolean transfer = s.kind.equals("transfer"), people = s.kind.equals("lent") || s.kind.equals("borrowed") || s.kind.startsWith("repay");
   row.addView(chip(a, "wallet", (transfer ? "From " : "") + (am.get(s.account) == null ? "Account" : am.get(s.account).name), () -> { List<String> n = new ArrayList<>(), ic = new ArrayList<>(); int sel = -1; for (int i = 0; i < accs.size(); i++) { n.add(accs.get(i).name + "   " + Privacy.amount(db,accs.get(i),db.balance(accs.get(i)))); ic.add(accs.get(i).kind.equals("cash") ? "cash" : accs.get(i).kind.equals("bank") ? "bank" : accs.get(i).kind.equals("card") ? "card" : "wallet"); if (accs.get(i).id == s.account) sel = i; } Sheets.pick(a, "Account", n, ic, sel, i -> { s.account = accs.get(i).id; renderMeta(a, s, meta, ref); }); }));
   if (transfer) row.addView(chip(a, "right", "To " + (am.get(s.dest) == null ? "Account" : am.get(s.dest).name), () -> { List<String> n = new ArrayList<>(), ic = new ArrayList<>(); int sel = -1; for (int i = 0; i < accs.size(); i++) { n.add(accs.get(i).name); ic.add("wallet"); if (accs.get(i).id == s.dest) sel = i; } Sheets.pick(a, "Move to", n, ic, sel, i -> { s.dest = accs.get(i).id; renderMeta(a, s, meta, ref); }); }));
-  row.addView(chip(a, "calendar", Fmt.dayLabel(s.day.toString()), () -> { android.app.DatePickerDialog d = new android.app.DatePickerDialog(a, (v, y, m, dd) -> { s.day = LocalDate.of(y, m + 1, dd); renderMeta(a, s, meta, ref); }, s.day.getYear(), s.day.getMonthValue() - 1, s.day.getDayOfMonth()); d.show(); }));
+  row.addView(chip(a, "calendar", Fmt.dayLabel(s.day.toString()), () -> DateSheet.show(a, s.day, d -> { s.day = d; renderMeta(a, s, meta, ref); })));
+  row.addView(infoChip(a));
   if (people) row.addView(chip(a, "user", pm.get(s.person) == null ? "Choose person" : pm.get(s.person).name, () -> { List<Store.Person> ps = db.people(); List<String> n = new ArrayList<>(), ic = new ArrayList<>(); int sel = -1; for (int i = 0; i < ps.size(); i++) { n.add(ps.get(i).name); ic.add("user"); if (ps.get(i).id == s.person) sel = i; } n.add("New from contacts"); ic.add("people"); n.add("New by name"); ic.add("plus"); final int cnt = ps.size();
    Sheets.pick(a, "Person", n, ic, sel, i -> { if (i < cnt) { s.person = ps.get(i).id; renderMeta(a, s, meta, ref); } else if (i == cnt) a.pickContact((nm, ph) -> { s.person = db.addPerson(nm, ph); renderMeta(a, s, meta, ref); }); else Sheets.form(a, "New person", new String[]{"Name"}, new String[]{""}, new int[]{Sheets.TEXT}, "Add", v -> { if (!v[0].isEmpty()) { s.person = db.addPerson(v[0], ""); renderMeta(a, s, meta, ref); } }, null); }); }));
   meta.addView(hs);
  }
+ /** A small hint chip next to the account/date chips: explains what they do, for new users. */
+ static View infoChip(MainActivity a) {
+  LinearLayout l = Ui.row(a); l.setGravity(Gravity.CENTER); l.setBackground(Ui.outline(0, Ui.line, 20, 1)); l.setPadding(Ui.dp(11), Ui.dp(9), Ui.dp(11), Ui.dp(9));
+  l.addView(Ui.icon(a, "info", 18, Ui.muted)); l.setLayoutParams(Ui.lpm(-2, -2, 0, 0, 8, 0)); Ui.tap(l, () -> chipGuide(a)); return l;
+ }
+ static void chipGuide(MainActivity a) {
+  LinearLayout c = Sheets.sheetBody(a, "Quick choices");
+  c.addView(guideItem(a, "wallet", "Account chip (Cash, bank...)", "Where the money comes from or goes to: cash in hand or one of your bank accounts. Tap it to switch."), Ui.lpm(-1, -2, 0, 8, 0, 0));
+  c.addView(guideItem(a, "calendar", "Date chip (Today)", "The day this entry belongs to, today by default. Tap it to pick another date on the calendar."), Ui.lpm(-1, -2, 0, 10, 0, 0));
+  c.addView(guideItem(a, "plus", "New category", "The + tile after your categories makes your own, with an icon you choose."), Ui.lpm(-1, -2, 0, 10, 0, 0));
+  Sheets.show(a, c);
+ }
+ private static View guideItem(MainActivity a, String icon, String title, String sub) {
+  LinearLayout r = Ui.row(a); r.setPadding(Ui.dp(4), Ui.dp(6), Ui.dp(4), Ui.dp(6));
+  r.addView(Ui.badge(a, icon, 42, Ui.surface2, Ui.ink), Ui.lpm(Ui.dp(42), Ui.dp(42), 0, 0, 14, 0));
+  LinearLayout m = Ui.col(a); m.addView(Ui.text(a, title, 15.5f, Ui.ink, true));
+  TextView s = Ui.text(a, sub, 12.5f, Ui.muted, false); s.setPadding(0, Ui.dp(3), 0, 0); m.addView(s);
+  r.addView(m, Ui.weight(1)); return r;
+ }
+
  static View chip(MainActivity a, String icon, String text, Runnable r) {
   LinearLayout l = Ui.row(a); l.setBackground(Ui.outline(0, Ui.line, 20, 1)); l.setPadding(Ui.dp(12), Ui.dp(9), Ui.dp(14), Ui.dp(9)); l.addView(Ui.icon(a, icon, 18, Ui.ink)); TextView t = Ui.text(a, text, 13.5f, Ui.ink, true); t.setPadding(Ui.dp(7), 0, 0, 0); l.addView(t); l.setLayoutParams(Ui.lpm(-2, -2, 0, 0, 8, 0)); Ui.tap(l, r); return l;
  }
@@ -104,8 +125,35 @@ final class EntrySheet {
   box.removeAllViews(); if (!(s.kind.equals("expense") || s.kind.equals("income"))) return; List<Store.Cat> cs = a.db.categories(s.kind);
   HorizontalScrollView hs = new HorizontalScrollView(a); hs.setHorizontalScrollBarEnabled(false); LinearLayout row = Ui.row(a); hs.addView(row); row.setPadding(0, Ui.dp(12), 0, 0);
   for (Store.Cat c : cs) { boolean on = c.id == s.cat; LinearLayout cell = Ui.col(a); cell.setGravity(Gravity.CENTER_HORIZONTAL); cell.setPadding(Ui.dp(4), Ui.dp(2), Ui.dp(4), Ui.dp(2));
-   FrameLayout b = Ui.badge(a, c.icon, 52, on ? Kit.tone(c.id) : Ui.surface2, on ? 0xFF14151A : Ui.ink); if (on) b.setBackground(Ui.outline(Kit.tone(c.id), Ui.ink, 26, 2)); cell.addView(b, Ui.lp(Ui.dp(52), Ui.dp(52))); TextView t = Ui.text(a, c.name, 11.5f, on ? Ui.ink : Ui.muted, on); t.setPadding(0, Ui.dp(6), 0, 0); cell.addView(t); row.addView(cell, Ui.lpm(Ui.dp(66), -2, 0, 0, 4, 0)); Ui.tap(cell, () -> { s.cat = c.id; renderCats(a, s, box); }); }
+   FrameLayout b = Ui.badge(a, c.icon, 52, on ? Kit.tone(c.id) : Ui.surface2, on ? 0xFF14151A : Ui.ink); if (on) b.setBackground(Ui.outline(Kit.tone(c.id), Ui.ink, 26, 2)); cell.addView(b, Ui.lp(Ui.dp(52), Ui.dp(52))); TextView t = Ui.text(a, c.name, 11f, on ? Ui.ink : Ui.muted, on); t.setPadding(0, Ui.dp(6), 0, 0); t.setGravity(Gravity.CENTER); t.setSingleLine(true); t.setEllipsize(android.text.TextUtils.TruncateAt.END); cell.addView(t, Ui.lp(-1, -2)); row.addView(cell, Ui.lpm(Ui.dp(72), -2, 0, 0, 4, 0)); Ui.tap(cell, () -> { s.cat = c.id; renderCats(a, s, box); }); }
+  { LinearLayout cell = Ui.col(a); cell.setGravity(Gravity.CENTER_HORIZONTAL); cell.setPadding(Ui.dp(4), Ui.dp(2), Ui.dp(4), Ui.dp(2));
+   FrameLayout b = Ui.badge(a, "plus", 52, Ui.surface2, Ui.muted); b.setBackground(Ui.outline(0, Ui.line, 26, 1)); cell.addView(b, Ui.lp(Ui.dp(52), Ui.dp(52)));
+   TextView t = Ui.text(a, "New", 11f, Ui.muted, false); t.setPadding(0, Ui.dp(6), 0, 0); t.setGravity(Gravity.CENTER); cell.addView(t, Ui.lp(-1, -2));
+   row.addView(cell, Ui.lpm(Ui.dp(72), -2, 0, 0, 4, 0)); Ui.tap(cell, () -> newCategory(a, s, box)); }
   box.addView(hs);
+ }
+
+ /** Make your own category: name it, pick an icon from the built-in set, and it joins the row. */
+ static void newCategory(MainActivity a, S s, LinearLayout box) {
+  LinearLayout c = Sheets.sheetBody(a, "New category");
+  EditText name = Sheets.field(a, "Category name", "", Sheets.TEXT); name.setSingleLine(); c.addView(name, Ui.lpm(-1, -2, 0, 4, 0, 0));
+  TextView lab = Ui.text(a, "Pick an icon", 13f, Ui.muted, true); lab.setPadding(Ui.dp(2), Ui.dp(16), 0, Ui.dp(6)); c.addView(lab);
+  LinearLayout grid = Ui.col(a); c.addView(grid);
+  String[] icons = Icons.CATEGORY_ICONS; final String[] chosen = {"other"}; final View[] lastSel = {null};
+  for (int i = 0; i < icons.length; i += 5) {
+   LinearLayout r = Ui.row(a); r.setGravity(Gravity.CENTER_HORIZONTAL);
+   for (int j = i; j < Math.min(i + 5, icons.length); j++) {
+    final String ic = icons[j];
+    FrameLayout b = Ui.badge(a, ic, 26, Ui.surface2, Ui.ink);
+    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(54), Ui.dp(54)); lp.setMargins(Ui.dp(4), Ui.dp(4), Ui.dp(4), Ui.dp(4)); r.addView(b, lp);
+    Ui.tap(b, () -> { chosen[0] = ic; if (lastSel[0] != null) lastSel[0].setBackground(Ui.shape(Ui.surface2, 27)); b.setBackground(Ui.outline(Ui.surface2, Ui.accent, 27, 2)); lastSel[0] = b; });
+   }
+   grid.addView(r);
+  }
+  final MainActivity.Layer[] ref = new MainActivity.Layer[1];
+  TextView add = Ui.button(a, "Add category", true); c.addView(add, Ui.lpm(-1, -2, 0, 18, 0, 0));
+  Ui.tap(add, () -> { String n = name.getText().toString().trim(); if (n.isEmpty()) { a.toast("Type a name first", null); return; } long id = a.db.addCategory(n, s.kind, chosen[0]); s.cat = id; a.close(ref[0]); renderCats(a, s, box); a.toast("Category added", null); });
+  ref[0] = Sheets.show(a, c);
  }
 
  static void save(MainActivity a, S s, MainActivity.Layer[] ref) {

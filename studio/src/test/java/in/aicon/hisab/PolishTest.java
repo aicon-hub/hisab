@@ -73,4 +73,28 @@ public class PolishTest {
   assertEquals(0xFF202020, Statement.grey(0));
   assertTrue(Statement.grey(3) != Statement.grey(0));
  }
+ @Test public void notificationPromptShowsBothItems() {
+  a.db.setPref("notifAsked", "1"); NotifPrompt.maybeShow(a); assertEquals(0, a.layers.size());
+  a.db.setPref("notifAsked", "0"); NotifPrompt.show(a);
+  assertEquals(1, a.layers.size());
+  String text = org.robolectric.shadows.ShadowView.innerText(a.layers.get(0).panel);
+  assertTrue(text, text.contains("Timely payment reminders") && text.contains("Instant updates") && text.contains("Turn on notifications") && text.contains("Not now"));
+  a.closeAll();
+ }
+ @Test public void dateSheetShowsMonthGrid() {
+  final java.time.LocalDate[] picked = {null};
+  DateSheet.show(a, java.time.LocalDate.of(2026, 11, 10), d -> picked[0] = d);
+  org.junit.Assert.assertEquals(1, a.layers.size());
+  String text = org.robolectric.shadows.ShadowView.innerText(a.layers.get(0).panel);
+  assertTrue(text, text.contains("November 2026") && text.contains("Jump to today"));
+  a.closeAll();
+ }
+ @Test public void newCategorySheetOffersIcons() {
+  EntrySheet.S s = new EntrySheet.S(); s.kind = "expense";
+  EntrySheet.newCategory(a, s, Ui.col(a));
+  org.junit.Assert.assertEquals(1, a.layers.size());
+  String text = org.robolectric.shadows.ShadowView.innerText(a.layers.get(0).panel);
+  assertTrue(text, text.contains("New category") && text.contains("Pick an icon") && text.contains("Add category"));
+  a.closeAll();
+ }
 }

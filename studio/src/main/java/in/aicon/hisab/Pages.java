@@ -114,13 +114,58 @@ final class Pages {
 
  static void split(MainActivity a) {
   Store db = a.db;
-  Sheets.form(a, "Split a bill", new String[]{"Total bill", "How many people (you included)"}, new String[]{"", "2"}, new int[]{Sheets.NUMBER, InputType.TYPE_CLASS_NUMBER}, "Work it out", v -> {
-   long total = amt(v[0]); int n; try { n = Integer.parseInt(v[1]); } catch (Exception e) { n = 0; } if (total <= 0 || n < 2 || n > 50) { a.toast("Enter a total and 2 to 50 people", null); return; }
-   long base = total / n, extra = total % n; final long mine = base + (extra > 0 ? 1 : 0); final int people = n;
-   LinearLayout c = Sheets.sheetBody(a, "Each pays " + Fmt.money(base + (extra > 0 ? 1 : 0))); if (extra > 0) c.addView(Ui.text(a, extra + " of " + n + " people pay one paisa less so the total matches exactly.", 13, Ui.muted, false), Ui.lpm(-2, -2, 0, 0, 0, 14));
-   TextView t = Ui.text(a, "Total " + Fmt.money(total) + " across " + n + " people.", 14.5f, Ui.ink, false); c.addView(t);
-   final MainActivity.Layer[] ref = new MainActivity.Layer[1]; TextView add = Ui.button(a, "Add my share as spent", true); c.addView(add, Ui.lpm(-1, -2, 0, 18, 0, 0));
-   Ui.tap(add, () -> { Store.Tx x = new Store.Tx(); x.kind = "expense"; x.amount = mine; x.day = LocalDate.now().toString(); List<Store.Acc> as = db.accounts(); x.account = as.get(0).id; x.note = "Shared bill"; for (Store.Cat ct : db.categories("expense")) if (ct.name.equals("Food")) x.cat = ct.id; long id = db.save(x); a.close(ref[0]); a.refresh(); a.toast("Added your share " + Fmt.money(mine), () -> { db.deleteTx(id); a.refresh(); }); });
-   ref[0] = Sheets.show(a, c); }, null);
+  LinearLayout c = Sheets.sheetBody(a, "Split a bill");
+  EditText total = Sheets.field(a, "Total bill", "", Sheets.NUMBER); c.addView(total, Ui.lpm(-1, -2, 0, 4, 0, 0));
+  TextView cl = Ui.label(a, "Category"); cl.setPadding(Ui.dp(2), Ui.dp(14), 0, Ui.dp(6)); c.addView(cl);
+  List<Store.Cat> cats = db.categories("expense");
+  final long[] cat = {0}; for (Store.Cat ct : cats) if (ct.name.equals("Food")) cat[0] = ct.id;
+  HorizontalScrollView chs = new HorizontalScrollView(a); chs.setHorizontalScrollBarEnabled(false); LinearLayout crow = Ui.row(a); chs.addView(crow); c.addView(chs);
+  for (Store.Cat ct : cats) { TextView p = Ui.pill(a, ct.name, ct.id == cat[0]); p.setTag(ct.id); crow.addView(p, Ui.lpm(-2, -2, 0, 0, 8, 0));
+   Ui.tap(p, () -> { cat[0] = ct.id; for (int i = 0; i < crow.getChildCount(); i++) { TextView q = (TextView) crow.getChildAt(i); boolean on = ((Long) q.getTag()) == ct.id; q.setTextColor(on ? Ui.onAccent : Ui.ink); q.setBackground(on ? Ui.shape(Ui.accent, 20) : Ui.outline(0, Ui.line, 20, 1)); } }); }
+  TextView pl = Ui.label(a, "Who's in (besides you)"); pl.setPadding(Ui.dp(2), Ui.dp(14), 0, Ui.dp(6)); c.addView(pl);
+  List<Store.Person> ps = db.people(); final Set<Long> sel = new LinkedHashSet<>();
+  if (ps.isEmpty()) { c.addView(Ui.text(a, "No people yet - use the count below, or add people first.", 13f, Ui.muted, false)); }
+  for (Store.Person person : ps) {
+   LinearLayout r = Ui.row(a); r.setPadding(Ui.dp(4), Ui.dp(9), Ui.dp(4), Ui.dp(9));
+   FrameLayout tick = Ui.badge(a, "check", 30, Ui.surface2, Ui.surface2);
+   r.addView(tick, Ui.lpm(Ui.dp(30), Ui.dp(30), 0, 0, 12, 0));
+   r.addView(Ui.text(a, person.name, 15f, Ui.ink, false), Ui.weight(1));
+   Ui.tap(r, () -> { boolean on = !sel.contains(person.id); if (on) sel.add(person.id); else sel.remove(person.id); tick.setBackground(Ui.shape(on ? Ui.accent : Ui.surface2, 15)); ((FrameLayout) tick).removeAllViews(); tick.addView(Ui.icon(a, "check", 16, on ? Ui.onAccent : Ui.surface2), new FrameLayout.LayoutParams(Ui.dp(16), Ui.dp(16), Gravity.CENTER)); });
+   c.addView(r);
+  }
+  EditText count = Sheets.field(a, "...or how many people (you included)", "2", InputType.TYPE_CLASS_NUMBER); c.addView(count, Ui.lpm(-1, -2, 0, 10, 0, 0));
+  TextView dl = Ui.label(a, "Direction"); dl.setPadding(Ui.dp(2), Ui.dp(14), 0, Ui.dp(6)); c.addView(dl);
+  LinearLayout dpills = Ui.row(a); final boolean[] owe = {true};
+  TextView oweMe = Ui.pill(a, "They owe you", true), iOwe = Ui.pill(a, "You owe them", false);
+  dpills.addView(oweMe, Ui.lpm(-2, -2, 0, 0, 8, 0)); dpills.addView(iOwe); c.addView(dpills);
+  Runnable dir = () -> { oweMe.setTextColor(owe[0] ? Ui.onAccent : Ui.ink); oweMe.setBackground(owe[0] ? Ui.shape(Ui.accent, 20) : Ui.outline(0, Ui.line, 20, 1)); iOwe.setTextColor(!owe[0] ? Ui.onAccent : Ui.ink); iOwe.setBackground(!owe[0] ? Ui.shape(Ui.accent, 20) : Ui.outline(0, Ui.line, 20, 1)); };
+  Ui.tap(oweMe, () -> { owe[0] = true; dir.run(); }); Ui.tap(iOwe, () -> { owe[0] = false; dir.run(); });
+  TextView go = Ui.button(a, "Work it out", true); c.addView(go, Ui.lpm(-1, -2, 0, 18, 0, 0));
+  Ui.tap(go, () -> {
+   long t = amt(total.getText().toString());
+   int n = sel.size() + 1;
+   if (sel.isEmpty()) { try { n = Integer.parseInt(count.getText().toString().trim()); } catch (Exception e) { n = 0; } }
+   if (t <= 0 || n < 2 || n > 50) { a.toast("Enter a total and pick people (or 2 to 50)", null); return; }
+   long base = t / n, extra = t % n; final long mine = base + (extra > 0 ? 1 : 0); final int people = n; final long totalV = t;
+   if (owe[0] && !sel.isEmpty()) {
+    List<Long> ids = new ArrayList<>();
+    List<Store.Acc> as = db.accounts(); long acc = as.isEmpty() ? 0 : as.get(0).id;
+    for (long pid : sel) { Store.Tx x = new Store.Tx(); x.kind = "lent"; x.amount = base; x.day = LocalDate.now().toString(); x.account = acc; x.person = pid; x.cat = cat[0]; x.note = "Shared bill"; ids.add(db.save(x)); }
+    a.refresh();
+    LinearLayout r2 = Sheets.sheetBody(a, "Saved - each owes " + Fmt.money(base));
+    r2.addView(Ui.text(a, sel.size() + " people owe you their share of " + Fmt.money(totalV) + ". It is on their page in People.", 14.5f, Ui.ink, false));
+    TextView done = Ui.button(a, "Done", true); r2.addView(done, Ui.lpm(-1, -2, 0, 18, 0, 0));
+    final MainActivity.Layer[] r2ref = new MainActivity.Layer[1];
+    Ui.tap(done, () -> a.close(r2ref[0])); r2ref[0] = Sheets.show(a, r2);
+    a.toast("Saved " + sel.size() + " shares", () -> { for (long id : ids) db.deleteTx(id); a.refresh(); });
+    return;
+   }
+   LinearLayout r2 = Sheets.sheetBody(a, "Each pays " + Fmt.money(mine)); if (extra > 0) r2.addView(Ui.text(a, extra + " of " + people + " people pay one paisa less so the total matches exactly.", 13, Ui.muted, false), Ui.lpm(-2, -2, 0, 0, 0, 14));
+   TextView t2 = Ui.text(a, "Total " + Fmt.money(totalV) + " across " + people + " people.", 14.5f, Ui.ink, false); r2.addView(t2);
+   final MainActivity.Layer[] ref = new MainActivity.Layer[1]; TextView add = Ui.button(a, "Add my share as spent", true); r2.addView(add, Ui.lpm(-1, -2, 0, 18, 0, 0));
+   Ui.tap(add, () -> { Store.Tx x = new Store.Tx(); x.kind = "expense"; x.amount = mine; x.day = LocalDate.now().toString(); List<Store.Acc> as2 = db.accounts(); x.account = as2.get(0).id; x.note = "Shared bill"; x.cat = cat[0]; long id = db.save(x); a.close(ref[0]); a.refresh(); a.toast("Added your share " + Fmt.money(mine), () -> { db.deleteTx(id); a.refresh(); }); });
+   ref[0] = Sheets.show(a, r2);
+  });
+  Sheets.show(a, c);
  }
 }

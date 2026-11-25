@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.*;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
+import android.view.View;
 import android.widget.*;
 import java.io.*;
 import java.time.YearMonth;
@@ -96,8 +97,10 @@ final class Statement {
   int pageNum = 1, y;
   PdfDocument.Page page = doc.startPage(new PdfDocument.PageInfo.Builder(w, h, pageNum).create());
   Canvas cv = page.getCanvas();
-  y = margin + 24;
-  cv.drawText("Hisab statement", margin, y, title); y += 26;
+  Wordmark wm = new Wordmark(c, 0xFF15161A); wm.measure(View.MeasureSpec.makeMeasureSpec(110, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(42, View.MeasureSpec.EXACTLY)); wm.layout(0, 0, 110, 42);
+  cv.save(); cv.translate(margin, margin - 8); wm.draw(cv); cv.restore();
+  y = margin + 58;
+  cv.drawText(d.allTime ? "Statement - all time" : "Statement - " + Fmt.month(d.month), margin, y, paint(0xFF15161A, 15, true)); y += 20;
   cv.drawText((d.allTime ? "All time" : Fmt.month(d.month)) + "  ·  made on " + Fmt.today(), margin, y, small); y += 30;
   cv.drawText("Income " + Fmt.money(d.in), margin, y, paint(o.color ? 0xFF168A5C : 0xFF15161A, 13, true));
   cv.drawText("Spent " + Fmt.money(d.out), margin + 180, y, paint(o.color ? 0xFFD93C45 : 0xFF15161A, 13, true));
@@ -114,6 +117,7 @@ final class Statement {
   Paint amount = paint(0xFF15161A, 11, false); amount.setTextAlign(Paint.Align.RIGHT);
   for (String[] r : d.rows) {
    if (y > bottom) {
+    footer(cv, w, h, margin, small);
     doc.finishPage(page);
     pageNum++;
     page = doc.startPage(new PdfDocument.PageInfo.Builder(w, h, pageNum).create());
@@ -128,12 +132,19 @@ final class Statement {
   if (d.rows.isEmpty()) { cv.drawText("No entries this month.", margin, y, body); y += 18; }
   y += 6; cv.drawLine(margin, y, w - margin, y, line); y += 16;
   cv.drawText("Hisab keeps your entries on this phone only. Free and open source, GPL-3.0.", margin, y, small);
+  footer(cv, w, h, margin, small);
   doc.finishPage(page);
   File dir = new File(c.getExternalFilesDir(null), "statements"); dir.mkdirs();
   File f = new File(dir, d.allTime ? "Hisab-all-time.pdf" : "Hisab-" + d.month + ".pdf");
   FileOutputStream out = new FileOutputStream(f);
   doc.writeTo(out); out.close(); doc.close();
   return f;
+ }
+
+ /** Brand line at the foot of every page, with the public app link. */
+ private static void footer(Canvas cv, int w, int h, int margin, Paint small) {
+  Paint center = new Paint(small); center.setTextAlign(Paint.Align.CENTER);
+  cv.drawText("Made with Hisab - github.com/aicon-hub/hisab/releases", w / 2f, h - 24, center);
  }
 
  /** Expense-by-category donut in full colour, with a legend. Returns the new y. */

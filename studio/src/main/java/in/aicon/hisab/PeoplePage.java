@@ -27,7 +27,10 @@ final class PeoplePage {
   ps.sort((p, q) -> Long.compare(Math.abs(nets.get(q.id)), Math.abs(nets.get(p.id))));
   LinearLayout card = Ui.card(a); card.setPadding(Ui.dp(16), Ui.dp(6), Ui.dp(16), Ui.dp(6));
   for (int i = 0; i < ps.size(); i++) { Store.Person p = ps.get(i); long n = nets.get(p.id); if (i > 0) card.addView(Ui.divider(a)); LinearLayout row = Ui.row(a); row.setPadding(0, Ui.dp(12), 0, Ui.dp(12));
-   FrameLayout av = new FrameLayout(a); av.setBackground(Ui.shape(Kit.tone(p.id), 22)); av.addView(Ui.big(a, Ui.initial(p.name), 17, 0xFF14151A), new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER)); row.addView(av, Ui.lpm(Ui.dp(44), Ui.dp(44), 0, 0, 14, 0));
+   FrameLayout av = new FrameLayout(a); av.setBackground(Ui.shape(Kit.tone(p.id), 22)); av.addView(Ui.big(a, Ui.initial(p.name), 17, 0xFF14151A), new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
+   android.graphics.Bitmap photo = contactPhoto(a, p.phone);
+   if (photo != null) { av.removeAllViews(); av.setOutlineProvider(new android.view.ViewOutlineProvider() { @Override public void getOutline(android.view.View v, android.graphics.Outline o) { o.setOval(0, 0, v.getWidth(), v.getHeight()); } }); av.setClipToOutline(true); ImageView iv = new ImageView(a); iv.setImageBitmap(photo); iv.setScaleType(ImageView.ScaleType.CENTER_CROP); av.addView(iv, new FrameLayout.LayoutParams(-1, -1)); }
+   row.addView(av, Ui.lpm(Ui.dp(44), Ui.dp(44), 0, 0, 14, 0));
    LinearLayout m = Ui.col(a); m.addView(Ui.text(a, p.name, 15.5f, Ui.ink, true)); TextView s = Ui.text(a, n > 0 ? "owes you" : n < 0 ? "you owe" : "settled", 12.5f, Ui.muted, false); s.setPadding(0, Ui.dp(3), 0, 0); m.addView(s); row.addView(m, Ui.weight(1));
    row.addView(Ui.big(a, n == 0 ? Fmt.money(0) : Fmt.money(Math.abs(n)), 17, n > 0 ? Ui.pos : n < 0 ? Ui.neg : Ui.muted)); Ui.tap(row, () -> person(a, p)); card.addView(row); }
   if (!ps.isEmpty()) c.addView(card);
@@ -62,5 +65,23 @@ final class PeoplePage {
   Store.Tx t = new Store.Tx(); t.kind = kind; t.amount = amount; t.person = p.id; t.day = java.time.LocalDate.now().toString(); List<Store.Acc> accs = a.db.accounts(); t.account = accs.get(0).id; t.note = "";
   if (amount == 0) { t.id = 0; }
   EntrySheet.S s = null; Store.Tx e = t; e.id = 0; a.openEntryPrefilled(e);
+ }
+
+ /** Contact photo for a phone number, when contacts permission is granted and the contact has one; null otherwise. */
+ static android.graphics.Bitmap contactPhoto(MainActivity a, String phone) {
+  if (phone == null || phone.isEmpty()) return null;
+  try {
+   if (android.os.Build.VERSION.SDK_INT >= 23 && a.checkSelfPermission(android.Manifest.permission.READ_CONTACTS) != android.content.pm.PackageManager.PERMISSION_GRANTED) return null;
+   android.net.Uri u = android.net.Uri.withAppendedPath(android.provider.ContactsContract.PhoneLookup.CONTENT_FILTER_URI, android.net.Uri.encode(phone));
+   try (android.database.Cursor c = a.getContentResolver().query(u, new String[]{android.provider.ContactsContract.PhoneLookup._ID}, null, null, null)) {
+    if (c != null && c.moveToFirst()) {
+     android.net.Uri cu = android.content.ContentUris.withAppendedId(android.provider.ContactsContract.Contacts.CONTENT_URI, c.getLong(0));
+     try (java.io.InputStream in = android.provider.ContactsContract.Contacts.openContactPhotoInputStream(a.getContentResolver(), cu)) {
+      if (in != null) return android.graphics.BitmapFactory.decodeStream(in);
+     }
+    }
+   }
+  } catch (Exception ignored) {}
+  return null;
  }
 }
