@@ -42,6 +42,7 @@ final class Icons {
   P.put("user", circle(12, 8, 4) + "M4 21C4 17 7.6 14.5 12 14.5S20 17 20 21");
   P.put("settings", "M4 7H12 M17 7H20 M4 17H7 M12 17H20 " + circle(14.5, 7, 2.5) + circle(9.5, 17, 2.5));
   P.put("search", circle(11, 11, 6) + "M16 16L20 20");
+  P.put("tag", "M4 4H10L20 14L14 20L4 10Z " + circle(8, 8, 1.2));
   P.put("food", "M5 8H17V14A5 5 0 0 1 12 19H10A5 5 0 0 1 5 14Z M17 10H18.5A2 2 0 0 1 18.5 14H17 M8 3.5V5 M12 3.5V5");
   P.put("groceries", "M3 4H5.2L7.5 15H18L20 8H6 M9.5 19H9.6 M16.5 19H16.6");
   P.put("transport", "M5 5H19V16H5Z M5 11H19 M8 19V16 M16 19V16 M8.5 13.5H8.6 M15.5 13.5H15.6");

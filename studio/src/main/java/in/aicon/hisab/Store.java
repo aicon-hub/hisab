@@ -115,6 +115,41 @@ final class Store extends SQLiteOpenHelper {
   try (Cursor c = getReadableDatabase().rawQuery("SELECT " + COLS + " FROM tx WHERE deleted=0 AND person=? ORDER BY day DESC, id DESC", new String[]{"" + person})) { while (c.moveToNext()) l.add(tx(c)); }
   return l;
  }
+ /** Distinct tags across every entry (bin included), each with its use count, sorted A to Z. */
+ List<String[]> tagCounts() {
+  Map<String, Integer> m = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+  try (Cursor c = getReadableDatabase().rawQuery("SELECT tags FROM tx WHERE tags <> ''", null)) {
+   while (c.moveToNext()) for (String t : c.getString(0).split(",")) { String n = t.trim(); if (!n.isEmpty()) m.merge(n, 1, Integer::sum); }
+  }
+  List<String[]> out = new ArrayList<>(); for (Map.Entry<String, Integer> e : m.entrySet()) out.add(new String[]{e.getKey(), "" + e.getValue()});
+  return out;
+ }
+
+ /** Renames a tag on every entry that uses it; naming an existing tag merges them. */
+ void renameTag(String from, String to) { retag(from.trim(), to.trim()); }
+
+ /** Takes a tag off every entry that uses it; the entries themselves stay. */
+ void dropTag(String tag) { retag(tag.trim(), null); }
+
+ private void retag(String from, String to) {
+  if (from.isEmpty() || (to != null && (to.isEmpty() || to.equalsIgnoreCase(from)))) return;
+  List<Long> ids = new ArrayList<>(); List<String> vals = new ArrayList<>();
+  try (Cursor c = getReadableDatabase().rawQuery("SELECT id, tags FROM tx WHERE tags <> ''", null)) {
+   while (c.moveToNext()) {
+    List<String> parts = new ArrayList<>(); boolean hit = false;
+    for (String t : c.getString(1).split(",")) {
+     String n = t.trim(); if (n.isEmpty()) continue;
+     if (n.equalsIgnoreCase(from)) { hit = true; if (to != null) n = to; else continue; }
+     boolean dup = false; for (String x : parts) if (x.equalsIgnoreCase(n)) { dup = true; break; }
+     if (!dup) parts.add(n);
+    }
+    if (hit) { ids.add(c.getLong(0)); vals.add(android.text.TextUtils.join(", ", parts)); }
+   }
+  }
+  for (int i = 0; i < ids.size(); i++) { ContentValues v = new ContentValues(); v.put("tags", vals.get(i)); getWritableDatabase().update("tx", v, "id=?", new String[]{"" + ids.get(i)}); }
+  if (!ids.isEmpty()) changed();
+ }
+
  List<Tx> recent(int n) {
   List<Tx> l = new ArrayList<>();
   try (Cursor c = getReadableDatabase().rawQuery("SELECT " + COLS + " FROM tx WHERE deleted=0 ORDER BY day DESC, id DESC LIMIT " + n, null)) { while (c.moveToNext()) l.add(tx(c)); }

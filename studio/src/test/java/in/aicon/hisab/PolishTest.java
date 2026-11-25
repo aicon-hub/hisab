@@ -246,6 +246,27 @@ public class PolishTest {
   assertEquals(0, Forecast.monthEnd(db, ym.atDay(1)));
  }
 
+ @Test public void amountSearchAndTagManager() {
+  Store db = a.db; db.wipe(); db.seedBasics();
+  long cash = db.accounts().get(0).id; String today = java.time.LocalDate.now().toString();
+  String[][] rows = {{"49900", "Shoes", "gift, trip"}, {"12000", "Milk", "Trip"}, {"49900", "Bag", ""}};
+  for (String[] r : rows) { Store.Tx x = new Store.Tx(); x.kind = "expense"; x.amount = Long.parseLong(r[0]); x.day = today; x.account = cash; x.note = r[1]; x.tags = r[2]; db.save(x); }
+  assertEquals(49900, LedgerPage.amountQuery("499"));
+  assertEquals(49950, LedgerPage.amountQuery("499.5"));
+  assertEquals(123400, LedgerPage.amountQuery("1,234"));
+  assertEquals(-1, LedgerPage.amountQuery("tea"));
+  assertEquals(-1, LedgerPage.amountQuery(""));
+  java.util.List<String[]> tc = db.tagCounts();
+  assertEquals(2, tc.size()); assertEquals("gift", tc.get(0)[0]); assertEquals("1", tc.get(0)[1]); assertEquals("2", tc.get(1)[1]);
+  db.renameTag("gift", "trip");
+  tc = db.tagCounts(); assertEquals(1, tc.size()); assertEquals("2", tc.get(0)[1]);
+  for (Store.Tx x : db.txs("2000-01-01", "2999-12-31")) if (x.note.equals("Shoes")) assertEquals("trip", x.tags);
+  db.dropTag("trip");
+  assertEquals(0, db.tagCounts().size());
+  assertEquals(3, db.txs("2000-01-01", "2999-12-31").size());
+  Tags.open(a); assertTrue(texts(a.root).contains("No tags yet")); a.closeAll();
+ }
+
  @Test public void transliteratedMalayalamQuickAdd() {
   Store.Tx t = HomePage.parse(a.db, "chaya 40"); assertNotNull(t); assertEquals(4000, t.amount); assertEquals("Food", a.db.categoryMap().get(t.cat).name);
   Store.Tx g = HomePage.parse(a.db, "paal 55"); assertNotNull(g); assertEquals("Groceries", a.db.categoryMap().get(g.cat).name);

@@ -31,7 +31,7 @@ final class LedgerPage {
 
   // search + calendar toggle
   LinearLayout sr = Ui.row(a); sr.setBackground(Ui.outline(Ui.surface, Ui.line, 26, 1)); sr.setPadding(Ui.dp(16), Ui.dp(2), Ui.dp(8), Ui.dp(2));
-  sr.addView(Ui.icon(a, "search", 20, Ui.muted)); EditText e = new EditText(a); e.setHint("Search notes and categories"); e.setHintTextColor(Ui.muted); e.setTextColor(Ui.ink); e.setTextSize(15); e.setTypeface(Ui.body); e.setBackground(null); e.setSingleLine(true); e.setText(a.ledgerQuery); e.setPadding(Ui.dp(10), Ui.dp(12), Ui.dp(10), Ui.dp(12)); sr.addView(e, Ui.weight(1));
+  sr.addView(Ui.icon(a, "search", 20, Ui.muted)); EditText e = new EditText(a); e.setHint("Search notes, tags, amounts"); e.setHintTextColor(Ui.muted); e.setTextColor(Ui.ink); e.setTextSize(15); e.setTypeface(Ui.body); e.setBackground(null); e.setSingleLine(true); e.setText(a.ledgerQuery); e.setPadding(Ui.dp(10), Ui.dp(12), Ui.dp(10), Ui.dp(12)); sr.addView(e, Ui.weight(1));
   FrameLayout cal = Ui.badge(a, "calendar", 38, a.ledgerCalendar ? Ui.accent : Ui.surface2, a.ledgerCalendar ? Ui.onAccent : Ui.ink); sr.addView(cal, Ui.lp(Ui.dp(38), Ui.dp(38))); cal.setContentDescription("Calendar view"); Ui.tap(cal, () -> { a.ledgerCalendar = !a.ledgerCalendar; a.refresh(); });
   FrameLayout fb = Ui.badge(a, "filter", 38, filtersOn(a) ? Ui.accent : Ui.surface2, filtersOn(a) ? Ui.onAccent : Ui.ink); sr.addView(fb, Ui.lp(Ui.dp(38), Ui.dp(38))); fb.setContentDescription("More filters"); fb.setTag("filterBtn"); Ui.tap(fb, () -> filterSheet(a));
   c.addView(sr, Ui.lpm(-1, -2, 0, 14, 0, 0));
@@ -46,8 +46,8 @@ final class LedgerPage {
   if (a.ledgerCalendar) { LinearLayout cc = Ui.card(a); Charts.Heat h = new Charts.Heat(a, ym, spend, a.ledgerDay, d -> { a.ledgerDay = a.ledgerDay == d ? 0 : d; a.refresh(); }); cc.addView(h, new LinearLayout.LayoutParams(-1, -2)); cc.addView(Ui.text(a, a.ledgerDay > 0 ? "Showing day " + a.ledgerDay + ". Tap it again to clear." : "Darker days are where you spent more. Tap a day.", 12, Ui.muted, false), Ui.lpm(-2, -2, 0, 10, 0, 0)); c.addView(cc, Ui.lpm(-1, -2, 0, 14, 0, 0)); }
 
   Map<Long, Store.Cat> cats = db.categoryMap(); Map<Long, Store.Acc> accs = Kit.accMap(db); Map<Long, Store.Person> people = Kit.peopleMap(db);
-  String q = a.ledgerQuery.trim().toLowerCase(Locale.ROOT); List<Store.Tx> shown = new ArrayList<>();
-  for (Store.Tx t : month) { if (!match(a.ledgerFilter, t)) continue; if (a.ledgerCat != 0 && t.cat != a.ledgerCat) continue; if (a.ledgerMin > 0 && t.amount < a.ledgerMin) continue; if (a.ledgerMax > 0 && t.amount > a.ledgerMax) continue; if (a.ledgerDay > 0 && LocalDate.parse(t.day).getDayOfMonth() != a.ledgerDay) continue; if (!q.isEmpty()) { Store.Cat ct = cats.get(t.cat); Store.Person p = people.get(t.person); String hay = (t.note + " " + (t.tags == null ? "" : t.tags) + " " + (ct == null ? "" : ct.name) + " " + (p == null ? "" : p.name) + " " + Kit.kindName(t.kind)).toLowerCase(Locale.ROOT); if (!hay.contains(q)) continue; } shown.add(t); }
+  String q = a.ledgerQuery.trim().toLowerCase(Locale.ROOT); long amt = amountQuery(q); List<Store.Tx> shown = new ArrayList<>();
+  for (Store.Tx t : month) { if (!match(a.ledgerFilter, t)) continue; if (a.ledgerCat != 0 && t.cat != a.ledgerCat) continue; if (a.ledgerMin > 0 && t.amount < a.ledgerMin) continue; if (a.ledgerMax > 0 && t.amount > a.ledgerMax) continue; if (a.ledgerDay > 0 && LocalDate.parse(t.day).getDayOfMonth() != a.ledgerDay) continue; if (!q.isEmpty()) { Store.Cat ct = cats.get(t.cat); Store.Person p = people.get(t.person); String hay = (t.note + " " + (t.tags == null ? "" : t.tags) + " " + (ct == null ? "" : ct.name) + " " + (p == null ? "" : p.name) + " " + Kit.kindName(t.kind)).toLowerCase(Locale.ROOT); if (!hay.contains(q) && (amt < 0 || t.amount != amt)) continue; } shown.add(t); }
   if (shown.isEmpty()) { LinearLayout em = Ui.card(a); em.addView(Kit.empty(a, "search", "No entries here", q.isEmpty() ? "Nothing in this month for this filter." : "Nothing matches your search.")); c.addView(em, Ui.lpm(-1, -2, 0, 16, 0, 0)); }
   String day = ""; LinearLayout card = null;
   for (Store.Tx t : shown) {
@@ -58,6 +58,13 @@ final class LedgerPage {
   }
   return sv[0];
  }
+ /** A plain amount typed in search, in minor units; -1 when the query is not a plain amount. */
+ static long amountQuery(String q) {
+  String x = q.replace("\u20B9", "").replace(",", "").replace(" ", "").trim();
+  if (!x.matches("\\d+(\\.\\d{1,2})?") || x.length() > 15) return -1;
+  try { return Math.round(Double.parseDouble(x) * 100); } catch (Exception e) { return -1; }
+ }
+
  static boolean filtersOn(MainActivity a) { return a.ledgerCat != 0 || a.ledgerMin > 0 || a.ledgerMax > 0 || !a.ledgerFrom.isEmpty() || !a.ledgerTo.isEmpty(); }
 
  static void filterSheet(MainActivity a) {
