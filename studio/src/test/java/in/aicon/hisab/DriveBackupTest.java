@@ -54,7 +54,7 @@ public class DriveBackupTest {
  }
  @Test public void scopeIsAppDataFolderOnly() {
   assertEquals("https://www.googleapis.com/auth/drive.appdata", DriveBackup.SCOPE);
-  assertEquals("hisab-backup.zip", DriveBackup.FILE);
+  assertEquals("hisab-backup.zip", DriveBackup.file());
   assertTrue(DriveBackup.AUTO_EVERY >= 3600_000L);
  }
 }

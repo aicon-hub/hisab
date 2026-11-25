@@ -20,7 +20,7 @@ final class Store extends SQLiteOpenHelper {
  static final String[] KINDS = {"expense", "income", "transfer", "lent", "borrowed"};
  final Context ctx;
 
- Store(Context c) { super(c.getApplicationContext(), "hisab_studio.db", null, 3); ctx = c.getApplicationContext(); }
+ Store(Context c) { super(c.getApplicationContext(), Profiles.dbName(c), null, 3); ctx = c.getApplicationContext(); }
 
  @Override public void onCreate(SQLiteDatabase d) {
   d.execSQL("CREATE TABLE prefs(k TEXT PRIMARY KEY, v TEXT NOT NULL)");

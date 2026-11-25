@@ -406,4 +406,25 @@ public class PolishTest {
   View tv = a.root.findViewWithTag("entryAmount"); assertNotNull(tv); assertNotNull(a.root.findViewWithTag("entryNote"));
   assertTrue(texts(a.root).contains("Foreign")); a.closeAll();
  }
+
+ @Test public void secondProfileIsSeparateAndFirstIsUntouched() {
+  assertEquals("hisab_studio.db", Profiles.dbName(0)); assertEquals("hisab_profile2.db", Profiles.dbName(1));
+  assertEquals("Work", Profiles.cleanName("  Work   "));
+  assertEquals("A B", Profiles.cleanName(" A \n  B ")); assertNull(Profiles.cleanName("   ")); assertNull(Profiles.cleanName(null));
+  assertEquals(20, Profiles.cleanName("abcdefghijklmnopqrstuvwxyz").length());
+  assertEquals(0, Profiles.active(a)); assertFalse(Profiles.hasSecond(a));
+  Profiles.setActive(a, 1); assertEquals(0, Profiles.active(a));
+  a.db.wipe(); a.db.seedBasics(); a.db.addPerson("ProfOneFriend", "");
+  assertTrue(Profiles.addSecond(a)); assertFalse(Profiles.addSecond(a));
+  assertEquals(1, Profiles.active(a)); assertEquals("hisab-backup-2.zip", Profiles.driveFile());
+  Store two = new Store(a); assertEquals(0, two.people().size()); assertEquals("0", two.pref("sample", ""));
+  two.addPerson("ProfTwoFriend", ""); assertEquals(1, two.people().size());
+  assertTrue(Profiles.rename(a, 1, "  Shop ")); assertEquals("Shop", Profiles.name(a, 1)); assertEquals("Personal", Profiles.name(a, 0));
+  Profiles.setActive(a, 0); assertEquals("hisab-backup.zip", Profiles.driveFile());
+  Store one = new Store(a); boolean sawOne = false, sawTwo = false;
+  for (Store.Person p : one.people()) { if (p.name.equals("ProfOneFriend")) sawOne = true; if (p.name.equals("ProfTwoFriend")) sawTwo = true; }
+  assertTrue(sawOne); assertFalse(sawTwo);
+  Profiles.setActive(a, 1); assertEquals(1, new Store(a).people().size());
+  Profiles.setActive(a, 0); assertEquals(0, Profiles.active(a));
+ }
 }

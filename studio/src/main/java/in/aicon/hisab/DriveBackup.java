@@ -34,7 +34,7 @@ import java.util.zip.ZipOutputStream;
     Status is visible in Settings: the row shows the account, the last backup time, or a failed state with a retry. */
 final class DriveBackup {
  static final String SCOPE = "https://www.googleapis.com/auth/drive.appdata";
- static final String FILE = "hisab-backup.zip";
+ static String file() { return Profiles.driveFile(); }
  static final long AUTO_EVERY = 6L * 3600_000L;
  static final long ZIP_LIMIT = 300L * 1024 * 1024;
 
@@ -275,7 +275,7 @@ final class DriveBackup {
  }
 
  static JSONObject findFileMeta(String token) throws Exception {
-  HttpURLConnection con = get("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,modifiedTime)&q=" + URLEncoder.encode("name='" + FILE + "'", "UTF-8"), token);
+  HttpURLConnection con = get("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,modifiedTime)&q=" + URLEncoder.encode("name='" + file() + "'", "UTF-8"), token);
   String body = read(con);
   JSONArray files = new JSONObject(body).optJSONArray("files");
   return files == null || files.length() == 0 ? null : files.getJSONObject(0);
@@ -313,7 +313,7 @@ final class DriveBackup {
 
  static byte[] createBody(byte[] data) throws IOException {
   ByteArrayOutputStream out = new ByteArrayOutputStream();
-  out.write(("--hisab_boundary\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n{\"name\":\"" + FILE + "\",\"parents\":[\"appDataFolder\"],\"mimeType\":\"application/zip\"}\r\n--hisab_boundary\r\nContent-Type: application/zip\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+  out.write(("--hisab_boundary\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n{\"name\":\"" + file() + "\",\"parents\":[\"appDataFolder\"],\"mimeType\":\"application/zip\"}\r\n--hisab_boundary\r\nContent-Type: application/zip\r\n\r\n").getBytes(StandardCharsets.UTF_8));
   out.write(data);
   out.write("\r\n--hisab_boundary--\r\n".getBytes(StandardCharsets.UTF_8));
   return out.toByteArray();
