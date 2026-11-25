@@ -87,10 +87,8 @@ final class Ui {
   return Typeface.create("sans-serif", Typeface.NORMAL);
  }
 
- /** Corners are tighter than before: big bubbly radii read as generic, so anything over 10dp is eased down. */
- static float crisp(float r) { return r <= 10 ? r : 10 + (r - 10) * 0.35f; }
  static GradientDrawable shape(int color, float radiusDp) {
-  GradientDrawable g = new GradientDrawable(); g.setColor(color); g.setCornerRadius(dp(crisp(radiusDp))); return g;
+  GradientDrawable g = new GradientDrawable(); g.setColor(color); g.setCornerRadius(dp(radiusDp)); return g;
  }
  static GradientDrawable outline(int fill, int stroke, float radiusDp, float strokeDp) {
   GradientDrawable g = shape(fill, radiusDp); g.setStroke(Math.max(1, dp(strokeDp)), stroke); return g;
@@ -132,7 +130,7 @@ final class Ui {
  }
 
  static LinearLayout card(Context c) {
-  LinearLayout l = col(c); l.setBackground(outline(surface, line, 24, 0.8f)); l.setPadding(dp(18), dp(16), dp(18), dp(16)); return l;
+  LinearLayout l = col(c); l.setBackground(shape(surface, 24)); l.setPadding(dp(18), dp(16), dp(18), dp(16)); return l;
  }
 
  static ImageView icon(Context c, String name, float sizeDp, int color) {
@@ -180,9 +178,9 @@ final class Ui {
  }
 
  static TextView pill(Context c, String s, boolean selected) {
-  TextView t = text(c, s, 13, selected ? bg : ink, true);
+  TextView t = text(c, s, 13, selected ? onAccent : ink, true);
   t.setPadding(dp(14), dp(9), dp(14), dp(9)); t.setGravity(Gravity.CENTER);
-  t.setBackground(selected ? shape(ink, 20) : outline(0, line, 20, 1)); return t;
+  t.setBackground(selected ? shape(accent, 20) : outline(0, line, 20, 1)); return t;
  }
 
  static TextView button(Context c, String s, boolean primary) {

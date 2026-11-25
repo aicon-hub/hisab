@@ -54,7 +54,7 @@ final class EntrySheet {
   c.addView(meta); c.addView(cats);
   note = Sheets.field(a, "Add a note", s.note, Sheets.TEXT); note.setTextSize(15); note.setTag("entryNote"); c.addView(note, Ui.lpm(-1, -2, 0, 10, 0, 12));
   note.addTextChangedListener(new android.text.TextWatcher() { public void beforeTextChanged(CharSequence x, int i, int j, int k) {} public void onTextChanged(CharSequence x, int i, int j, int k) { s.note = x.toString().trim(); } public void afterTextChanged(android.text.Editable e) {} });
-  EditText tagsF = Sheets.field(a, "Tags, comma separated (optional)", s.tags, Sheets.TEXT); tagsF.setTextSize(14); c.addView(tagsF, Ui.lpm(-1, -2, 0, 0, 0, 12));
+  EditText tagsF = Sheets.field(a, "Tags, comma separated (optional)", s.tags, Sheets.TEXT); tagsF.setTextSize(14); c.addView(tagsF, Ui.lpm(-1, -2, 0, 0, 0, 8)); c.addView(Tags.chooser(a, tagsF), Ui.lpm(-1, -2, 0, 0, 0, 12));
   tagsF.addTextChangedListener(new android.text.TextWatcher() { public void beforeTextChanged(CharSequence x, int i, int j, int k) {} public void onTextChanged(CharSequence x, int i, int j, int k) { s.tags = x.toString().trim(); } public void afterTextChanged(android.text.Editable e) {} });
   Runnable show = () -> { String e = s.expr.toString(); amountTv[0].setText(e.isEmpty() ? "0" : e.replace("-", " - ").replace("+", " + ")); amountTv[0].setTextColor(e.isEmpty() ? Ui.muted : Ui.ink); amountTv[0].setTextSize(e.length() > 11 ? 30 : e.length() > 8 ? 40 : 54); boolean ops = e.contains("+") || e.contains("-"); long v = eval(e); subTv[0].setText(ops && v > 0 ? "= " + Fmt.money(v) : " "); };
   renderAll[0] = () -> { renderMeta(a, s, meta, ref); renderCats(a, s, cats); show.run(); };

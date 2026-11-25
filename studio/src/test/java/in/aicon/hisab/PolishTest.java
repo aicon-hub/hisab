@@ -334,6 +334,8 @@ public class PolishTest {
 
  @Test public void profilesAndTouchShowWithoutDrive(){a.db.setPref("driveBackup","0");a.settingsSection="data";Settings.open(a);String t=texts(a.root).toString();assertTrue(t.contains("Profiles"));assertTrue(t.contains("Touch and motion"));a.settingsSection="";a.closeAll();}
  @Test public void repeatDateIsPickedNotTyped(){android.widget.EditText e=Sheets.field(a,"d","2026-12-01",android.text.InputType.TYPE_CLASS_TEXT);Sheets.dateField(a,e);assertFalse(e.isFocusable());assertTrue(e.hasOnClickListeners());}
+ @Test public void tagChipsToggleTheField(){a.db.setPref("trips","");android.widget.EditText f=Sheets.field(a,"t","food",Sheets.TEXT);android.view.View v=Tags.chooser(a,f);assertNotNull(v);assertEquals("food",String.join(",",Tags.parse(" Food , ,food")));}
+ @Test public void bankSmsKeepsThreeStepsAndAdvancedHidden(){BankSms.open(a);String t=texts(a.root);assertTrue(t.contains("Step 1: switch it on"));assertTrue(t.contains("Step 2: pick your bank"));assertTrue(t.contains("More options"));a.closeAll();}
  @Test public void yearReportRenders(){YearReport.open(a);assertTrue(texts(a.root).contains("Year report"));a.closeAll();}
 
  @Test public void diaryAndMonthlySummary() {

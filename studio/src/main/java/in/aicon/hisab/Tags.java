@@ -8,6 +8,27 @@ import java.util.List;
 final class Tags {
  private Tags() {}
 
+
+ /** Tap-to-pick tag chips under the tags field: trips first (as trip:name), then your most used tags. Tap adds or removes it. */
+ static View chooser(MainActivity a, EditText f) {
+  List<String> opts = new java.util.ArrayList<>();
+  try { for (Trips.Trip t : Trips.read(a.db)) opts.add("trip:" + t.name.toLowerCase(java.util.Locale.US)); } catch (Exception e) {}
+  try { for (String[] t : a.db.tagCounts()) { if (!opts.contains(t[0]) && opts.size() < 16) opts.add(t[0]); } } catch (Exception e) {}
+  HorizontalScrollView hs = new HorizontalScrollView(a); hs.setHorizontalScrollBarEnabled(false);
+  LinearLayout row = Ui.row(a); hs.addView(row);
+  if (opts.isEmpty()) { hs.setVisibility(View.GONE); return hs; }
+  final List<TextView> chips = new java.util.ArrayList<>();
+  final Runnable paint = () -> { List<String> cur = parse(f.getText().toString()); for (int i = 0; i < chips.size(); i++) { boolean on = cur.contains(opts.get(i).toLowerCase(java.util.Locale.US)); chips.get(i).setBackground(Ui.shape(on ? Ui.ink : Ui.surface2, 18)); chips.get(i).setTextColor(on ? Ui.bg : Ui.ink); } };
+  for (String o : opts) {
+   TextView chip = Ui.text(a, o, 13, Ui.ink, true); chip.setPadding(Ui.dp(14), Ui.dp(8), Ui.dp(14), Ui.dp(8)); chip.setContentDescription("Tag " + o); chips.add(chip);
+   row.addView(chip, Ui.lpm(-2, -2, 0, 0, 8, 0));
+   Ui.tap(chip, () -> { List<String> cur = parse(f.getText().toString()); String k = o.toLowerCase(java.util.Locale.US); if (cur.contains(k)) cur.remove(k); else cur.add(k); f.setText(String.join(", ", cur)); f.setSelection(f.getText().length()); });
+  }
+  f.addTextChangedListener(new android.text.TextWatcher() { public void beforeTextChanged(CharSequence x, int i, int j, int k) {} public void onTextChanged(CharSequence x, int i, int j, int k) { paint.run(); } public void afterTextChanged(android.text.Editable x) {} });
+  paint.run(); return hs;
+ }
+ static List<String> parse(String s) { List<String> out = new java.util.ArrayList<>(); for (String p : s.split(",")) { String t = p.trim().toLowerCase(java.util.Locale.US); if (!t.isEmpty() && !out.contains(t)) out.add(t); } return out; }
+
  static void open(MainActivity a) {
   Kit.page(a, "Tags", null, null, c -> {
    c.addView(Ui.text(a, "Every tag you have used. Tap one to rename it, or give it the name of another tag to merge them. Removing a tag never deletes entries.", 14, Ui.muted, false), Ui.lpm(-1, -2, 0, 12, 0, 12));
