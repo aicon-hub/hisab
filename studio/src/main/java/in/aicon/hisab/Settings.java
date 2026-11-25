@@ -11,9 +11,34 @@ import java.util.*;
 final class Settings {
  private Settings() {}
 
- static View item(MainActivity a, String icon, String title, String value, Runnable tap) {
-  LinearLayout r = Ui.row(a); r.setPadding(0, Ui.dp(13), 0, Ui.dp(13)); r.addView(Ui.icon(a, icon, 22, Ui.ink), Ui.lpm(Ui.dp(22), Ui.dp(22), 0, 0, 16, 0)); r.addView(Ui.text(a, title, 15.5f, Ui.ink, true), Ui.weight(1));
-  if (value != null) { TextView v = Ui.text(a, value, 13.5f, Ui.muted, false); v.setPadding(0, 0, Ui.dp(6), 0); r.addView(v); } r.addView(Ui.icon(a, "right", 18, Ui.muted)); Ui.tap(r, tap); return r;
+ static View item(MainActivity a, String icon, String title, String value, Runnable tap) { return item(a, icon, title, value, null, tap); }
+ /** Settings row: icon, title with the value as a small line under it (so long values never squeeze the title), and a chevron. */
+ static View item(MainActivity a, String icon, String title, String value, String info, Runnable tap) {
+  LinearLayout r = Ui.row(a); r.setPadding(0, Ui.dp(13), 0, Ui.dp(13));
+  r.addView(Ui.icon(a, icon, 22, Ui.ink), Ui.lpm(Ui.dp(22), Ui.dp(22), 0, 0, 16, 0));
+  LinearLayout m = Ui.col(a);
+  m.addView(Ui.text(a, title, 15.5f, Ui.ink, true));
+  if (value != null) { TextView s = Ui.text(a, value, 13, Ui.muted, false); s.setPadding(0, Ui.dp(3), 0, 0); m.addView(s); }
+  r.addView(m, Ui.weight(1));
+  r.addView(Ui.icon(a, "right", 18, Ui.muted), Ui.lpm(Ui.dp(18), Ui.dp(18), 10, 0, 0, 0));
+  Ui.tap(r, info == null ? tap : () -> infoFirst(a, title, info, tap));
+  return r;
+ }
+ /** First tap on a section explains what it is for, with Skip now and Continue. Shown once per section; the "Section guides" row brings them back. */
+ static void infoFirst(MainActivity a, String title, String info, Runnable tap) {
+  String key = "infoSeen_" + title;
+  if (a.db.flag(key, false)) { tap.run(); return; }
+  LinearLayout c = Sheets.sheetBody(a, title);
+  TextView t = Ui.text(a, info, 14.5f, Ui.muted, false); t.setPadding(0, 0, 0, Ui.dp(18)); c.addView(t);
+  final MainActivity.Layer[] ref = new MainActivity.Layer[1];
+  LinearLayout r = Ui.row(a);
+  TextView skip = Ui.button(a, "Skip now", false), go = Ui.button(a, "Continue", true);
+  r.addView(skip, Ui.lpm(0, -2, 0, 0, 6, 0)); ((LinearLayout.LayoutParams) skip.getLayoutParams()).weight = 1;
+  r.addView(go, Ui.lpm(0, -2, 6, 0, 0, 0)); ((LinearLayout.LayoutParams) go.getLayoutParams()).weight = 1;
+  c.addView(r);
+  Ui.tap(skip, () -> { a.db.setPref(key, "1"); a.close(ref[0]); });
+  Ui.tap(go, () -> { a.db.setPref(key, "1"); a.close(ref[0]); tap.run(); });
+  ref[0] = Sheets.show(a, c);
  }
  static void choose(MainActivity a, String title, String key, String[] options, String current, boolean rebuild) {
   List<String> o = Arrays.asList(options); Sheets.pick(a, title, o, null, o.indexOf(current), i -> { a.db.setPref(key, o.get(i)); if (rebuild) { a.applyTheme(); a.build(); } else a.refresh(); a.closeAll(); open(a); });
@@ -35,9 +60,9 @@ final class Settings {
    for (int i = 0; i < Ui.ACCENT_NAMES.length; i++) { final String nmx = Ui.ACCENT_NAMES[i]; View d = new View(a); boolean on = nmx.equals(cur); d.setBackground(on ? Ui.outline(Ui.accentFor(a, nmx), Ui.ink, 14, 2.2f) : Ui.shape(Ui.accentFor(a, nmx), 14)); sw.addView(d, Ui.lpm(Ui.dp(28), Ui.dp(28), 4, 0, 0, 0)); d.setContentDescription(nmx); Ui.tap(d, () -> { db.setPref("accent", nmx); a.applyTheme(); a.build(); a.closeAll(); open(a); }); }
    HorizontalScrollView colourScroll=new HorizontalScrollView(a);colourScroll.setHorizontalScrollBarEnabled(true);colourScroll.addView(sw);look.addView(colourScroll);
    look.addView(item(a,"settings","All accent colours",cur,()->choose(a,"Accent colour","accent",Ui.ACCENT_NAMES,db.pref("accent","Lime"),true)));
-   LinearLayout launcher=Ui.row(a);launcher.setPadding(0,Ui.dp(12),0,Ui.dp(12));launcher.addView(Ui.text(a,"Match app icon to accent",14,Ui.ink,true),Ui.weight(1));Switch match=new Switch(a);match.setChecked(db.flag("matchLauncher",true));launcher.addView(match);match.setOnCheckedChangeListener((v,on)->{db.setPref("matchLauncher",on?"1":"0");LauncherIcons.apply(a);a.toast("Launcher icon may take a moment to refresh",null);});look.addView(launcher);
+   LinearLayout launcher=Ui.row(a);launcher.setPadding(0,Ui.dp(12),0,Ui.dp(12));launcher.addView(Ui.text(a,"Match app icon to accent",14,Ui.ink,true),Ui.weight(1));Switch match=Ui.toggle(a);match.setChecked(db.flag("matchLauncher",true));launcher.addView(match);match.setOnCheckedChangeListener((v,on)->{db.setPref("matchLauncher",on?"1":"0");LauncherIcons.apply(a);a.toast("Launcher icon may take a moment to refresh",null);});look.addView(launcher);
    look.addView(Ui.text(a,"Your launcher may refresh the icon with a short delay. Android themed icons can override these colours.",12,Ui.muted,false),Ui.lpm(-1,-2,0,0,0,12)); look.addView(Ui.divider(a));
-   LinearLayout pb = Ui.row(a); pb.setPadding(0, Ui.dp(13), 0, Ui.dp(13)); pb.addView(Ui.text(a, "Pure black in dark mode", 15.5f, Ui.ink, true), Ui.weight(1)); Switch sh = new Switch(a); sh.setChecked(db.flag("pureBlack", false)); pb.addView(sh); sh.setOnCheckedChangeListener((v, on) -> { db.setPref("pureBlack", on ? "1" : "0"); a.applyTheme(); a.build(); a.closeAll(); open(a); }); look.addView(pb); look.addView(Ui.divider(a));
+   LinearLayout pb = Ui.row(a); pb.setPadding(0, Ui.dp(13), 0, Ui.dp(13)); pb.addView(Ui.text(a, "Pure black in dark mode", 15.5f, Ui.ink, true), Ui.weight(1)); Switch sh = Ui.toggle(a); sh.setChecked(db.flag("pureBlack", false)); pb.addView(sh); sh.setOnCheckedChangeListener((v, on) -> { db.setPref("pureBlack", on ? "1" : "0"); a.applyTheme(); a.build(); a.closeAll(); open(a); }); look.addView(pb); look.addView(Ui.divider(a));
    look.addView(item(a, "edit", "Font", db.pref("font", "Inter"), () -> choose(a, "Font", "font", new String[]{"Inter", "System", "Lora", "Poppins"}, db.pref("font", "Inter"), true))); look.addView(Ui.divider(a));
    look.addView(item(a, "edit", "Text size", db.pref("textScale", "Standard"), () -> choose(a, "Text size", "textScale", new String[]{"Compact", "Standard", "Large"}, db.pref("textScale", "Standard"), true))); look.addView(Ui.divider(a));
    look.addView(item(a, "spark", "Custom accent colour", db.pref("accent", "Lime").equals("Custom") ? db.pref("accentHex", "#C7F23A") : "Off", () -> customAccent(a))); look.addView(Ui.divider(a));
@@ -57,7 +82,7 @@ final class Settings {
    mo.addView(item(a,"sms","Bank SMS balances","Experimental",()->BankSms.open(a))); c.addView(mo);
 
    c.addView(Kit.sectionHead(a, "Reminder", null, null)); LinearLayout rm = Ui.card(a); rm.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
-   LinearLayout rr = Ui.row(a); rr.setPadding(0, Ui.dp(14), 0, Ui.dp(14)); rr.addView(Ui.icon(a, "bell", 22, Ui.ink), Ui.lpm(Ui.dp(22), Ui.dp(22), 0, 0, 16, 0)); rr.addView(Ui.text(a, "Daily check", 15.5f, Ui.ink, true), Ui.weight(1)); Switch rs = new Switch(a); rs.setChecked(db.flag("remind", false)); rr.addView(rs);
+   LinearLayout rr = Ui.row(a); rr.setPadding(0, Ui.dp(14), 0, Ui.dp(14)); rr.addView(Ui.icon(a, "bell", 22, Ui.ink), Ui.lpm(Ui.dp(22), Ui.dp(22), 0, 0, 16, 0)); rr.addView(Ui.text(a, "Daily check", 15.5f, Ui.ink, true), Ui.weight(1)); Switch rs = Ui.toggle(a); rs.setChecked(db.flag("remind", false)); rr.addView(rs);
    rs.setOnCheckedChangeListener((v, on) -> { db.setPref("remind", on ? "1" : "0"); if (on && Build.VERSION.SDK_INT >= 33) a.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 5); Reminders.schedule(a, db); }); rm.addView(rr); rm.addView(Ui.divider(a));
    int mins = Integer.parseInt(db.pref("remindAt", "1230")); rm.addView(item(a, "calendar", "Time", String.format(Locale.US, "%d:%02d %s", (mins / 60 + 11) % 12 + 1, mins % 60, mins / 60 >= 12 ? "PM" : "AM"), () -> new android.app.TimePickerDialog(a, (v, h, mi) -> { db.setPref("remindAt", "" + (h * 60 + mi)); Reminders.schedule(a, db); a.closeAll(); open(a); }, mins / 60, mins % 60, false).show())); rm.addView(Ui.divider(a));
    rm.addView(item(a, "people", "Money due reminders", db.flag("autoRemind", false) ? "On" : "Off", () -> AutoRemind.open(a))); c.addView(rm);
@@ -65,24 +90,27 @@ final class Settings {
    c.addView(Kit.sectionHead(a, "Your data", null, null)); LinearLayout da = Ui.card(a); da.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
    da.addView(item(a,"lock","Encrypted backup",null,()->Backup.password(a,true)));da.addView(Ui.divider(a));
    da.addView(item(a,"download","Restore encrypted backup",null,()->Backup.password(a,false)));da.addView(Ui.divider(a));
-   da.addView(item(a, "upload", "Google Drive backup", DriveBackup.toggleValue(DriveBackup.enabled(db), DriveBackup.account(db)), () -> DriveBackup.toggle(a))); da.addView(Ui.divider(a));
+   da.addView(item(a, "google", "Google Drive backup", DriveBackup.toggleValue(DriveBackup.enabled(db), DriveBackup.account(db)), "Keeps a copy of everything in the hidden app-data folder of your own Google Drive. After every change you make, the copy is updated to match this phone exactly, including deletions. Only you can see it.", () -> DriveBackup.toggle(a))); da.addView(Ui.divider(a));
    if (DriveBackup.enabled(db)) {
-    da.addView(item(a, "upload", "Back up to Google Drive now", DriveBackup.backupNowValue(DriveBackup.lastBackupAt(db), DriveBackup.errorAt(db)), () -> DriveBackup.backupNow(a, false))); da.addView(Ui.divider(a));
-    da.addView(item(a, "download", "Restore from Google Drive", "Replaces everything on this phone", () -> DriveBackup.restoreNow(a))); da.addView(Ui.divider(a));
+    da.addView(item(a, "upload", "Back up to Google Drive now", DriveBackup.backupNowValue(DriveBackup.lastBackupAt(db), DriveBackup.errorAt(db)), "Uploads a fresh copy of all your entries, accounts and attached bills to your own Google Drive right now. Backups also happen on their own after every change.", () -> DriveBackup.backupNow(a, false))); da.addView(Ui.divider(a));
+    da.addView(item(a, "download", "Restore from Google Drive", "Replaces everything on this phone", "Puts the Google Drive copy back on this phone. Everything currently on this phone, including attached photos, is replaced by the backup.", () -> DriveBackup.restoreNow(a))); da.addView(Ui.divider(a));
    }
-   da.addView(item(a, "share", "Export entries as CSV", null, () -> exportCsv(a))); da.addView(Ui.divider(a));
-   da.addView(item(a, "share", "Export everything (CSV)", "Entries, accounts, categories, people, budgets, goals, repeats", () -> exportEverything(a))); da.addView(Ui.divider(a));
-   da.addView(item(a, "upload", "Import entries from CSV", null, () -> importCsv(a))); da.addView(Ui.divider(a));
-   da.addView(item(a, "eye", "Import from screenshots or PDF", "Read another app's exports on this phone", () -> OcrImport.open(a))); da.addView(Ui.divider(a));
-   da.addView(item(a, "bills", "Scan a bill photo", "Items and GST read on this phone", () -> BillScan.open(a))); da.addView(Ui.divider(a));
-   da.addView(item(a, "download", "Monthly statement (PDF)", null, () -> pickStatementMonth(a))); da.addView(Ui.divider(a));
+   da.addView(item(a, "share", "Export entries as CSV", "A spreadsheet of your entries to share or save", "Sends all your entries as a CSV file that spreadsheet apps like Excel and Google Sheets can open. Nothing is uploaded anywhere; you choose where it goes.", () -> exportCsv(a))); da.addView(Ui.divider(a));
+   da.addView(item(a, "share", "Export everything (CSV)", "Entries, accounts, categories, people, budgets, goals, repeats", "One CSV file with the whole app: entries plus your accounts, categories, people, budgets, goals and repeats.", () -> exportEverything(a))); da.addView(Ui.divider(a));
+   da.addView(item(a, "upload", "Import entries from CSV", "Bring entries in from a file", "Reads a CSV file you choose and adds the entries in it. Entries that already exist are skipped, so importing the same file twice adds nothing.", () -> importCsv(a))); da.addView(Ui.divider(a));
+   da.addView(item(a, "eye", "Import from screenshots or PDF", "Read another app's exports on this phone", "Reads bank or app statements saved as screenshots or PDF files and turns them into entries you can review. Everything is read on this phone.", () -> OcrImport.open(a))); da.addView(Ui.divider(a));
+   da.addView(item(a, "bills", "Scan a bill photo", "Items and GST read on this phone", "Take or pick a photo of a bill; Hisab reads the items and GST on this phone and helps you save them as an entry.", () -> BillScan.open(a))); da.addView(Ui.divider(a));
+   da.addView(item(a, "download", "Statement (PDF)", "Monthly or all-time, with charts", "Creates a PDF statement of your entries for a month or all time. You choose whether to include the pie chart and bar chart, and whether it uses colours or black and white.", () -> pickStatementMonth(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "trash", "Clear sample data", db.flag("sample", false) ? "Sample is on" : "Not in use", () -> Sheets.confirm(a, "Clear everything?", "This removes every entry, person, budget and goal on this phone, and starts you with empty cash and bank accounts.", "Clear", () -> { db.wipe(); db.seedBasics(); db.setPref("sample", "0"); a.closeAll(); a.refresh(); a.toast("Cleared", null); })));
    if (!db.flag("sample", false)) { da.addView(Ui.divider(a)); da.addView(item(a, "spark", "Load sample data", null, () -> Sheets.confirm(a, "Replace with sample data?", "Your current entries on this phone will be replaced.", "Replace", () -> { Sample.seed(db); a.closeAll(); a.refresh(); }))); }
    c.addView(da);
 
    c.addView(Kit.sectionHead(a, "About", null, null)); LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
-   ab.addView(Ui.text(a, "Version 0.9.6 test build", 12.5f, Ui.muted, true)); c.addView(ab);
+   ab.addView(Ui.text(a, "Version 0.9.7 test build", 12.5f, Ui.muted, true));
+   ab.addView(Ui.divider(a), Ui.lpm(-1, -2, 0, 14, 0, 0));
+   ab.addView(item(a, "info", "Section guides", "Short explanations, shown once per section · tap to see them again", () -> { a.db.getWritableDatabase().delete("prefs", "k LIKE 'infoSeen_%'", null); a.toast("Guides will show again when you open each section", null); a.closeAll(); open(a); }));
+   c.addView(ab);
    LinearLayout note=Ui.card(a);note.addView(Ui.text(a,"A note from AiCoN",18,Ui.ink,true));note.addView(Ui.text(a,"Built to make everyday money easier to keep track of. Free to use, open source, and yours to shape. Your records stay on your phone. Thanks for trying Hisab and telling us what needs work.",14,Ui.muted,false),Ui.lpm(-1,-2,0,10,0,14));
    String[][] links={{"WhatsApp channel","https://whatsapp.com/channel/0029VawGIGTD38CRJde0fl1c","whatsapp"},{"Telegram community","https://t.me/AiCoN4tech","telegram"},{"AiCoN website","https://aicon-hub.github.io/","globe"}};
    for(int li=0;li<links.length;li++){String[] link=links[li];if(li>0)note.addView(Ui.divider(a));note.addView(item(a,link[2],link[0],null,()->a.launchExternal(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(link[1])))));}
@@ -141,9 +169,10 @@ final class Settings {
 
  static void pickStatementMonth(MainActivity a) {
   List<String> names = new ArrayList<>(); List<java.time.YearMonth> months = new ArrayList<>();
+  names.add("All time, every entry"); months.add(null);
   java.time.YearMonth ym = java.time.YearMonth.now();
   for (int i = 0; i < 6; i++) { months.add(ym.minusMonths(i)); names.add(Fmt.month(ym.minusMonths(i))); }
-  Sheets.pick(a, "Statement for", names, null, 0, i -> Statement.share(a, months.get(i)));
+  Sheets.pick(a, "Statement for", names, null, 0, i -> Statement.optionsSheet(a, months.get(i)));
  }
 
  static String dateStyleName(String s) { return s.equals("MDY") ? "Nov 24" : s.equals("NUM") ? "24.11.2026" : "24 Nov"; }

@@ -30,4 +30,47 @@ public class PolishTest {
  @Test public void automaticCategoryIconsAndMalayalamQuickEntry(){assertTrue(Icons.CATEGORY_ICONS.length>=30);for(String[] pair:new String[][]{{"Gym","fitness"},{"Pet food","food"},{"WiFi","wifi"},{"ചായ","food"},{"വാടക","rent"},{"Laptop","electronics"},{"Sadaqah","charity"}}){assertEquals(pair[0],pair[1],CategoryIcons.suggest(pair[0]));}for(String icon:Icons.CATEGORY_ICONS)assertNotNull(Icons.path(icon));Store.Tx t=HomePage.parse(a.db,"ചായ 40");assertNotNull(t);assertEquals(4000,t.amount);assertEquals("Food",a.db.categoryMap().get(t.cat).name);}
  @Test public void backupNudgeIsLocalAndOnlyAfterAWeek(){a.db.setPref("sample","0");a.db.setPref("lastBackupAt","0");assertTrue(Privacy.backupDue(a.db));a.db.setPref("lastBackupAt",""+System.currentTimeMillis());assertFalse(Privacy.backupDue(a.db));a.db.setPref("lastBackupAt","0");a.db.setPref("backupNudge","0");assertFalse(Privacy.backupDue(a.db));}
  @Test public void revealContainsSelectedAccent(){a.db.setPref("accent","Rose");a.applyTheme();FrameLayout reveal=a.launchView();assertEquals(Ui.accent,((android.graphics.drawable.GradientDrawable)((ViewGroup)reveal.getChildAt(0)).getChildAt(2).getBackground()).getColor().getDefaultColor());assertTrue(texts(reveal).contains("Rose"));}
+
+ @Test public void onAccentFollowsAccentBrightness() {
+  assertEquals(0xFF14151A, Ui.onAccentFor(0xFFC7F23A));
+  assertEquals(0xFF14151A, Ui.onAccentFor(0xFFF2F0EA));
+  assertEquals(0xFFF2F0EA, Ui.onAccentFor(0xFF15161A));
+  assertEquals(0xFFF2F0EA, Ui.onAccentFor(0xFF1A237E));
+ }
+ @Test public void accentOnDarkSurfacesStaysVisible() {
+  assertEquals(0xFFC7F23A, Ui.accentOnDarkFor(0xFFC7F23A));
+  assertEquals(0xFFF2F0EA, Ui.accentOnDarkFor(0xFF15161A));
+  assertEquals(0xFFF2F0EA, Ui.accentOnDarkFor(0xFF000000));
+ }
+ @Test public void blackAndWhiteAccentFollowsMode() {
+  Ui.dark = true; assertEquals(0xFFF2F0EA, Ui.accentFor(null, "Black and White"));
+  Ui.dark = false; assertEquals(0xFF15161A, Ui.accentFor(null, "Black and White"));
+  assertTrue(java.util.Arrays.asList(Ui.ACCENT_NAMES).contains("Black and White"));
+ }
+
+ @Test public void allTimeStatementCollectsCharts() {
+  Store db = a.db; db.wipe(); db.seedBasics();
+  java.util.List<Store.Acc> accs = db.accounts();
+  Store.Tx t = new Store.Tx(); t.kind = "expense"; t.amount = 4500; t.day = "2026-11-20"; t.account = accs.get(0).id; db.save(t);
+  Store.Tx t2 = new Store.Tx(); t2.kind = "expense"; t2.amount = 9000; t2.day = "2026-10-05"; t2.account = accs.get(0).id; db.save(t2);
+  Store.Tx t3 = new Store.Tx(); t3.kind = "income"; t3.amount = 20000; t3.day = "2026-11-01"; t3.account = accs.get(0).id; db.save(t3);
+  Statement.Data d = Statement.collectAll(db);
+  assertTrue(d.allTime);
+  assertEquals(13500, d.out); assertEquals(20000, d.in);
+  assertEquals(3, d.rows.size());
+  assertFalse(d.catNames.isEmpty()); assertFalse(d.catColors.isEmpty());
+  assertEquals(2, d.barAmounts.size());
+  Statement.Data m = Statement.collect(db, java.time.YearMonth.of(2026, 11));
+  assertFalse(m.allTime); assertEquals(4500, m.out); assertEquals(2, m.rows.size());
+ }
+ @Test public void greetingAndStatementOptions() {
+  assertEquals("Good morning", HomePage.greet(8));
+  assertEquals("Good afternoon", HomePage.greet(13));
+  assertEquals("Good evening", HomePage.greet(19));
+  assertEquals("Good night", HomePage.greet(2));
+  Statement.Opts o = new Statement.Opts();
+  assertTrue(o.pie && o.bars && o.color);
+  assertEquals(0xFF202020, Statement.grey(0));
+  assertTrue(Statement.grey(3) != Statement.grey(0));
+ }
 }

@@ -100,7 +100,7 @@ public final class AutoRemind extends BroadcastReceiver {
    Store db = a.db;
    c.addView(Ui.text(a, "Remind people who owe you", 18, Ui.ink, true));
    c.addView(Ui.text(a, "Once a day Hisab checks who still owes you and reminds each person at most once every few days. Only people with a phone number are included. Nothing runs in the background otherwise.", 14, Ui.muted, false), Ui.lpm(-1, -2, 0, 12, 0, 16));
-   LinearLayout sw = Ui.row(a); sw.setPadding(0, Ui.dp(14), 0, Ui.dp(14)); sw.addView(Ui.text(a, "Automatic due reminders", 15, Ui.ink, true), Ui.weight(1)); Switch on = new Switch(a); on.setChecked(db.flag("autoRemind", false)); sw.addView(on); c.addView(sw);
+   LinearLayout sw = Ui.row(a); sw.setPadding(0, Ui.dp(14), 0, Ui.dp(14)); sw.addView(Ui.text(a, "Automatic due reminders", 15, Ui.ink, true), Ui.weight(1)); Switch on = Ui.toggle(a); on.setChecked(db.flag("autoRemind", false)); sw.addView(on); c.addView(sw);
    on.setOnCheckedChangeListener((v, enabled) -> {
     if (!enabled) { db.setPref("autoRemind", "0"); schedule(a, db); return; }
     Sheets.confirm(a, "Turn on automatic reminders?", "WhatsApp reminders arrive as a daily notification that opens the chat with the message ready - you press send there. If you choose SMS, your phone sends the message itself and your carrier's SMS charges apply. You can turn this off any time.", "Turn on", () -> {

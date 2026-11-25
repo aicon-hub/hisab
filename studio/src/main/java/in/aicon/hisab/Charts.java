@@ -43,7 +43,7 @@ final class Charts {
    p.setColor(Ui.surface2);
    for (int i = 0; i < n; i++) {
     float cx = slot * i + slot / 2f, bh = Math.max(Ui.dp(6), (v[i] / (float) max) * h) * t;
-    boolean on = i == hi; p.setColor(on ? (Ui.dark ? Ui.accent : Ui.ink) : (Ui.dark ? 0xFF2C2F38 : 0xFFE0D9CA));
+    boolean on = i == hi; p.setColor(on ? (Ui.dark ? Ui.accent : Ui.ink) : (Ui.dark ? 0xFF454A57 : 0xFFE0D9CA));
     RectF r = new RectF(cx - bw / 2, top + h - bh, cx + bw / 2, top + h); c.drawRoundRect(r, bw / 2.6f, bw / 2.6f, p);
     tp.setColor(on ? Ui.ink : Ui.muted); c.drawText(labels[i], cx, getHeight() - Ui.dp(5), tp);
     if (values && v[i] > 0) { tp.setColor(on ? Ui.ink : Ui.muted); tp.setTextSize(Ui.dp(10)); c.drawText(Fmt.compact(v[i]).replace(Fmt.symbol.trim(), ""), cx, top + h - bh - Ui.dp(5), tp); tp.setTextSize(Ui.dp(11)); }

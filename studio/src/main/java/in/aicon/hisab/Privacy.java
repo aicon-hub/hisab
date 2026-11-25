@@ -12,7 +12,7 @@ final class Privacy {
  static void apply(MainActivity a){if(a.db.flag("secureScreen",false))a.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);else a.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);}
  static boolean backupDue(Store db){if(!db.flag("backupNudge",true)||db.flag("sample",false)||!db.hasData())return false;try{return System.currentTimeMillis()-Long.parseLong(db.pref("lastBackupAt","0"))>7L*24*60*60*1000;}catch(Exception e){return true;}}
  static void toggle(MainActivity a,LinearLayout c,String label,String key,boolean def,Runnable after){
-  LinearLayout row=Ui.row(a);row.setPadding(0,Ui.dp(14),0,Ui.dp(14));row.addView(Ui.text(a,label,15,Ui.ink,true),Ui.weight(1));Switch sw=new Switch(a);sw.setContentDescription(L.t(label));sw.setChecked(a.db.flag(key,def));row.addView(sw);sw.setTag(key);sw.setOnCheckedChangeListener((v,on)->{a.db.setPref(key,on?"1":"0");after.run();});c.addView(row);
+  LinearLayout row=Ui.row(a);row.setPadding(0,Ui.dp(14),0,Ui.dp(14));row.addView(Ui.text(a,label,15,Ui.ink,true),Ui.weight(1));Switch sw=Ui.toggle(a);sw.setContentDescription(L.t(label));sw.setChecked(a.db.flag(key,def));row.addView(sw);sw.setTag(key);sw.setOnCheckedChangeListener((v,on)->{a.db.setPref(key,on?"1":"0");after.run();});c.addView(row);
  }
  static void pinForm(MainActivity a, String title, boolean needsCurrent, java.util.function.Consumer<Boolean> done){
   String[] labels = needsCurrent ? new String[]{"Current PIN","New PIN (4-8 digits)","Repeat new PIN"} : new String[]{"New PIN (4-8 digits)","Repeat PIN"};

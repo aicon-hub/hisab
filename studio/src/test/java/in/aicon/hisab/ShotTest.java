@@ -35,7 +35,7 @@ public class ShotTest {
   a.showTab(3, false); snap(a, "06-insights"); scroll(a, 1700); snap(a, "07-insights-b");
   a.showTab(4, false); snap(a, "08-people");
   a.showTab(0, false); a.openEntry("expense", null); snap(a, "09-entry");
-  a.closeAll(); a.layers.clear(); a.build(); Settings.open(a); snap(a, "10-settings");
+  a.closeAll(); a.layers.clear(); a.build(); Settings.open(a); snap(a, "10-settings"); scroll(a, 2600); snap(a, "10b-settings-data");
   a.closeAll(); a.layers.clear(); a.build(); Pages.budgets(a); snap(a, "11-budgets");
   a.closeAll(); a.layers.clear(); a.build(); Pages.goals(a); snap(a, "12-goals");
   a.closeAll(); a.layers.clear(); a.build(); AutoRemind.open(a); snap(a, "70-auto-remind");
@@ -77,7 +77,7 @@ public class ShotTest {
  }
  @Test public void launcherIconSheet() throws Exception {
   MainActivity a=start(false);Bitmap b=Bitmap.createBitmap(1200,900,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(b);canvas.drawColor(0xFFF4F0E8);Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);paint.setTextSize(22);paint.setColor(0xFF15161A);int i=0;
-  for(String name:Ui.ACCENT_NAMES){int id=a.getResources().getIdentifier("icon_"+name.toLowerCase(java.util.Locale.ROOT),"mipmap",a.getPackageName());android.graphics.drawable.Drawable icon=a.getDrawable(id);int x=(i%6)*200+40,y=(i/6)*280+30;icon.setBounds(x,y,x+120,y+120);icon.draw(canvas);canvas.drawText(name,x,y+158,paint);i++;}
+  for(String name:Ui.ACCENT_NAMES){int id=a.getResources().getIdentifier("icon_"+name.toLowerCase(java.util.Locale.ROOT).replace(" ",""),"mipmap",a.getPackageName());android.graphics.drawable.Drawable icon=a.getDrawable(id);int x=(i%6)*200+40,y=(i/6)*280+30;icon.setBounds(x,y,x+120,y+120);icon.draw(canvas);canvas.drawText(name,x,y+158,paint);i++;}
   try(FileOutputStream out=new FileOutputStream(OUT+"/59-launcher-icons.png")){b.compress(Bitmap.CompressFormat.PNG,100,out);}
  }
  @Test public void logo() throws Exception {

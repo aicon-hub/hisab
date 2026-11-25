@@ -48,7 +48,7 @@ final class DriveBackup {
  static String backupNowValue(long lastAt, long errAt) {
   if (errAt > lastAt) return "Backup failed · tap to retry";
   if (lastAt > 0) return "Last backup " + when(lastAt);
-  return "Automatic, every 6 hours";
+  return "Live, right after every change";
  }
  /** Value shown on the main toggle row. */
  static String toggleValue(boolean on, String account) { return on ? (account.isEmpty() ? "On" : account) : "Off"; }
@@ -123,14 +123,15 @@ final class DriveBackup {
  private static android.os.Handler changeHandler;
  private static Runnable pendingChange;
  private static long lastChangeBackup;
- /** Entries changed: back up shortly after, batching a burst of edits into one upload. Skips if one just ran. */
+ /** Data changed: back up shortly after, batching a burst of edits into one upload so the Drive copy mirrors the phone, deletions included.
+     Uploads are at most one per minute; a change arriving right after an upload is delayed, never dropped. */
  static synchronized void dataChanged(Store db) {
   if (!enabled(db) || !playReady(db.ctx)) return;
-  if (System.currentTimeMillis() - lastChangeBackup < 60_000) return;
   if (changeHandler == null) changeHandler = new android.os.Handler(android.os.Looper.getMainLooper());
   if (pendingChange != null) changeHandler.removeCallbacks(pendingChange);
+  long wait = Math.max(4000, 60_000 - (System.currentTimeMillis() - lastChangeBackup));
   pendingChange = () -> { lastChangeBackup = System.currentTimeMillis(); backupQuiet(db.ctx, db); };
-  changeHandler.postDelayed(pendingChange, 4000);
+  changeHandler.postDelayed(pendingChange, wait);
  }
 
  static void restoreNow(MainActivity a) {

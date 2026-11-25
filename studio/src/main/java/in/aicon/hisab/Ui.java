@@ -16,11 +16,11 @@ final class Ui {
  static float scale = 1f;
  static int customHex = 0xFFC7F23A;
  static boolean dark;
- static int bg, surface, surface2, ink, muted, line, accent, onAccent, pos, neg, scrim;
+ static int bg, surface, surface2, ink, muted, line, accent, onAccent, onAccentSub, onAccentFaint, onAccentTrack, accentOnDark, onAccentOnDark, pos, neg, scrim;
  static Typeface body, bodyBold, display, displayBold;
 
- static final String[] ACCENT_NAMES = {"Lime", "Sky", "Lilac", "Mint", "Rose", "Sand", "Peach", "Teal", "Periwinkle", "Coral", "Aqua", "Lavender", "Butter", "Sage", "Apricot", "Ice", "Wallpaper"};
- static final int[] ACCENTS = {0xFFC7F23A, 0xFF8ACBFF, 0xFFBDA9FF, 0xFF62E3B8, 0xFFFF93B5, 0xFFF0D17C, 0xFFFFC49B, 0xFF6CD4C5, 0xFFA7B6FF, 0xFFFFACAB, 0xFF83E5EE, 0xFFD6B8FF, 0xFFF8E78F, 0xFFB6D3A0, 0xFFF2BC8D, 0xFFC1E4F9, 0};
+ static final String[] ACCENT_NAMES = {"Lime", "Sky", "Lilac", "Mint", "Rose", "Sand", "Peach", "Teal", "Periwinkle", "Coral", "Aqua", "Lavender", "Butter", "Sage", "Apricot", "Ice", "Black and White", "Wallpaper"};
+ static final int[] ACCENTS = {0xFFC7F23A, 0xFF8ACBFF, 0xFFBDA9FF, 0xFF62E3B8, 0xFFFF93B5, 0xFFF0D17C, 0xFFFFC49B, 0xFF6CD4C5, 0xFFA7B6FF, 0xFFFFACAB, 0xFF83E5EE, 0xFFD6B8FF, 0xFFF8E78F, 0xFFB6D3A0, 0xFFF2BC8D, 0xFFC1E4F9, 0, 0};
 
  static String initial(String name) {
   String n = name == null ? "" : name.trim();
@@ -30,6 +30,7 @@ final class Ui {
 
  static int accentFor(Context c, String name) {
   for (int i = 0; i < ACCENT_NAMES.length; i++) if (ACCENT_NAMES[i].equals(name)) {
+   if (name.equals("Black and White")) return dark ? 0xFFF2F0EA : 0xFF15161A;
    if (ACCENTS[i] != 0) return ACCENTS[i];
    if (Build.VERSION.SDK_INT >= 31) try { return c.getColor(android.R.color.system_accent1_200); } catch (Exception ignored) {}
    return ACCENTS[0];
@@ -45,7 +46,10 @@ final class Ui {
   customHex = customAccent;
   dark = isDark;
   accent = accentName.equals("Custom") ? customAccent : accentFor(c, accentName);
-  onAccent = 0xFF14151A;
+  onAccent = onAccentFor(accent);
+  onAccentSub = withAlpha(onAccent, 0xCC); onAccentFaint = withAlpha(onAccent, 0x99); onAccentTrack = withAlpha(onAccent, 0x2E);
+  accentOnDark = accentOnDarkFor(accent);
+  onAccentOnDark = onAccentFor(accentOnDark);
   if (isDark) {
    bg = pureBlack ? 0xFF000000 : 0xFF0D0E11; surface = pureBlack ? 0xFF111214 : 0xFF17181D; surface2 = pureBlack ? 0xFF1B1C20 : 0xFF202229;
    ink = 0xFFF2F0EA; muted = 0xFF8F919A; line = 0xFF282B33; pos = 0xFF4FDDA0; neg = 0xFFFF7B83; scrim = 0xB0000000;
@@ -63,6 +67,14 @@ final class Ui {
   }
   if(L.isMl()){ body=Typeface.create("sans-serif",Typeface.NORMAL);bodyBold=Typeface.create("sans-serif",Typeface.BOLD);display=body;displayBold=bodyBold; }
  }
+
+ /** Rough relative luminance, 0..1. */
+ static float lum(int color) { return (0.299f * ((color >> 16) & 0xFF) + 0.587f * ((color >> 8) & 0xFF) + 0.114f * (color & 0xFF)) / 255f; }
+ /** Readable text on top of the accent: dark ink on light accents, off-white on dark ones (Black and White in light mode, dark custom colours). */
+ static int onAccentFor(int accentColor) { return lum(accentColor) > 0.55f ? 0xFF14151A : 0xFFF2F0EA; }
+ /** Accent elements sitting on always-dark surfaces (the dock, toasts): a dark accent would vanish there, so swap it for off-white. */
+ static int accentOnDarkFor(int accentColor) { return lum(accentColor) <= 0.35f ? 0xFFF2F0EA : accentColor; }
+ static int withAlpha(int color, int alpha) { return (color & 0xFFFFFF) | (alpha << 24); }
 
  private static Typeface load(Context c, String name, int weight) {
   try {
@@ -107,12 +119,21 @@ final class Ui {
  static View hspace(Context c, float w) { View v = new View(c); v.setLayoutParams(lp(dp(w), 1)); return v; }
  static View divider(Context c) { View v = new View(c); v.setBackgroundColor(line); v.setLayoutParams(lp(-1, Math.max(1, dp(0.6f)))); return v; }
 
+ /** A switch tinted to the theme accent instead of the platform default teal. */
+ static Switch toggle(Context c) {
+  Switch s = new Switch(c);
+  int[][] states = {new int[]{android.R.attr.state_checked}, new int[]{}};
+  s.setThumbTintList(new android.content.res.ColorStateList(states, new int[]{accent, dark ? muted : 0xFFFFFFFF}));
+  s.setTrackTintList(new android.content.res.ColorStateList(states, new int[]{withAlpha(accent, 0x59), withAlpha(muted, 0x33)}));
+  return s;
+ }
+
  static LinearLayout card(Context c) {
   LinearLayout l = col(c); l.setBackground(shape(surface, 24)); l.setPadding(dp(18), dp(16), dp(18), dp(16)); return l;
  }
 
  static ImageView icon(Context c, String name, float sizeDp, int color) {
-  ImageView v = new ImageView(c); v.setImageDrawable(name.equals("whatsapp")?Icons.brand(c,name):new Icons.Draw(name, color)); v.setLayoutParams(lp(dp(sizeDp), dp(sizeDp))); return v;
+  ImageView v = new ImageView(c); v.setImageDrawable(name.equals("google") ? Icons.google() : name.equals("whatsapp") ? Icons.brand(c,name) : new Icons.Draw(name, color)); v.setLayoutParams(lp(dp(sizeDp), dp(sizeDp))); return v;
  }
 
  /** Circular icon badge. */

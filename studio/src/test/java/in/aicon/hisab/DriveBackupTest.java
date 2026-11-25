@@ -35,7 +35,7 @@ public class DriveBackupTest {
   assertTrue(body.contains("\"parents\":[\"appDataFolder\"]"));
  }
  @Test public void backupRowShowsFailureLastBackupOrSchedule() {
-  assertEquals("Automatic, every 6 hours", DriveBackup.backupNowValue(0, 0));
+  assertEquals("Live, right after every change", DriveBackup.backupNowValue(0, 0));
   assertEquals("Backup failed · tap to retry", DriveBackup.backupNowValue(0, 5000));
   assertEquals("Backup failed · tap to retry", DriveBackup.backupNowValue(4000, 5000));
   assertTrue(DriveBackup.backupNowValue(5000, 4000).startsWith("Last backup "));

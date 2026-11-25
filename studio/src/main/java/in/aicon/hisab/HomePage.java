@@ -17,8 +17,8 @@ final class HomePage {
   long spent = 0, income = 0, budgeted = 0; Map<Long, Long> budget = db.budgets(), byCat = new HashMap<>();
   for (Store.Tx t : month) { if (t.kind.equals("expense")) { spent += t.amount; byCat.merge(t.cat, t.amount, Long::sum); if (budget.containsKey(t.cat)) budgeted += t.amount; } else if (t.kind.equals("income")) income += t.amount; }
   long totalBudget = 0; for (long v : budget.values()) totalBudget += v;
-  String name = db.pref("name", "You");
-  c.addView(Kit.title(a, today.getDayOfWeek().getDisplayName(java.time.format.TextStyle.FULL, L.locale()) + ", " + Fmt.shortDate(today.toString()), "Hello, " + name, true));
+  Profile.syncGooglePhoto(a);
+  c.addView(greeting(a, today));
 
   boolean secHero = HomeCustom.on(db, "hero");
   LinearLayout hero = Ui.col(a); hero.setBackground(Ui.shape(Ui.accent, 30)); hero.setPadding(Ui.dp(22), Ui.dp(20), Ui.dp(22), Ui.dp(20));
@@ -28,10 +28,10 @@ final class HomePage {
    if (left >= 0) { lab = "Safe to spend today"; big = left / daysLeft / 100 * 100; sub = L.isMl()?Fmt.money(totalBudget)+" ൽ "+Fmt.money(left)+" ബാക്കി · "+daysLeft+" ദിവസം":Fmt.money(left) + " left of " + Fmt.money(totalBudget) + " · " + daysLeft + (daysLeft == 1 ? " day" : " days") + " to go"; }
    else { lab = "Over budget by"; big = -left; sub = "Budgets total " + Fmt.money(totalBudget) + " this month"; }
   } else { lab = "Spent this month"; big = spent; sub = "Set budgets to see a daily safe amount"; }
-  TextView l1 = Ui.text(a, lab, 13, 0xCC14151A, true); hero.addView(l1);
+  TextView l1 = Ui.text(a, lab, 13, Ui.onAccentSub, true); hero.addView(l1);
   TextView amt = Ui.big(a, Fmt.money(big), 46, Ui.onAccent); amt.setPadding(0, Ui.dp(8), 0, Ui.dp(6)); hero.addView(amt);
-  hero.addView(Ui.text(a, sub, 13.5f, 0xCC14151A, false));
-  if (totalBudget > 0) { Charts.Pace p = new Charts.Pace(a, Math.max(0f, budgeted / (float) totalBudget), (today.getDayOfMonth() - 1f) / ym.lengthOfMonth(), Ui.onAccent, 0x2E14151A); hero.addView(p, Ui.lpm(-1, Ui.dp(26), 0, 12, 0, 0)); hero.addView(Ui.text(a, "Thin mark shows where the month is today", 11.5f, 0x9914151A, false)); }
+  hero.addView(Ui.text(a, sub, 13.5f, Ui.onAccentSub, false));
+  if (totalBudget > 0) { Charts.Pace p = new Charts.Pace(a, Math.max(0f, budgeted / (float) totalBudget), (today.getDayOfMonth() - 1f) / ym.lengthOfMonth(), Ui.onAccent, Ui.onAccentTrack); hero.addView(p, Ui.lpm(-1, Ui.dp(26), 0, 12, 0, 0)); hero.addView(Ui.text(a, "Thin mark shows where the month is today", 11.5f, Ui.onAccentFaint, false)); }
   LinearLayout stats = Ui.row(a); stats.setPadding(0, Ui.dp(16), 0, 0);
   stats.addView(stat(a, "Income", Fmt.money(income)), Ui.weight(1)); stats.addView(stat(a, "Spent", Fmt.money(spent)), Ui.weight(1)); stats.addView(stat(a, "Net", Fmt.money(income - spent)), Ui.weight(1));
   hero.addView(stats); if (secHero) c.addView(hero);
@@ -72,12 +72,38 @@ final class HomePage {
 
   if (HomeCustom.on(db, "week")) {
   c.addView(Kit.sectionHead(a, "Last 7 days", null, null));
-  long[] v = new long[7]; String[] lb = new String[7]; List<Store.Tx> wk = db.txs(today.minusDays(6).toString(), today.toString());
-  for (int i = 0; i < 7; i++) { LocalDate d = today.minusDays(6 - i); lb[i] = d.getDayOfWeek().getDisplayName(java.time.format.TextStyle.NARROW, L.locale()); for (Store.Tx t : wk) if (t.kind.equals("expense") && t.day.equals(d.toString())) v[i] += t.amount; }
-  long sum = 0; for (long x : v) sum += x;
-  LinearLayout wc = Ui.card(a); LinearLayout hd = Ui.row(a); hd.addView(Ui.big(a, Fmt.money(sum), 24, Ui.ink), Ui.weight(1)); hd.addView(Ui.text(a, "avg " + Fmt.money(sum / 7 / 100 * 100) + " a day", 12.5f, Ui.muted, true)); wc.addView(hd);
-  wc.addView(new Charts.Bars(a, v, lb, 6, true), Ui.lpm(-1, Ui.dp(150), 0, 12, 0, 0)); c.addView(wc);
+  final int[] back = {0}; // whole weeks back from the current one
+  LinearLayout wc = Ui.card(a); FrameLayout holder = new FrameLayout(a); wc.addView(holder, Ui.lpm(-1, -2, 0, 0, 0, 0));
+  Runnable drawWeek = () -> {
+   holder.removeAllViews();
+   LocalDate end = today.minusDays(7L * back[0]), start = end.minusDays(6);
+   long[] v = new long[7]; String[] lb = new String[7]; List<Store.Tx> wk = db.txs(start.toString(), end.toString());
+   for (int i = 0; i < 7; i++) { LocalDate d = start.plusDays(i); lb[i] = d.getDayOfWeek().getDisplayName(java.time.format.TextStyle.NARROW, L.locale()); for (Store.Tx t : wk) if (t.kind.equals("expense") && t.day.equals(d.toString())) v[i] += t.amount; }
+   long sum = 0; for (long x : v) sum += x;
+   LinearLayout inner = Ui.col(a);
+   LinearLayout hd = Ui.row(a); LinearLayout tt = Ui.col(a);
+   tt.addView(Ui.big(a, Fmt.money(sum), 24, Ui.ink));
+   TextView rng = Ui.text(a, Fmt.shortDate(start.toString()) + " - " + Fmt.shortDate(end.toString()) + (back[0] > 0 ? "  ·  swipe for this week" : ""), 11.5f, Ui.muted, false); rng.setPadding(0, Ui.dp(3), 0, 0); tt.addView(rng);
+   hd.addView(tt, Ui.weight(1)); hd.addView(Ui.text(a, "avg " + Fmt.money(sum / 7 / 100 * 100) + " a day", 12.5f, Ui.muted, true)); inner.addView(hd);
+   inner.addView(new Charts.Bars(a, v, lb, back[0] == 0 ? 6 : -1, true), Ui.lpm(-1, Ui.dp(150), 0, 12, 0, 0));
+   holder.addView(inner);
+  };
+  drawWeek.run();
+  final float[] downX = {0};
+  wc.setOnTouchListener((vv, e) -> {
+   if (e.getAction() == android.view.MotionEvent.ACTION_DOWN) downX[0] = e.getX();
+   else if (e.getAction() == android.view.MotionEvent.ACTION_UP) {
+    float dx = e.getX() - downX[0];
+    if (dx < -Ui.dp(48)) { back[0]++; drawWeek.run(); }        // swipe left: previous 7 days
+    else if (dx > Ui.dp(48) && back[0] > 0) { back[0]--; drawWeek.run(); } // swipe right: towards this week
+   }
+   return false;
+  });
+  c.addView(wc);
   }
+
+  View insight = spendingInsight(a, db, today, ym);
+  if (insight != null && HomeCustom.on(db, "budgets")) c.addView(insight, Ui.lpm(-1, -2, 0, 12, 0, 0));
 
   long owed = 0, owe = 0; for (Store.Person p : db.people()) { long nn = db.net(p.id); if (nn > 0) owed += nn; else owe -= nn; }
   if ((owed > 0 || owe > 0) && HomeCustom.on(db, "people")) {
@@ -96,7 +122,44 @@ final class HomePage {
   return sv[0];
  }
 
- static View stat(MainActivity a, String k, String v) { LinearLayout l = Ui.col(a); l.addView(Ui.text(a, k, 12, 0xB314151A, true)); TextView t = Ui.text(a, v, 14.5f, Ui.onAccent, true); t.setPadding(0, Ui.dp(4), 0, 0); l.addView(t); return l; }
+ /** Header: date, big hello with the person's name (Google given name when no name was set), and a time-of-day greeting under it. */
+ static View greeting(MainActivity a, LocalDate today) {
+  Store db = a.db;
+  String name = db.pref("name", "You");
+  if (name.equals("You") || name.trim().isEmpty()) {
+   try { com.google.android.gms.auth.api.signin.GoogleSignInAccount acc = com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(a); if (acc != null && acc.getGivenName() != null && !acc.getGivenName().trim().isEmpty()) name = acc.getGivenName().trim(); } catch (Throwable ignored) {}
+  }
+  LinearLayout r = Ui.row(a); r.setPadding(0, Ui.dp(6), 0, Ui.dp(18));
+  LinearLayout t = Ui.col(a);
+  t.addView(Ui.text(a, today.getDayOfWeek().getDisplayName(java.time.format.TextStyle.FULL, L.locale()) + ", " + Fmt.shortDate(today.toString()), 13, Ui.muted, true));
+  TextView h = Ui.big(a, "Hello, " + name, 32, Ui.ink); h.setPadding(0, Ui.dp(5), 0, Ui.dp(3)); t.addView(h);
+  t.addView(Ui.text(a, greet(java.time.LocalTime.now().getHour()), 13.5f, Ui.muted, false));
+  r.addView(t, Ui.weight(1));
+  View av = Profile.avatar(a, 44); r.addView(av, Ui.lp(Ui.dp(44), Ui.dp(44))); av.setContentDescription("Settings"); Ui.tap(av, () -> Settings.open(a));
+  return r;
+ }
+ static String greet(int hour) { return hour >= 5 && hour < 12 ? "Good morning" : hour >= 12 && hour < 17 ? "Good afternoon" : hour >= 17 && hour < 21 ? "Good evening" : "Good night"; }
+
+ /** Small budget analysis: this month so far against the same days last month. Null when there is nothing to compare. */
+ static View spendingInsight(MainActivity a, Store db, LocalDate today, YearMonth ym) {
+  YearMonth last = ym.minusMonths(1);
+  int days = Math.min(today.getDayOfMonth(), last.lengthOfMonth());
+  long thisMtd = 0, lastSame = 0;
+  for (Store.Tx t : db.txs(Fmt.from(ym), today.toString())) if (t.kind.equals("expense")) thisMtd += t.amount;
+  for (Store.Tx t : db.txs(Fmt.from(last), last.atDay(days).toString())) if (t.kind.equals("expense")) lastSame += t.amount;
+  if (thisMtd == 0 && lastSame == 0) return null;
+  LinearLayout card = Ui.card(a); card.setPadding(Ui.dp(18), Ui.dp(14), Ui.dp(18), Ui.dp(14));
+  long diff = thisMtd - lastSame;
+  String line1 = "This month so far: " + Fmt.money(thisMtd) + "  ·  same " + days + (days == 1 ? " day" : " days") + " last month: " + Fmt.money(lastSame);
+  card.addView(Ui.text(a, line1, 13.5f, Ui.ink, true));
+  if (lastSame > 0) {
+   String line2 = diff == 0 ? "Exactly the same as last month" : Fmt.money(Math.abs(diff)) + (diff > 0 ? " more than last month" : " less than last month");
+   TextView t2 = Ui.text(a, line2, 13, diff > 0 ? Ui.neg : Ui.pos, true); t2.setPadding(0, Ui.dp(5), 0, 0); card.addView(t2);
+  }
+  return card;
+ }
+
+ static View stat(MainActivity a, String k, String v) { LinearLayout l = Ui.col(a); l.addView(Ui.text(a, k, 12, Ui.onAccentSub, true)); TextView t = Ui.text(a, v, 14.5f, Ui.onAccent, true); t.setPadding(0, Ui.dp(4), 0, 0); l.addView(t); return l; }
  static View pill(MainActivity a, String k, String v, int color) { LinearLayout l = Ui.col(a); l.setBackground(Ui.shape(Ui.surface, 22)); l.setPadding(Ui.dp(16), Ui.dp(14), Ui.dp(16), Ui.dp(14)); l.addView(Ui.text(a, k, 12.5f, Ui.muted, true)); TextView t = Ui.big(a, v, 21, color); t.setPadding(0, Ui.dp(6), 0, 0); l.addView(t); return l; }
 
  static View dueRow(MainActivity a, Store.Rec r, LocalDate today) {
@@ -109,11 +172,31 @@ final class HomePage {
 
  static View quickAdd(MainActivity a) {
   LinearLayout r = Ui.row(a); r.setBackground(Ui.outline(Ui.surface, Ui.line, 28, 1)); r.setPadding(Ui.dp(18), Ui.dp(4), Ui.dp(6), Ui.dp(4));
-  EditText e = new EditText(a); e.setHint(L.t("Type it: tea 40, auto 60 yesterday")); e.setHintTextColor(Ui.muted); e.setTextColor(Ui.ink); e.setTextSize(15); e.setTypeface(Ui.body); e.setBackground(null); e.setSingleLine(true); e.setImeOptions(EditorInfo.IME_ACTION_DONE); e.setInputType(InputType.TYPE_CLASS_TEXT); e.setTag("quickEntry");
+  EditText e = new EditText(a); e.setHint(L.t("Type it: tea 40, auto 60 yesterday")); e.setHintTextColor(Ui.withAlpha(Ui.ink, 0xA6)); e.setTextColor(Ui.ink); e.setTextSize(15); e.setTypeface(Ui.body); e.setBackground(null); e.setSingleLine(true); e.setImeOptions(EditorInfo.IME_ACTION_DONE); e.setInputType(InputType.TYPE_CLASS_TEXT); e.setTag("quickEntry");
+  animateHint(e);
   r.addView(e, Ui.weight(1)); FrameLayout go = Ui.badge(a, "check", 42, Ui.dark ? Ui.accent : Ui.ink, Ui.dark ? Ui.onAccent : 0xFFFFFFFF); r.addView(go, Ui.lp(Ui.dp(42), Ui.dp(42))); go.setContentDescription("Add typed entry");
   Runnable submit = () -> { String s = e.getText().toString().trim(); if (s.isEmpty()) return; Store.Tx t = parse(a.db, s); if (t == null) { a.toast("Include an amount, like tea 40", null); return; } long id = a.db.save(t); if(id<0){a.toast("Entry could not be saved",null);return;} e.setText(""); View focus=a.getCurrentFocus();if(focus!=null)((android.view.inputmethod.InputMethodManager)a.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(focus.getWindowToken(),0); a.refresh(); a.toast("Added " + Fmt.money(t.amount) + (a.db.categoryMap().get(t.cat) != null ? " · " + a.db.categoryMap().get(t.cat).name : ""), () -> { a.db.deleteTx(id); a.refresh(); }); };
   Ui.tap(go, submit); e.setOnEditorActionListener((v, id, ev) -> { if(id==EditorInfo.IME_ACTION_DONE || (ev!=null && ev.getKeyCode()==android.view.KeyEvent.KEYCODE_ENTER && ev.getAction()==android.view.KeyEvent.ACTION_DOWN)){submit.run();return true;}return false; });
   return r;
+ }
+
+ /** Slowly types the example into the empty, unfocused quick-add bar, erases it, and starts again. Stops for good once the person types or focuses the field. */
+ static void animateHint(EditText e) {
+  final String full = L.t("Type it: tea 40, auto 60 yesterday").toString();
+  final int[] pos = {0}; final boolean[] del = {false}; final boolean[] done = {false};
+  Runnable tick = new Runnable() {
+   @Override public void run() {
+    if (done[0] || !e.isAttachedToWindow()) return;
+    if (e.hasFocus() || e.getText().length() > 0) { done[0] = true; e.setHint(full); return; }
+    if (!del[0]) {
+     pos[0]++; e.setHint(full.substring(0, pos[0]));
+     if (pos[0] >= full.length()) { del[0] = true; e.postDelayed(this, 2200); } else e.postDelayed(this, 65);
+    } else {
+     pos[0] -= 3; if (pos[0] <= 0) { pos[0] = 0; del[0] = false; e.setHint(""); e.postDelayed(this, 700); } else { e.setHint(full.substring(0, pos[0])); e.postDelayed(this, 26); }
+    }
+   }
+  };
+  e.postDelayed(tick, 1200);
  }
 
  static final String[][] WORDS = {

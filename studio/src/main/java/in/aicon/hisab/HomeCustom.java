@@ -30,7 +30,7 @@ final class HomeCustom {
     if (i > 0) card.addView(Ui.divider(a));
     LinearLayout row = Ui.row(a); row.setPadding(0, Ui.dp(13), 0, Ui.dp(13));
     row.addView(Ui.text(a, label, 15.5f, Ui.ink, true), Ui.weight(1));
-    Switch sw = new Switch(a); sw.setChecked(on(a.db, key)); sw.setContentDescription(L.t(label));
+    Switch sw = Ui.toggle(a); sw.setChecked(on(a.db, key)); sw.setContentDescription(L.t(label));
     row.addView(sw);
     sw.setOnCheckedChangeListener((v, on) -> a.db.setPref("home:" + key, on ? "1" : "0"));
     card.addView(row);
