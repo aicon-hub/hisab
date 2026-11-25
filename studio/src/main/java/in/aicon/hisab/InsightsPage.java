@@ -32,6 +32,12 @@ final class InsightsPage {
   Ui.tap(yearBtn, () -> YearReport.open(a));
   TextView worthBtn = Ui.button(a, "Net worth: accounts and dues", false); c.addView(worthBtn, Ui.lpm(-1, -2, 0, 0, 0, 10));
   Ui.tap(worthBtn, () -> NetWorth.open(a));
+  TextView subsBtn = Ui.button(a, "Subscriptions: repeating charges", false); c.addView(subsBtn, Ui.lpm(-1, -2, 0, 0, 0, 10));
+  Ui.tap(subsBtn, () -> Subscriptions.open(a));
+  if (RoundUp.step(db) > 0) { LinearLayout ru = Ui.card(a); ru.setPadding(Ui.dp(18), Ui.dp(14), Ui.dp(18), Ui.dp(14));
+   LinearLayout rr = Ui.row(a); rr.addView(Ui.text(a, "Round-up pot", 13, Ui.muted, true), Ui.weight(1)); rr.addView(Ui.big(a, Fmt.money(RoundUp.pot(db)), 20, Ui.ink)); ru.addView(rr);
+   ru.addView(Ui.text(a, "Spare change if every expense rounded up - counted, not moved.", 12, Ui.muted, false), Ui.lpm(-1, -2, 0, 4, 0, 0));
+   c.addView(ru, Ui.lpm(-1, -2, 0, 0, 0, 10)); }
   TextView shareSum = Ui.button(a, "Share month summary", false); c.addView(shareSum, Ui.lpm(-1, -2, 0, 0, 0, 14));
   Ui.tap(shareSum, () -> {
    android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, summary(db, ym));
