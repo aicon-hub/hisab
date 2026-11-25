@@ -103,5 +103,23 @@ public class PolishTest {
  @Test public void trashBinRoundTripAndPurge(){Store.Tx t=new Store.Tx();t.kind="expense";t.amount=4200;t.day=Fmt.today().toString();t.cat=a.db.categories("expense").get(0).id;t.account=a.db.accounts().get(0).id;t.note="bin-test";t.tags="";t.id=a.db.save(t);a.db.trashTx(t.id);for(Store.Tx x:a.db.txs("0000-01-01","9999-12-31"))assertNotEquals(t.id,x.id);assertEquals(1,a.db.trash().size());a.db.restoreTx(t.id);boolean back=false;for(Store.Tx x:a.db.txs("0000-01-01","9999-12-31"))if(x.id==t.id)back=true;assertTrue(back);a.db.trashTx(t.id);a.db.getWritableDatabase().execSQL("UPDATE tx SET deleted=? WHERE id=?",new Object[]{System.currentTimeMillis()-31L*24*60*60*1000,t.id});java.util.List<Long> purged=a.db.purgeTrash();assertTrue(purged.contains(t.id));assertTrue(a.db.trash().isEmpty());}
  @Test public void tagsSaveAndSearchRoundTrip(){Store.Tx t=new Store.Tx();t.kind="expense";t.amount=1000;t.day=Fmt.today().toString();t.cat=a.db.categories("expense").get(0).id;t.account=a.db.accounts().get(0).id;t.note="tagtest-note";t.tags="zztag";t.id=a.db.save(t);assertEquals("zztag",a.db.txById(t.id).tags);a.ledgerQuery="zztag";android.view.View v=LedgerPage.build(a);assertTrue(texts(v).contains("tagtest-note"));a.ledgerQuery="";a.db.deleteTx(t.id);}
  @Test public void ledgerCategoryAndAmountFilters(){Store.Cat c=a.db.categories("expense").get(0);Store.Tx t=new Store.Tx();t.kind="expense";t.amount=5000;t.day=Fmt.today().toString();t.cat=c.id;t.account=a.db.accounts().get(0).id;t.note="zzfilter-note";t.tags="";t.id=a.db.save(t);a.ledgerCat=c.id+9999;android.view.View v=LedgerPage.build(a);assertFalse(texts(v).contains("zzfilter-note"));a.ledgerCat=0;a.ledgerMin=900000;v=LedgerPage.build(a);assertFalse(texts(v).contains("zzfilter-note"));a.ledgerMin=0;a.ledgerMax=4900;v=LedgerPage.build(a);assertFalse(texts(v).contains("zzfilter-note"));a.ledgerMax=0;a.ledgerCat=c.id;v=LedgerPage.build(a);assertTrue(texts(v).contains("zzfilter-note"));a.ledgerCat=0;a.db.deleteTx(t.id);}
+ @Test public void malayalamDigits() {
+  Store.Tx t = HomePage.parse(a.db, "\u0D1A\u0D3E\u0D2F \u0D6A\u0D66");
+  assertNotNull(t); assertEquals(4000, t.amount);
+  assertEquals(4000, Ledger.parse("\u0D6A\u0D66"));
+  assertEquals(-1, Ledger.parse("\u0D6A.\u0D66\u0D66\u0D66"));
+ }
+
+ @Test public void settingsHubListsSixSections() {
+  a.settingsSection = ""; Settings.open(a);
+  String hub = texts(a.layers.get(a.layers.size() - 1).panel);
+  for (String need : new String[]{"Look", "Language and privacy", "Money", "Reminders", "Your data", "About"}) assertTrue(need, hub.contains(need));
+  assertFalse(hub.contains("Bank SMS balances"));
+  a.settingsSection = "money"; a.closeAll(); Settings.open(a);
+  String money = texts(a.layers.get(a.layers.size() - 1).panel);
+  assertTrue(money.contains("Bank SMS balances"));
+  assertFalse(money.contains("Share Hisab with a friend"));
+ }
+
  @Test public void yearReportRenders(){YearReport.open(a);assertTrue(texts(a.root).contains("Year report"));a.closeAll();}
 }

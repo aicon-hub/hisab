@@ -38,8 +38,8 @@ public class CrashTest {
   click("Save");assertEquals("Taylor",a.db.pref("name",""));
  }
  @Test public void themeAccentFontCurrencyAndPureBlack(){
-  Settings.open(a);click("Appearance");click("Dark");assertEquals("Dark",a.db.pref("appearance",""));
-  click("Font");click("Lora");click("Currency");click("USD");
+  a.settingsSection="look";Settings.open(a);click("Appearance");click("Dark");assertEquals("Dark",a.db.pref("appearance",""));
+  click("Font");click("Lora");a.settingsSection="money";Settings.open(a);click("Currency");click("USD");
   a.db.setPref("pureBlack","1");a.applyTheme();a.build();ime(900);ime(0);
   assertEquals("Lora",a.db.pref("font",""));assertEquals("USD",a.db.pref("currency",""));
  }

@@ -144,7 +144,7 @@ final class HomePage {
   TextView h = Ui.big(a, "Hello, " + name, 32, Ui.ink); h.setPadding(0, Ui.dp(5), 0, Ui.dp(3)); t.addView(h);
   t.addView(Ui.text(a, greet(java.time.LocalTime.now().getHour()), 13.5f, Ui.muted, false));
   r.addView(t, Ui.weight(1));
-  View av = Profile.avatar(a, 44); r.addView(av, Ui.lp(Ui.dp(44), Ui.dp(44))); av.setContentDescription("Settings"); Ui.tap(av, () -> Settings.open(a));
+  View av = Profile.avatar(a, 44); r.addView(av, Ui.lp(Ui.dp(44), Ui.dp(44))); av.setContentDescription("Settings"); Ui.tap(av, () -> { a.settingsSection = ""; Settings.open(a); });
   return r;
  }
  static String greet(int hour) { return hour >= 5 && hour < 12 ? "Good morning" : hour >= 12 && hour < 17 ? "Good afternoon" : hour >= 17 && hour < 21 ? "Good evening" : "Good night"; }
@@ -217,6 +217,7 @@ final class HomePage {
  static Store.Tx parse(Store db, String s) {
   if(s==null||s.trim().isEmpty())return null;
   String value=s.trim();LocalDate day=LocalDate.now();
+  { StringBuilder nb = new StringBuilder(value); for (int i = 0; i < nb.length(); i++) { char ch = nb.charAt(i); if (ch >= '\u0D66' && ch <= '\u0D6F') nb.setCharAt(i, (char) ('0' + ch - '\u0D66')); } value = nb.toString(); }
   java.util.regex.Matcher date=java.util.regex.Pattern.compile("\\b(20[0-9]{2}-[0-9]{2}-[0-9]{2})\\b").matcher(value);
   if(date.find()){try{day=LocalDate.parse(date.group(1));}catch(Exception e){return null;}value=value.replace(date.group(1),"");}
   else if(value.toLowerCase(Locale.ROOT).matches("(?s).*\\byesterday\\b.*"))day=day.minusDays(1);

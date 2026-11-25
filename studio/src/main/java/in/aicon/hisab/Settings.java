@@ -44,9 +44,11 @@ final class Settings {
   List<String> o = Arrays.asList(options); Sheets.pick(a, title, o, null, o.indexOf(current), i -> { a.db.setPref(key, o.get(i)); if (rebuild) { a.applyTheme(); a.build(); } else a.refresh(); a.closeAll(); open(a); });
  }
 
+ static String titleOf(String s) { switch (s) { case "look": return "Look"; case "general": return "Language and privacy"; case "money": return "Money"; case "remind": return "Reminders"; case "data": return "Your data"; case "about": return "About"; default: return "Settings"; } }
+
  static void open(MainActivity a) {
   Store db = a.db;
-  Kit.page(a, "Settings", null, null, c -> {
+  Kit.page(a, a.settingsSection.isEmpty() ? "Settings" : titleOf(a.settingsSection), null, null, c -> {
 
    LinearLayout p = Ui.row(a); p.setBackground(Ui.shape(Ui.surface, 26)); p.setPadding(Ui.dp(18), Ui.dp(16), Ui.dp(18), Ui.dp(16));
    String nm = db.pref("name", "You"); View av = Profile.avatar(a,56); p.addView(av, Ui.lpm(Ui.dp(56), Ui.dp(56), 0, 0, 16, 0));
@@ -54,7 +56,17 @@ final class Settings {
    Ui.tap(p, () -> Sheets.form(a, "Your name", new String[]{"Name"}, new String[]{nm}, new int[]{Sheets.TEXT}, "Save", v -> { if (!v[0].isEmpty()) { db.setPref("name", v[0]); a.refresh(); a.closeAll(); open(a); } }, null)); c.addView(p);
    TextView photo=Ui.button(a,"Add or change profile picture",false);c.addView(photo,Ui.lpm(-1,-2,0,10,0,0));Ui.tap(photo,()->Profile.choose(a));
 
-   c.addView(Kit.sectionHead(a, "Look", null, null)); LinearLayout look = Ui.card(a); look.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
+   if (a.settingsSection.isEmpty()) {
+    LinearLayout hub = Ui.card(a); hub.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
+    String[][] secs = {{"moon","Look","Colours, font, text size, home","look"},{"globe","Language and privacy","ഭാഷ, app lock, fingerprint","general"},{"wallet","Money","Accounts, categories, budgets, goals","money"},{"bell","Reminders","Daily check, money due","remind"},{"share","Your data","Backup, export, import, trash bin","data"},{"info","About","Version, share Hisab","about"}};
+    for (int si = 0; si < secs.length; si++) { final String id = secs[si][3]; if (si > 0) hub.addView(Ui.divider(a)); hub.addView(item(a, secs[si][0], secs[si][1], secs[si][2], () -> { a.settingsSection = id; a.closeAll(); open(a); })); }
+    c.addView(hub);
+    return;
+   }
+   String sec = a.settingsSection;
+
+   if (sec.equals("look")) {
+   LinearLayout look = Ui.card(a); look.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
    look.addView(item(a, "moon", "Appearance", db.pref("appearance", "System"), () -> choose(a, "Appearance", "appearance", new String[]{"System", "Light", "Dark"}, db.pref("appearance", "System"), true))); look.addView(Ui.divider(a));
    LinearLayout sw = Ui.row(a); sw.setPadding(0, Ui.dp(14), 0, Ui.dp(14)); sw.addView(Ui.text(a, "Accent", 15.5f, Ui.ink, true), Ui.weight(1)); String cur = db.pref("accent", "Lime");
    for (int i = 0; i < Ui.ACCENT_NAMES.length; i++) { final String nmx = Ui.ACCENT_NAMES[i]; View d = new View(a); boolean on = nmx.equals(cur); d.setBackground(on ? Ui.outline(Ui.accentFor(a, nmx), Ui.ink, 14, 2.2f) : Ui.shape(Ui.accentFor(a, nmx), 14)); sw.addView(d, Ui.lpm(Ui.dp(28), Ui.dp(28), 4, 0, 0, 0)); d.setContentDescription(nmx); Ui.tap(d, () -> { db.setPref("accent", nmx); a.applyTheme(); a.build(); a.closeAll(); open(a); }); }
@@ -67,27 +79,35 @@ final class Settings {
    look.addView(item(a, "edit", "Text size", db.pref("textScale", "Standard"), () -> choose(a, "Text size", "textScale", new String[]{"Compact", "Standard", "Large"}, db.pref("textScale", "Standard"), true))); look.addView(Ui.divider(a));
    look.addView(item(a, "spark", "Custom accent colour", db.pref("accent", "Lime").equals("Custom") ? db.pref("accentHex", "#C7F23A") : "Off", () -> customAccent(a))); look.addView(Ui.divider(a));
    look.addView(item(a, "home", "Customise Home screen", null, () -> HomeCustom.open(a))); c.addView(look);
+   }
 
+   if (sec.equals("general")) {
    LinearLayout gn = Ui.card(a); gn.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
    gn.addView(item(a,"globe","Language / ഭാഷ",db.pref("language","English"),()->choose(a,"Language / ഭാഷ","language",new String[]{"English","മലയാളം"},db.pref("language","English"),true)));
    gn.addView(Ui.text(a,"Malayalam is a beta interface translation. Technical help may remain in English. Your entries and category names are not changed.",12,Ui.muted,false),Ui.lpm(-1,-2,0,0,0,10));
    gn.addView(Ui.divider(a));
    gn.addView(item(a,"lock","Privacy",null,()->Privacy.open(a))); c.addView(gn);
+   }
 
-   c.addView(Kit.sectionHead(a, "Money", null, null)); LinearLayout mo = Ui.card(a); mo.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
+   if (sec.equals("money")) {
+   LinearLayout mo = Ui.card(a); mo.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
    mo.addView(item(a, "wallet", "Accounts", null, () -> Pages.accounts(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "other", "Categories", null, () -> Pages.categories(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "target", "Budgets", null, () -> Pages.budgets(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "flame", "Goals", null, () -> Pages.goals(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "repeat", "Bills and repeats", null, () -> Pages.recurring(a))); mo.addView(Ui.divider(a));
    mo.addView(item(a, "coin", "Currency", db.pref("currency", "INR"), () -> choose(a, "Currency", "currency", Fmt.CURRENCIES, db.pref("currency", "INR"), true))); mo.addView(Ui.divider(a));
    mo.addView(item(a, "ledger", "Number grouping", db.pref("grouping", "Indian"), () -> choose(a, "Number grouping", "grouping", new String[]{"Indian", "International", "None"}, db.pref("grouping", "Indian"), true))); mo.addView(Ui.divider(a));
    mo.addView(item(a, "calendar", "Date format", dateStyleName(db.pref("dateStyle", "DMY")), () -> { List<String> labels = Arrays.asList("24 Nov", "Nov 24", "24.11.2026"), codes = Arrays.asList("DMY", "MDY", "NUM"); Sheets.pick(a, "Date format", labels, null, codes.indexOf(db.pref("dateStyle", "DMY")), i -> { db.setPref("dateStyle", codes.get(i)); a.applyTheme(); a.build(); a.closeAll(); open(a); }); })); mo.addView(Ui.divider(a));
    mo.addView(item(a,"sms","Bank SMS balances","Experimental",()->BankSms.open(a))); c.addView(mo);
+   }
 
-   c.addView(Kit.sectionHead(a, "Reminder", null, null)); LinearLayout rm = Ui.card(a); rm.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
+   if (sec.equals("remind")) {
+   LinearLayout rm = Ui.card(a); rm.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
    LinearLayout rr = Ui.row(a); rr.setPadding(0, Ui.dp(14), 0, Ui.dp(14)); rr.addView(Ui.icon(a, "bell", 22, Ui.ink), Ui.lpm(Ui.dp(22), Ui.dp(22), 0, 0, 16, 0)); rr.addView(Ui.text(a, "Daily check", 15.5f, Ui.ink, true), Ui.weight(1)); Switch rs = Ui.toggle(a); rs.setChecked(db.flag("remind", false)); rr.addView(rs);
    rs.setOnCheckedChangeListener((v, on) -> { db.setPref("remind", on ? "1" : "0"); if (on && Build.VERSION.SDK_INT >= 33) a.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 5); Reminders.schedule(a, db); }); rm.addView(rr); rm.addView(Ui.divider(a));
    int mins = Integer.parseInt(db.pref("remindAt", "1230")); rm.addView(item(a, "calendar", "Time", String.format(Locale.US, "%d:%02d %s", (mins / 60 + 11) % 12 + 1, mins % 60, mins / 60 >= 12 ? "PM" : "AM"), () -> new android.app.TimePickerDialog(a, (v, h, mi) -> { db.setPref("remindAt", "" + (h * 60 + mi)); Reminders.schedule(a, db); a.closeAll(); open(a); }, mins / 60, mins % 60, false).show())); rm.addView(Ui.divider(a));
    rm.addView(item(a, "people", "Money due reminders", db.flag("autoRemind", false) ? "On" : "Off", () -> AutoRemind.open(a))); c.addView(rm);
+   }
 
-   c.addView(Kit.sectionHead(a, "Your data", null, null)); LinearLayout da = Ui.card(a); da.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
+   if (sec.equals("data")) {
+   LinearLayout da = Ui.card(a); da.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
    da.addView(item(a,"ledger","Trash bin",null,()->Trash.open(a)));da.addView(Ui.divider(a));
    da.addView(item(a,"lock","Encrypted backup",null,()->Backup.password(a,true)));da.addView(Ui.divider(a));
    da.addView(item(a,"download","Restore encrypted backup",null,()->Backup.password(a,false)));da.addView(Ui.divider(a));
@@ -105,8 +125,10 @@ final class Settings {
    da.addView(item(a, "trash", "Clear sample data", db.flag("sample", false) ? "Sample is on" : "Not in use", () -> Sheets.confirm(a, "Clear everything?", "This removes every entry, person, budget and goal on this phone, and starts you with empty cash and bank accounts.", "Clear", () -> { db.wipe(); db.seedBasics(); db.setPref("sample", "0"); a.closeAll(); a.refresh(); a.toast("Cleared", null); })));
    if (!db.flag("sample", false)) { da.addView(Ui.divider(a)); da.addView(item(a, "spark", "Load sample data", null, () -> Sheets.confirm(a, "Replace with sample data?", "Your current entries on this phone will be replaced.", "Replace", () -> { Sample.seed(db); a.closeAll(); a.refresh(); }))); }
    c.addView(da);
+   }
 
-   c.addView(Kit.sectionHead(a, "About", null, null)); LinearLayout ab = Ui.card(a);
+   if (sec.equals("about")) {
+   LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
    ab.addView(Ui.text(a, "Version 1.0.0 test build", 12.5f, Ui.muted, true));
    ab.addView(Ui.divider(a), Ui.lpm(-1, -2, 0, 14, 0, 0));
@@ -117,6 +139,7 @@ final class Settings {
    String[][] links={{"WhatsApp channel","https://whatsapp.com/channel/0029VawGIGTD38CRJde0fl1c","whatsapp"},{"Telegram community","https://t.me/AiCoN4tech","telegram"},{"AiCoN website","https://aicon-hub.github.io/","globe"}};
    for(int li=0;li<links.length;li++){String[] link=links[li];if(li>0)note.addView(Ui.divider(a));note.addView(item(a,link[2],link[0],null,()->a.launchExternal(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(link[1])))));}
    c.addView(note,Ui.lpm(-1,-2,0,18,0,20));
+   }
   });
  }
 
