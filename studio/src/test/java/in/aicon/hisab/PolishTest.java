@@ -103,6 +103,29 @@ public class PolishTest {
  @Test public void trashBinRoundTripAndPurge(){Store.Tx t=new Store.Tx();t.kind="expense";t.amount=4200;t.day=Fmt.today().toString();t.cat=a.db.categories("expense").get(0).id;t.account=a.db.accounts().get(0).id;t.note="bin-test";t.tags="";t.id=a.db.save(t);a.db.trashTx(t.id);for(Store.Tx x:a.db.txs("0000-01-01","9999-12-31"))assertNotEquals(t.id,x.id);assertEquals(1,a.db.trash().size());a.db.restoreTx(t.id);boolean back=false;for(Store.Tx x:a.db.txs("0000-01-01","9999-12-31"))if(x.id==t.id)back=true;assertTrue(back);a.db.trashTx(t.id);a.db.getWritableDatabase().execSQL("UPDATE tx SET deleted=? WHERE id=?",new Object[]{System.currentTimeMillis()-31L*24*60*60*1000,t.id});java.util.List<Long> purged=a.db.purgeTrash();assertTrue(purged.contains(t.id));assertTrue(a.db.trash().isEmpty());}
  @Test public void tagsSaveAndSearchRoundTrip(){Store.Tx t=new Store.Tx();t.kind="expense";t.amount=1000;t.day=Fmt.today().toString();t.cat=a.db.categories("expense").get(0).id;t.account=a.db.accounts().get(0).id;t.note="tagtest-note";t.tags="zztag";t.id=a.db.save(t);assertEquals("zztag",a.db.txById(t.id).tags);a.ledgerQuery="zztag";android.view.View v=LedgerPage.build(a);assertTrue(texts(v).contains("tagtest-note"));a.ledgerQuery="";a.db.deleteTx(t.id);}
  @Test public void ledgerCategoryAndAmountFilters(){Store.Cat c=a.db.categories("expense").get(0);Store.Tx t=new Store.Tx();t.kind="expense";t.amount=5000;t.day=Fmt.today().toString();t.cat=c.id;t.account=a.db.accounts().get(0).id;t.note="zzfilter-note";t.tags="";t.id=a.db.save(t);a.ledgerCat=c.id+9999;android.view.View v=LedgerPage.build(a);assertFalse(texts(v).contains("zzfilter-note"));a.ledgerCat=0;a.ledgerMin=900000;v=LedgerPage.build(a);assertFalse(texts(v).contains("zzfilter-note"));a.ledgerMin=0;a.ledgerMax=4900;v=LedgerPage.build(a);assertFalse(texts(v).contains("zzfilter-note"));a.ledgerMax=0;a.ledgerCat=c.id;v=LedgerPage.build(a);assertTrue(texts(v).contains("zzfilter-note"));a.ledgerCat=0;a.db.deleteTx(t.id);}
+ @Test public void wishlistRoundTripAndAfford() {
+  Store db = a.db;
+  java.util.List<Wishlist.Item> items = new java.util.ArrayList<>();
+  Wishlist.Item it = new Wishlist.Item(); it.name = "zzcycle"; it.price = 500000; items.add(it); Wishlist.write(db, items);
+  assertEquals(1, Wishlist.read(db).size()); assertEquals("zzcycle", Wishlist.read(db).get(0).name); assertEquals(500000, Wishlist.read(db).get(0).price);
+  Wishlist.open(a);
+  String text = texts(a.layers.get(a.layers.size() - 1).panel);
+  assertTrue(text.contains("zzcycle")); assertTrue(text.contains(Fmt.money(500000)));
+  Wishlist.write(db, new java.util.ArrayList<>()); assertEquals(0, Wishlist.read(db).size());
+ }
+
+ @Test public void tripTotalsFromTags() {
+  Store db = a.db; long acc = db.accounts().get(0).id;
+  java.util.List<Trips.Trip> trips = new java.util.ArrayList<>();
+  Trips.Trip tr = new Trips.Trip(); tr.name = "zzGoa"; tr.from = ""; tr.to = ""; trips.add(tr); Trips.write(db, trips);
+  Store.Tx t = new Store.Tx(); t.kind = "expense"; t.amount = 45000; t.day = java.time.LocalDate.now().toString(); t.account = acc; t.cat = 0; t.note = "Shack"; t.person = 0; t.tags = "beach trip:zzgoa"; t.id = db.save(t);
+  long[] tot = Trips.totals(db, "zzGoa"); assertEquals(45000, tot[0]); assertEquals(1, tot[1]);
+  Trips.open(a);
+  String text = texts(a.layers.get(a.layers.size() - 1).panel);
+  assertTrue(text.contains("zzGoa")); assertTrue(text.contains(Fmt.money(45000)));
+  db.deleteTx(t.id); Trips.write(db, new java.util.ArrayList<>());
+ }
+
  @Test public void subscriptionFinderDetectsMonthly() {
   Store db = a.db; long acc = db.accounts().get(0).id; java.time.LocalDate base = java.time.LocalDate.now().minusDays(95);
   long[] ids = new long[3];
