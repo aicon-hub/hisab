@@ -97,7 +97,7 @@ final class Settings {
 
    if (sec.equals("money")) {
    LinearLayout mo = Ui.card(a); mo.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
-   mo.addView(item(a, "wallet", "Accounts", null, () -> Pages.accounts(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "other", "Categories", null, () -> Pages.categories(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "target", "Budgets", null, () -> Pages.budgets(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "flame", "Goals", null, () -> Pages.goals(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "coin", "Daily spending limit", dailyLimitValue(db), () -> editDailyLimit(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "spark", "Round-up saving", roundUpValue(db), () -> editRoundUp(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "target", "Wishlist", null, () -> Wishlist.open(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "globe", "Trips and events", null, () -> Trips.open(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "repeat", "Bills and repeats", null, () -> Pages.recurring(a))); mo.addView(Ui.divider(a));
+   mo.addView(item(a, "wallet", "Accounts", null, () -> Pages.accounts(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "other", "Categories", null, () -> Pages.categories(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "target", "Budgets", null, () -> Pages.budgets(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "flame", "Goals", null, () -> Pages.goals(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "coin", "Daily spending limit", dailyLimitValue(db), () -> editDailyLimit(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "spark", "Round-up saving", roundUpValue(db), () -> editRoundUp(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "target", "Wishlist", null, () -> Wishlist.open(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "globe", "Trips and events", null, () -> Trips.open(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "spark", "Year in review", "Totals, top categories and the biggest day of " + java.time.Year.now().getValue(), () -> YearReview.open(a))); mo.addView(Ui.divider(a)); mo.addView(item(a, "repeat", "Bills and repeats", null, () -> Pages.recurring(a))); mo.addView(Ui.divider(a));
    mo.addView(item(a, "coin", "Currency", db.pref("currency", "INR"), () -> choose(a, "Currency", "currency", Fmt.CURRENCIES, db.pref("currency", "INR"), true))); mo.addView(Ui.divider(a));
    mo.addView(item(a, "ledger", "Number grouping", db.pref("grouping", "Indian"), () -> choose(a, "Number grouping", "grouping", new String[]{"Indian", "International", "None"}, db.pref("grouping", "Indian"), true))); mo.addView(Ui.divider(a));
    mo.addView(item(a, "calendar", "Date format", dateStyleName(db.pref("dateStyle", "DMY")), () -> { List<String> labels = Arrays.asList("24 Nov", "Nov 24", "24.11.2026"), codes = Arrays.asList("DMY", "MDY", "NUM"); Sheets.pick(a, "Date format", labels, null, codes.indexOf(db.pref("dateStyle", "DMY")), i -> { db.setPref("dateStyle", codes.get(i)); a.applyTheme(); a.build(); a.closeAll(); open(a); }); })); mo.addView(Ui.divider(a));
@@ -109,7 +109,10 @@ final class Settings {
    LinearLayout rr = Ui.row(a); rr.setPadding(0, Ui.dp(14), 0, Ui.dp(14)); rr.addView(Ui.icon(a, "bell", 22, Ui.ink), Ui.lpm(Ui.dp(22), Ui.dp(22), 0, 0, 16, 0)); rr.addView(Ui.text(a, "Daily check", 15.5f, Ui.ink, true), Ui.weight(1)); Switch rs = Ui.toggle(a); rs.setChecked(db.flag("remind", false)); rr.addView(rs);
    rs.setOnCheckedChangeListener((v, on) -> { db.setPref("remind", on ? "1" : "0"); if (on && Build.VERSION.SDK_INT >= 33) a.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 5); Reminders.schedule(a, db); }); rm.addView(rr); rm.addView(Ui.divider(a));
    int mins = Integer.parseInt(db.pref("remindAt", "1230")); rm.addView(item(a, "calendar", "Time", String.format(Locale.US, "%d:%02d %s", (mins / 60 + 11) % 12 + 1, mins % 60, mins / 60 >= 12 ? "PM" : "AM"), () -> new android.app.TimePickerDialog(a, (v, h, mi) -> { db.setPref("remindAt", "" + (h * 60 + mi)); Reminders.schedule(a, db); a.closeAll(); open(a); }, mins / 60, mins % 60, false).show())); rm.addView(Ui.divider(a));
-   rm.addView(item(a, "people", "Money due reminders", db.flag("autoRemind", false) ? "On" : "Off", () -> AutoRemind.open(a))); c.addView(rm);
+   rm.addView(item(a, "people", "Money due reminders", db.flag("autoRemind", false) ? "On" : "Off", () -> AutoRemind.open(a))); rm.addView(Ui.divider(a));
+   LinearLayout qa = Ui.row(a); qa.setPadding(0, Ui.dp(14), 0, Ui.dp(14)); qa.addView(Ui.icon(a, "spark", 22, Ui.ink), Ui.lpm(Ui.dp(22), Ui.dp(22), 0, 0, 16, 0)); LinearLayout qm = Ui.col(a); qm.addView(Ui.text(a, "Quick-add notification", 15.5f, Ui.ink, true)); TextView qs = Ui.text(a, "Always in the shade, one tap to note an expense", 12.5f, Ui.muted, false); qs.setPadding(0, Ui.dp(3), 0, 0); qm.addView(qs); qa.addView(qm, Ui.weight(1)); Switch qt = Ui.toggle(a); qt.setChecked(QuickAddNotif.on(db)); qa.addView(qt); rm.addView(qa);
+   qt.setOnCheckedChangeListener((v, on) -> { db.setPref("quickAddNotif", on ? "1" : "0"); if (on && Build.VERSION.SDK_INT >= 33) a.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 5); QuickAddNotif.apply(a, db); });
+   c.addView(rm);
    }
 
    if (sec.equals("data")) {
@@ -125,6 +128,8 @@ final class Settings {
    da.addView(item(a, "share", "Export entries as CSV", "A spreadsheet of your entries to share or save", "Sends all your entries as a CSV file that spreadsheet apps like Excel and Google Sheets can open. Nothing is uploaded anywhere; you choose where it goes.", () -> exportCsv(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "share", "Export everything (CSV)", "Entries, accounts, categories, people, budgets, goals, repeats", "One CSV file with the whole app: entries plus your accounts, categories, people, budgets, goals and repeats.", () -> exportEverything(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "upload", "Import entries from CSV", "Bring entries in from a file", "Reads a CSV file you choose and adds the entries in it. Entries that already exist are skipped, so importing the same file twice adds nothing.", () -> importCsv(a))); da.addView(Ui.divider(a));
+   da.addView(item(a, "people", "Share a ledger", "A file someone else can import, tags included", "Makes a shared-ledger file of all your entries that another Hisab user can import on their phone. Unlike CSV it keeps tags and entry kinds exactly. Nothing is uploaded; you choose where it goes.", () -> shareLedger(a))); da.addView(Ui.divider(a));
+   da.addView(item(a, "download", "Import a shared ledger", "Bring in entries shared with you", "Reads a shared-ledger file someone sent you and adds its entries here. Entries that already exist are skipped, so sharing back and forth never duplicates.", () -> importShared(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "eye", "Import from screenshots or PDF", "Read another app's exports on this phone", "Reads bank or app statements saved as screenshots or PDF files and turns them into entries you can review. Everything is read on this phone.", () -> OcrImport.open(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "bills", "Scan a bill photo", "Items and GST read on this phone", "Take or pick a photo of a bill; Hisab reads the items and GST on this phone and helps you save them as an entry.", () -> BillScan.open(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "download", "Statement (PDF)", "Monthly or all-time, with charts", "Creates a PDF statement of your entries for a month or all time. You choose whether to include the pie chart and bar chart, and whether it uses colours or black and white.", () -> pickStatementMonth(a))); da.addView(Ui.divider(a));
@@ -136,7 +141,7 @@ final class Settings {
    if (sec.equals("about")) {
    LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
-   ab.addView(Ui.text(a, "Version 1.0.4 test build", 12.5f, Ui.muted, true));
+   ab.addView(Ui.text(a, "Version 1.0.5 test build", 12.5f, Ui.muted, true));
    ab.addView(Ui.divider(a), Ui.lpm(-1, -2, 0, 14, 0, 0));
    ab.addView(item(a, "share", "Share Hisab with a friend", "Recommend the app and how to install it", () -> shareHisab(a)));
    ab.addView(item(a, "info", "Section guides", "Short explanations, shown once per section · tap to see them again", () -> { a.db.getWritableDatabase().delete("prefs", "k LIKE 'infoSeen_%'", null); a.toast("Guides will show again when you open each section", null); a.closeAll(); open(a); }));
@@ -197,6 +202,27 @@ final class Settings {
   });
  }
 
+
+ static void shareLedger(MainActivity a) {
+  Intent i = new Intent(Intent.ACTION_SEND).setType("application/json").putExtra(Intent.EXTRA_TEXT, SharedLedger.export(a.db)).putExtra(Intent.EXTRA_SUBJECT, "Hisab shared ledger");
+  a.launchExternal(Intent.createChooser(i, "Share a ledger"));
+ }
+
+ static void importShared(MainActivity a) {
+  Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
+  a.request(i, d -> {
+   try (java.io.InputStream in = a.getContentResolver().openInputStream(d.getData())) {
+    java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream(); byte[] chunk = new byte[8192]; int n;
+    while ((n = in.read(chunk)) > 0) buf.write(chunk, 0, n);
+    String text = buf.toString("UTF-8");
+    if (!SharedLedger.isSharedLedger(text)) { a.toast("That is not a Hisab shared ledger", null); return; }
+    Sheets.confirm(a, "Import shared ledger?", "Accounts, categories and people named in the file are created when missing. Entries that already exist, tags included, are skipped, so sharing back and forth never duplicates. Everything stays on this phone.", "Import", () -> {
+     int[] r = SharedLedger.importEntries(a.db, text);
+     a.closeAll(); a.refresh(); a.toast("Imported " + r[0] + (r[1] > 0 ? " · skipped " + r[1] : ""), null);
+    });
+   } catch (Exception e) { a.toast("That file could not be read", null); }
+  });
+ }
 
  static void pickStatementMonth(MainActivity a) {
   List<String> names = new ArrayList<>(); List<java.time.YearMonth> months = new ArrayList<>();

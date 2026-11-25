@@ -224,19 +224,19 @@ final class HomePage {
  }
 
  static final String[][] WORDS = {
-  {"Food", "tea coffee lunch dinner breakfast snack snacks food biryani juice meal chai"}, {"Groceries", "milk vegetables fruits groceries grocery rice eggs"}, {"Transport", "auto bus metro cab taxi uber ola train ticket parking"},
-  {"Fuel", "petrol diesel fuel"}, {"Bills", "recharge bill electricity wifi internet rent water gas"}, {"Health", "medicine pharmacy doctor hospital"}, {"Fun", "movie game netflix show"}, {"Education", "book books fees course exam"}, {"Shopping", "shirt shoes clothes dress shopping"}};
+  {"Food", "tea coffee lunch dinner breakfast snack snacks food biryani juice meal chai chaya chaaya kaapi kattan kanji oonu bhakshanam sadya"}, {"Groceries", "milk vegetables fruits groceries grocery rice eggs paal mutta pazham pachakkari ari"}, {"Transport", "auto bus metro cab taxi uber ola train ticket parking yathra"},
+  {"Fuel", "petrol diesel fuel"}, {"Bills", "recharge bill electricity wifi internet rent water gas"}, {"Health", "medicine pharmacy doctor hospital marunnu asupatri"}, {"Fun", "movie game netflix show cinema padam sinima"}, {"Education", "book books fees course exam pustakam"}, {"Shopping", "shirt shoes clothes dress shopping uduppu"}};
  static Store.Tx parse(Store db, String s) {
   if(s==null||s.trim().isEmpty())return null;
   String value=s.trim();LocalDate day=LocalDate.now();
   { StringBuilder nb = new StringBuilder(value); for (int i = 0; i < nb.length(); i++) { char ch = nb.charAt(i); if (ch >= '\u0D66' && ch <= '\u0D6F') nb.setCharAt(i, (char) ('0' + ch - '\u0D66')); } value = nb.toString(); }
   java.util.regex.Matcher date=java.util.regex.Pattern.compile("\\b(20[0-9]{2}-[0-9]{2}-[0-9]{2})\\b").matcher(value);
   if(date.find()){try{day=LocalDate.parse(date.group(1));}catch(Exception e){return null;}value=value.replace(date.group(1),"");}
-  else if(value.toLowerCase(Locale.ROOT).matches("(?s).*\\byesterday\\b.*"))day=day.minusDays(1);
-  value=value.replaceAll("(?i)\\b(yesterday|today)\\b", " ").replaceAll("(?i)\\b(?:rs\\.?|inr)\\s*", "").replace("₹","");
+  else if(value.toLowerCase(Locale.ROOT).matches("(?s).*\\byesterday\\b.*")||value.toLowerCase(Locale.ROOT).matches("(?s).*\\binnale\\b.*"))day=day.minusDays(1);
+  value=value.replaceAll("(?i)\\b(yesterday|today|innale|innu)\\b", " ").replaceAll("(?i)\\b(?:rs\\.?|inr)\\s*", "").replace("₹","");
   java.util.regex.Matcher amount=java.util.regex.Pattern.compile("(?<![a-zA-Z0-9.-])([0-9][0-9,]*(?:\\.[0-9]{1,2})?)(?![0-9.])").matcher(value);
   if(!amount.find())return null;String token=amount.group(1);long amt=Ledger.parse(token.replace(",",""));int st=amount.start(),en=amount.end();if(amt<=0||amount.find())return null;
-  String note=(value.substring(0,st)+" "+value.substring(en)).trim().replaceAll("\\s+"," ");String lower=note.toLowerCase(Locale.ROOT);boolean income=lower.matches("(?s).*\\b(salary|received|got|income|ശമ്പളം|വരുമാനം)\\b.*");String catName=null;
+  String note=(value.substring(0,st)+" "+value.substring(en)).trim().replaceAll("\\s+"," ");String lower=note.toLowerCase(Locale.ROOT);boolean income=lower.matches("(?s).*\\b(salary|received|got|income|shambalam|sambalam|ശമ്പളം|വരുമാനം)\\b.*");String catName=null;
   for(String w:lower.split("\\s+"))for(String[] group:WORDS)if(Arrays.asList(group[1].split(" ")).contains(w))catName=group[0];
   if(catName==null)catName=CategoryIcons.existingCategory(CategoryIcons.suggest(note));
   List<Store.Acc> accs=db.accounts();if(accs.isEmpty())return null;Store.Tx t=new Store.Tx();t.kind=income?"income":"expense";t.amount=amt;t.day=day.toString();t.note=note.isEmpty()?(income?"Income":"Expense"):Fmt.title(note);t.account=accs.get(0).id;

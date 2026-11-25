@@ -21,7 +21,7 @@ public final class Reminders extends BroadcastReceiver {
  static PendingIntent pending(Context c) { return PendingIntent.getBroadcast(c, 7, new Intent(c, Reminders.class), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT); }
  @Override public void onReceive(Context c, Intent i) {
   Store db = new Store(c);
-  if (Intent.ACTION_BOOT_COMPLETED.equals(i.getAction()) || Intent.ACTION_MY_PACKAGE_REPLACED.equals(i.getAction())) { schedule(c, db); return; }
+  if (Intent.ACTION_BOOT_COMPLETED.equals(i.getAction()) || Intent.ACTION_MY_PACKAGE_REPLACED.equals(i.getAction())) { schedule(c, db); QuickAddNotif.apply(c, db); return; }
   if (!db.flag("remind", false)) return;
   NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
   if (Build.VERSION.SDK_INT >= 26) {

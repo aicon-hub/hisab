@@ -54,6 +54,7 @@ public class MainActivity extends Activity {
   LauncherIcons.apply(this);
   Reminders.schedule(this, db);
   AutoRemind.schedule(this, db);
+  QuickAddNotif.apply(this, db);
   db.normalisePhones();
   BankSms.autoCatchUp(this);
   Trash.purge(this); if (Lock.enabled(db) && !Lock.unlocked) showLock();

@@ -191,6 +191,51 @@ public class PolishTest {
   assertEquals(-1, Ledger.parse("\u0D6A.\u0D66\u0D66\u0D66"));
  }
 
+ @Test public void sharedLedgerRoundTripKeepsTags() {
+  Store db = a.db;
+  db.wipe(); db.seedBasics();
+  Store.Tx t = new Store.Tx(); t.kind = "expense"; t.amount = 4000; t.day = "2026-11-20"; t.account = db.accounts().get(0).id; t.note = "Chaya"; t.tags = "trip:kochi"; db.save(t);
+  int total = db.txs("0000-01-01", "9999-12-31").size();
+  String file = SharedLedger.export(db);
+  assertTrue(SharedLedger.isSharedLedger(file));
+  assertFalse(SharedLedger.isSharedLedger("{\"app\":\"other\"}"));
+  assertFalse(SharedLedger.isSharedLedger("not json"));
+  db.wipe(); db.seedBasics();
+  int[] r = SharedLedger.importEntries(db, file);
+  assertEquals(total, r[0]); assertEquals(0, r[1]);
+  Store.Tx in = db.txs("2026-11-20", "2026-11-20").get(0);
+  assertEquals("trip:kochi", in.tags); assertEquals(4000, in.amount); assertEquals("Chaya", in.note);
+  int[] again = SharedLedger.importEntries(db, file);
+  assertEquals(0, again[0]); assertEquals(total, again[1]);
+ }
+
+ @Test public void yearReviewMath() {
+  Store db = a.db;
+  db.wipe(); db.seedBasics();
+  long cash = db.accounts().get(0).id;
+  long food = 0, transport = 0, salary = 0;
+  for (Store.Cat c : db.categories(null)) { if (c.name.equals("Food")) food = c.id; if (c.name.equals("Transport")) transport = c.id; if (c.name.equals("Salary")) salary = c.id; }
+  Store.Tx e1 = new Store.Tx(); e1.kind = "expense"; e1.amount = 1000; e1.day = "2026-03-05"; e1.account = cash; e1.cat = food; e1.note = "Lunch"; db.save(e1);
+  Store.Tx e2 = new Store.Tx(); e2.kind = "expense"; e2.amount = 500; e2.day = "2026-03-05"; e2.account = cash; e2.cat = food; e2.note = "Tea"; db.save(e2);
+  Store.Tx e3 = new Store.Tx(); e3.kind = "expense"; e3.amount = 300; e3.day = "2026-03-07"; e3.account = cash; e3.cat = transport; e3.note = "Auto"; db.save(e3);
+  Store.Tx i1 = new Store.Tx(); i1.kind = "income"; i1.amount = 9000; i1.day = "2026-03-01"; i1.account = cash; i1.cat = salary; i1.note = "Salary"; db.save(i1);
+  long[] tt = YearReview.totals(db, 2026); assertEquals(9000, tt[0]); assertEquals(1800, tt[1]);
+  String[] big = YearReview.biggestDay(db, 2026); assertNotNull(big); assertEquals("2026-03-05", big[0]); assertEquals("1500", big[1]);
+  assertEquals(3, YearReview.activeDays(db, 2026));
+  java.util.List<long[]> top = YearReview.topCategories(db, 2026);
+  assertEquals(2, top.size()); assertEquals(food, top.get(0)[0]); assertEquals(1500, top.get(0)[1]);
+  assertEquals(0, YearReview.totals(db, 2025)[0]);
+  assertNull(YearReview.biggestDay(db, 2025));
+ }
+
+ @Test public void transliteratedMalayalamQuickAdd() {
+  Store.Tx t = HomePage.parse(a.db, "chaya 40"); assertNotNull(t); assertEquals(4000, t.amount); assertEquals("Food", a.db.categoryMap().get(t.cat).name);
+  Store.Tx g = HomePage.parse(a.db, "paal 55"); assertNotNull(g); assertEquals("Groceries", a.db.categoryMap().get(g.cat).name);
+  Store.Tx y = HomePage.parse(a.db, "innale auto 60"); assertNotNull(y); assertEquals(java.time.LocalDate.now().minusDays(1).toString(), y.day); assertEquals("Transport", a.db.categoryMap().get(y.cat).name);
+  Store.Tx m = HomePage.parse(a.db, "marunnu 120"); assertNotNull(m); assertEquals("Health", a.db.categoryMap().get(m.cat).name);
+  Store.Tx inc = HomePage.parse(a.db, "shambalam 50000"); assertNotNull(inc); assertEquals("income", inc.kind);
+ }
+
  @Test public void settingsHubListsSixSections() {
   a.settingsSection = ""; Settings.open(a);
   String hub = texts(a.layers.get(a.layers.size() - 1).panel);
