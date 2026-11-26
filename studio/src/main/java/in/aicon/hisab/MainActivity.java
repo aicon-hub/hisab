@@ -18,7 +18,7 @@ public class MainActivity extends Activity {
  Store db;
  FrameLayout root, tabHost, layerHost;
  LinearLayout dock;
- int tab = 0, topInset = 0, bottomInset = 0, keyboardInset = 0, ownKb = 0; HisabKeys kb;
+ int tab = 0, topInset = 0, bottomInset = 0, keyboardInset = 0, ownKb = 0;
  int nextRequestCode = 100;
  YearMonth ledgerMonth = YearMonth.now(), insightMonth = YearMonth.now();
  String ledgerFilter = "all", ledgerQuery = "", ledgerFrom = "", ledgerTo = ""; int ledgerDay = 0; long ledgerCat = 0, ledgerMin = 0, ledgerMax = 0; boolean ledgerCalendar = false; String settingsSection = ""; int reportYear = java.time.Year.now().getValue();
@@ -38,7 +38,6 @@ public class MainActivity extends Activity {
   applyTheme();
   root = new FrameLayout(this);
   setContentView(root);
-  kb = new HisabKeys(this); kb.install();
   root.setOnApplyWindowInsetsListener((v, ins) -> {
    if (Build.VERSION.SDK_INT >= 30) {
     android.graphics.Insets bars = ins.getInsets(WindowInsets.Type.systemBars());
@@ -241,9 +240,8 @@ public class MainActivity extends Activity {
 
  void closeAll() { for (Layer l : new ArrayList<>(layers)) close(l); }
 
- @Override public boolean dispatchTouchEvent(android.view.MotionEvent ev) { if (kb != null) kb.onTouch(ev); return super.dispatchTouchEvent(ev); }
  @Override public void onBackPressed() {
-  if (kb != null && kb.isShown()) { kb.hide(); return; }
+
   if (lockLayer != null) { moveTaskToBack(true); return; }
   if (!layers.isEmpty()) { closeTop(); return; }
   if (tab != 0) { showTab(0, true); return; }

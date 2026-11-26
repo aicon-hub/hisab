@@ -12,3 +12,6 @@ cmake -S engine -B build -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolcha
 cmake --build build --target hisabllm
 llvm-strip --strip-unneeded build/libhisabllm.so -o libhisabllm.so
 ```
+
+## Variants (1.0.28)
+Three builds from the same source: base (armv8-a), dotprod (`-march=armv8.2-a+dotprod`) and i8mm (`-march=armv8.6-a+i8mm+dotprod`, check CMake flags used in the build directories). The app reads the CPU features and downloads the matching file. The SHA-256 of each is in AiEngine.java.

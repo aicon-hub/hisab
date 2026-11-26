@@ -12,9 +12,28 @@ import java.util.concurrent.Executors;
  */
 final class AiEngine {
  private AiEngine() {}
- static final String URL = "https://github.com/aicon-hub/hisab/releases/download/v1.0.27-pro-test/libhisabllm-arm64.so";
- static final long SIZE = 6948224L;
- static final String SHA = "d2f6183e55b19a01be0af104ecfc32b52ae026ec4d92c651ef67cb1f1a771503";
+ static final String REL = "https://github.com/aicon-hub/hisab/releases/download/v1.0.28-pro-test/";
+ /** Engine builds: generic, with dot-product CPU code, and with int8 matrix code. The phone picks the best one it supports. */
+ static final String[] VARIANTS = {"base", "dotprod", "i8mm"};
+ static final String[] ASSET = {"libhisabllm-arm64.so", "libhisabllm-arm64-dotprod.so", "libhisabllm-arm64-i8mm.so"};
+ static final long[] SIZES = {6948224L, 6972112L, 6984880L};
+ static final String[] SHAS = {"d2f6183e55b19a01be0af104ecfc32b52ae026ec4d92c651ef67cb1f1a771503", "68004b960f9211077fe275e01884d012c60ae54050c69db935fa97ac403069f9", "98e4ccee53b3d84310afa84da819fca64fb8d0c75a00f173675fd20d550f8246"};
+ static int forced = -1;
+ static String features = null;
+ /** Reads the CPU feature list the kernel shows every app. */
+ static String cpuFeatures() {
+  if (features != null) return features;
+  StringBuilder b = new StringBuilder();
+  try (BufferedReader r = new BufferedReader(new FileReader("/proc/cpuinfo"))) { String l; while ((l = r.readLine()) != null) if (l.startsWith("Features")) { b.append(l).append(' '); } } catch (Exception e) { }
+  return features = b.toString();
+ }
+ static int pick(String f) {
+  boolean dot = f.contains(" asimddp"), i8 = f.contains(" i8mm");
+  return dot && i8 ? 2 : dot ? 1 : 0;
+ }
+ static int variant() { return forced >= 0 ? forced : pick(" " + cpuFeatures()); }
+ static String url() { return REL + ASSET[variant()]; }
+ static long size() { return SIZES[variant()]; }
  static final int CTX = 4096;
 
  /** What the engine needs from native code, so tests can swap in a fake. */
@@ -33,7 +52,7 @@ final class AiEngine {
  static Backend backend = JNI; static boolean nativeReady;
 
  private static final ExecutorService POOL = Executors.newSingleThreadExecutor();
- static File file(android.content.Context c) { File d = new File(c.getFilesDir(), "ai-engine"); d.mkdirs(); return new File(d, "libhisabllm.so"); }
+ static File file(android.content.Context c) { File d = new File(c.getFilesDir(), "ai-engine"); d.mkdirs(); return new File(d, "libhisabllm-" + VARIANTS[variant()] + ".so"); }
  static boolean installed(android.content.Context c) { return backend != JNI || (file(c).isFile() && new File(file(c).getPath() + ".ok").isFile()); }
 
  // ---- engine download ----
@@ -44,14 +63,15 @@ final class AiEngine {
    String err = null;
    try {
     File out = file(c), part = new File(out.getPath() + ".part"); new File(out.getPath() + ".ok").delete(); out.delete(); part.delete();
-    HttpURLConnection h = (HttpURLConnection) new URL(URL).openConnection(); h.setConnectTimeout(20000); h.setReadTimeout(30000); h.setInstanceFollowRedirects(true);
+    HttpURLConnection h = (HttpURLConnection) new URL(url()).openConnection(); h.setConnectTimeout(20000); h.setReadTimeout(30000); h.setInstanceFollowRedirects(true);
     if (h.getResponseCode() != 200) throw new IOException("Download failed (" + h.getResponseCode() + ")");
     try (InputStream in = h.getInputStream(); OutputStream o = new FileOutputStream(part)) {
      byte[] buf = new byte[1 << 16]; int n; long last = 0;
      while ((n = in.read(buf)) > 0) { o.write(buf, 0, n); done += n; if (done - last > 200000) { last = done; progress.run(); } }
     }
-    if (part.length() != SIZE || !AiModels.sha256(part).equals(SHA)) { part.delete(); throw new IOException("The engine file did not match its checksum and was discarded."); }
+    if (part.length() != size() || !AiModels.sha256(part).equals(SHAS[variant()])) { part.delete(); throw new IOException("The engine file did not match its checksum and was discarded."); }
     part.setReadOnly(); if (!part.renameTo(out)) throw new IOException("Could not save the engine."); out.setReadOnly(); new File(out.getPath() + ".ok").createNewFile();
+    File[] old = out.getParentFile().listFiles(); if (old != null) for (File o2 : old) if (!o2.getName().startsWith(out.getName())) o2.delete();
    } catch (Exception e) { err = e.getMessage() == null ? "Download failed" : e.getMessage(); }
    dl = false; dlError = err; end.accept(err);
   });
@@ -72,7 +92,7 @@ final class AiEngine {
  /** Starts one answer. update runs on the worker thread after every piece; end runs on the worker thread with null on success. */
  static void ask(android.content.Context c, AiModels.M m, String[] roles, String[] texts, float temp, Runnable update, java.util.function.Consumer<String> end) {
   if (running) return;
-  running = true; stopped = false; error = null; live = new StringBuilder(); tokens = 0; tStart = System.currentTimeMillis(); tFirst = 0; tEnd = 0; loadMs = 0; promptMs = 0; stage = "Starting the engine";
+  H.removeCallbacks(IDLE); running = true; stopped = false; error = null; live = new StringBuilder(); tokens = 0; tStart = System.currentTimeMillis(); tFirst = 0; tEnd = 0; loadMs = 0; promptMs = 0; stage = "Starting the engine";
   POOL.execute(() -> {
    String err = null;
    try {
@@ -97,7 +117,7 @@ final class AiEngine {
      update.run();
     }
    } catch (Throwable e) { err = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage(); if (e instanceof UnsatisfiedLinkError) err = "The AI engine could not start on this phone (" + e.getMessage() + ")."; }
-   tEnd = System.currentTimeMillis(); running = false; stage = ""; error = err;
+   tEnd = System.currentTimeMillis(); running = false; stage = ""; error = err; idle();
    lastNote = m.name + ": " + tokens + " pieces, " + String.format(java.util.Locale.US, "%.1f", tps()) + " per second, first word after " + String.format(java.util.Locale.US, "%.1f", (tFirst > 0 ? tFirst - tStart : tEnd - tStart) / 1000.0) + " s" + (loadMs > 0 ? " (model load " + String.format(java.util.Locale.US, "%.1f", loadMs / 1000.0) + " s)" : "");
    end.accept(err);
   });
@@ -110,5 +130,26 @@ final class AiEngine {
   int lead = b[i] & 0xFF, need = lead >= 0xF0 ? 4 : lead >= 0xE0 ? 3 : lead >= 0xC0 ? 2 : 1;
   return (n - i) >= need ? n : i;
  }
+ static volatile String warmError;
+ private static final android.os.Handler H = new android.os.Handler(android.os.Looper.getMainLooper());
+ private static final Runnable IDLE = () -> { if (!running && !loading) POOL.execute(AiEngine::unloadNow); };
+ /** Frees the model's memory five minutes after the last use. */
+ static void idle() { H.removeCallbacks(IDLE); H.postDelayed(IDLE, 5 * 60 * 1000L); }
+ /** Loads the chosen model in the background so the first question does not wait for it. */
+ static void warm(android.content.Context c, AiModels.M m, Runnable update) {
+  if (running || loading || m.id.equals(loadedId) || !installed(c)) return;
+  loading = true; warmError = null; stage = "Loading " + m.name; H.removeCallbacks(IDLE); final long t = System.currentTimeMillis(); tWarm = t;
+  POOL.execute(() -> {
+   try {
+    if (backend == JNI && !nativeReady) { System.load(file(c).getAbsolutePath()); nativeReady = true; }
+    if (!m.id.equals(loadedId)) {
+     unloadNow(); int r = backend.load(AiModels.file(c, m).getAbsolutePath(), CTX, threads());
+     if (r == 0) { loadedId = m.id; loadMs = System.currentTimeMillis() - t; } else warmError = r == 2 ? "Not enough memory to load " + m.name + "." : "Could not open the model file.";
+    }
+   } catch (Throwable e) { warmError = e instanceof UnsatisfiedLinkError ? "The AI engine could not start on this phone." : String.valueOf(e.getMessage()); }
+   loading = false; stage = ""; idle(); update.run();
+  });
+ }
+ static volatile long tWarm;
  static void stop() { stopped = true; try { backend.stop(); } catch (Throwable ignored) { } }
 }

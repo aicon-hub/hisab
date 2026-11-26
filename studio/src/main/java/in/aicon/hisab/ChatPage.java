@@ -1,43 +1,53 @@
 package in.aicon.hisab;
 
+import android.graphics.drawable.GradientDrawable;
 import android.text.InputType;
+import android.view.Gravity;
+import android.view.View;
 import android.widget.EditText;
-import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** "Ask Hisab": a rule-based chat over the user's own entries. Nothing leaves the phone. */
+/** "Ask Hisab": a chat where a model on this phone answers. Reading and writing the user's data are separate switches, both off until he turns them on. */
 final class ChatPage {
  private ChatPage() { }
- /** [who, text, sources]: who is "me" or "hisab". Kept while the app is open. */
+ /** [who, text, note]: who is "me" or "hisab". */
  static final List<String[]> LOG = new ArrayList<>();
  static ChatBrain.Reply pending;
- /** The run being shown in the flow card (real steps from the engine). */
- static ChatBrain.Reply run;
- static boolean running;
- static LinearLayout lastC;
  static String draft = "";
- static long clock;
- static final long STEP_MS = 420;
+ private static LinearLayout top, msgs; private static ScrollView scroll; private static MainActivity act;
  private static final android.os.Handler H = new android.os.Handler(android.os.Looper.getMainLooper());
 
+ static boolean read(MainActivity a) { return a.db.flag("chatRead", false); }
+ static boolean write(MainActivity a) { return a.db.flag("chatWrite", false); }
+
  static void open(MainActivity a) {
-  pending = null; run = null; running = false;
-  Kit.page(a, "Ask Hisab", null, null, c -> { lastC = c; build(a, c); });
+  pending = null; act = a;
+  if (LOG.isEmpty() && a.db.flag("chatSave", false)) load(a);
+  final MainActivity.Layer[] ref = new MainActivity.Layer[1];
+  ref[0] = a.open(() -> {
+   LinearLayout outer = Ui.col(a);
+   outer.addView(Kit.bar(a, "Ask Hisab", ref, null, null));
+   top = Ui.col(a); top.setPadding(Ui.dp(16), 0, Ui.dp(16), 0); outer.addView(top, new LinearLayout.LayoutParams(-1, -2));
+   scroll = new ScrollView(a); scroll.setVerticalScrollBarEnabled(false); msgs = Ui.col(a); msgs.setPadding(Ui.dp(14), Ui.dp(6), Ui.dp(14), Ui.dp(10)); scroll.addView(msgs);
+   outer.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+   outer.addView(footer(a), new LinearLayout.LayoutParams(-1, -2));
+   refresh(a); return outer;
+  }, false);
  }
 
- static void build(MainActivity a, LinearLayout c) {
-  c.removeAllViews();
-  ModelChat.top(a, c, () -> build(a, c));
-  EditText in = Sheets.field(a, "Ask or type an entry (tea 20)", draft, InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-  in.setTag("chatInput");
-  FrameLayout mic = Ui.badge(a, "mic", 42, Ui.surface2, Ui.ink); mic.setContentDescription("Say it");
-  TextView send = Ui.button(a, "Send", true);
-  Runnable go = () -> send(a, c, in);
+ static View footer(MainActivity a) {
+  LinearLayout f = Ui.col(a); f.setPadding(Ui.dp(14), Ui.dp(6), Ui.dp(14), Ui.dp(16));
+  EditText in = Sheets.field(a, "Ask anything, or type an entry (tea 20)", draft, InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+  in.setTag("chatInput"); in.setMaxLines(4);
+  android.widget.FrameLayout mic = Ui.badge(a, "mic", 42, Ui.surface2, Ui.ink); mic.setContentDescription("Say it");
+  android.widget.FrameLayout send = Ui.badge(a, "right", 42, Ui.accent, Ui.onAccent); send.setContentDescription("Send");
+  Runnable go = () -> { String s = in.getText().toString().trim(); if (s.isEmpty() || AiEngine.running) return; in.setText(""); draft = ""; submit(a, s); };
   Ui.tap(send, go);
   Ui.tap(mic, () -> {
    if (a.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) { a.requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO}, 6); return; }
@@ -45,74 +55,122 @@ final class ChatPage {
   });
   in.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEND);
   in.setOnEditorActionListener((v, id, ev) -> { go.run(); return true; });
-  LinearLayout row = new LinearLayout(a); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-  row.addView(in, new LinearLayout.LayoutParams(0, -2, 1)); row.addView(mic, Ui.lpm(Ui.dp(42), Ui.dp(42), 8, 0, 0, 0));
-  c.addView(row, Ui.lpm(-1, -2, 0, 0, 0, 8)); c.addView(send, Ui.lpm(-1, -2, 0, 0, 0, 12));
-  if (!ModelChat.on(a)) c.addView(Ui.text(a, "Hisab mode: answers only from your own Hisab data, on this phone.", 12, Ui.muted, false), Ui.lpm(-1, -2, 0, 0, 0, 10));
-  { TextView mp = Ui.pill(a, "AI models", false); Ui.tap(mp, () -> ModelsPage.open(a)); c.addView(mp, Ui.lpm(-2, -2, 0, 0, 0, 10)); }
-  if (ModelChat.on(a) && AiEngine.running) c.addView(ModelChat.liveCard(a), Ui.lpm(-1, -2, 0, 0, 0, 10));
-  if (run != null && !ModelChat.on(a)) c.addView(runCard(a, c), Ui.lpm(-1, -2, 0, 0, 0, 10));
-  if (!running && pending != null && !pending.act.isEmpty()) {
+  LinearLayout row = Ui.row(a); row.setGravity(Gravity.CENTER_VERTICAL);
+  row.addView(in, new LinearLayout.LayoutParams(0, -2, 1)); row.addView(mic, Ui.lpm(Ui.dp(42), Ui.dp(42), 8, 0, 0, 0)); row.addView(send, Ui.lpm(Ui.dp(42), Ui.dp(42), 8, 0, 0, 0));
+  f.addView(row); return f;
+ }
+
+ /** Redraws the set-up area and the messages; the input bar stays untouched so typing is not lost. */
+ static void refresh(MainActivity a) {
+  if (top == null || msgs == null) return;
+  top.removeAllViews(); msgs.removeAllViews();
+  boolean ok = ModelChat.setup(a, top, () -> refresh(a));
+  if (ok) ModelChat.modelBar(a, top, () -> refresh(a));
+  LinearLayout tools = Ui.row(a);
+  TextView st = Ui.pill(a, "Chat settings", false), nw = Ui.pill(a, "New chat", false), md = Ui.pill(a, "AI models", false);
+  Ui.tap(st, () -> settings(a)); Ui.tap(nw, () -> { if (AiEngine.running) return; LOG.clear(); pending = null; save(a); refresh(a); }); Ui.tap(md, () -> ModelsPage.open(a));
+  tools.addView(st, Ui.lpm(-2, -2, 0, 0, 8, 0)); tools.addView(nw, Ui.lpm(-2, -2, 0, 0, 8, 0)); tools.addView(md);
+  top.addView(tools, Ui.lpm(-1, -2, 0, 0, 0, 4));
+  top.addView(Ui.text(a, (read(a) ? "Hisab data: Read on" : "Hisab data: Read off") + (write(a) ? ", Write on (always with Confirm)" : ", Write off"), 11.5f, Ui.muted, false), Ui.lpm(-1, -2, 0, 0, 0, 4));
+  if (LOG.isEmpty() && !AiEngine.running) {
+   msgs.addView(Ui.text(a, "Ask me anything. I run on this phone, no internet.", 14.5f, Ui.muted, false), Ui.lpm(-1, -2, 0, 12, 0, 8));
+   String[] chips = read(a) ? new String[]{"How much did I spend this month?", "Who owes me?", "Top categories"} : new String[]{"Explain a budget in simple words", "Ideas to save money"};
+   for (String ch : chips) { TextView p = Ui.pill(a, ch, false); Ui.tap(p, () -> submit(a, ch)); msgs.addView(p, Ui.lpm(-2, -2, 0, 0, 0, 8)); }
+  }
+  for (String[] m : LOG) bubble(a, m);
+  if (!AiEngine.running && pending != null && !pending.act.isEmpty()) {
    LinearLayout card = Ui.card(a);
    card.addView(Ui.text(a, pending.text, 15, Ui.ink, true));
    TextView yes = Ui.button(a, "Confirm", true), no = Ui.button(a, "Cancel", false);
-   Ui.tap(yes, () -> confirm(a, c)); Ui.tap(no, () -> { LOG.add(new String[]{"hisab", "Cancelled. Nothing was changed.", ""}); pending = null; build(a, c); });
+   Ui.tap(yes, () -> confirm(a)); Ui.tap(no, () -> { LOG.add(new String[]{"hisab", "Cancelled. Nothing was changed.", ""}); pending = null; save(a); refresh(a); });
    card.addView(yes, Ui.lpm(-1, -2, 0, 10, 0, 0)); card.addView(no, Ui.lpm(-1, -2, 0, 8, 0, 0));
-   c.addView(card, Ui.lpm(-1, -2, 0, 0, 0, 10));
+   msgs.addView(card, Ui.lpm(-1, -2, 0, 4, 0, 8));
   }
-  if (LOG.isEmpty() && run == null) c.addView(Ui.text(a, ChatBrain.help(L.isMl()), 14, Ui.muted, false));
-  for (int i = LOG.size() - 1; i >= 0; i--) {
-   String[] m = LOG.get(i); boolean me = "me".equals(m[0]);
-   LinearLayout card = Ui.card(a);
-   card.addView(Ui.text(a, me ? "You" : "Hisab", 11, Ui.muted, true));
-   card.addView(Ui.text(a, m[1], 14.5f, Ui.ink, me));
-   if (!me && m.length > 2 && !m[2].isEmpty()) {
-    card.addView(Ui.text(a, "Sources", 11, Ui.muted, true), Ui.lpm(-1, -2, 0, 10, 0, 2));
-    card.addView(Ui.text(a, m[2], 12, Ui.muted, false));
-   }
-   c.addView(card, Ui.lpm(-1, -2, 0, 0, 0, 8));
+  if (AiEngine.running) live(a);
+  scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
+ }
+
+ static void bubble(MainActivity a, String[] m) {
+  boolean me = "me".equals(m[0]);
+  LinearLayout b = Ui.col(a); b.setPadding(Ui.dp(14), Ui.dp(10), Ui.dp(14), Ui.dp(10));
+  GradientDrawable g = new GradientDrawable(); g.setColor(me ? Ui.accent : Ui.surface); g.setCornerRadius(Ui.dp(18)); b.setBackground(g);
+  b.addView(Ui.text(a, m[1], 14.5f, me ? Ui.onAccent : Ui.ink, false));
+  if (!me) {
+   if (m.length > 2 && !m[2].isEmpty()) b.addView(Ui.text(a, m[2], 11, Ui.muted, false), Ui.lpm(-1, -2, 0, 8, 0, 0));
+   TextView cp = Ui.text(a, "Copy", 11.5f, Ui.muted, true); cp.setPadding(0, Ui.dp(8), Ui.dp(12), 0);
+   Ui.tap(cp, () -> { android.content.ClipboardManager cm = (android.content.ClipboardManager) a.getSystemService(android.content.Context.CLIPBOARD_SERVICE); if (cm != null) cm.setPrimaryClip(android.content.ClipData.newPlainText("Hisab", m[1])); a.toast("Copied", null); });
+   b.addView(cp);
   }
-  Privacy.toggle(a, c, "Show the steps while answering", "chatAnim", true, () -> { });
+  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2); lp.gravity = me ? Gravity.END : Gravity.START; lp.bottomMargin = Ui.dp(8);
+  if (me) lp.leftMargin = Ui.dp(48); else lp.rightMargin = Ui.dp(32);
+  msgs.addView(b, lp);
  }
 
- /** The live tracker: a diagram plus the real steps the engine took, each with the time it really took. */
- static LinearLayout runCard(MainActivity a, LinearLayout c) {
-  LinearLayout card = Ui.card(a);
-  FlowView f = new FlowView(a); long total = f.schedule(STEP_MS);
-  card.addView(f, new LinearLayout.LayoutParams(-1, -2));
-  TextView status = Ui.text(a, "", 13, Ui.ink, true); card.addView(status, Ui.lpm(-1, -2, 0, 6, 0, 0));
-  TextView steps = Ui.text(a, "", 11.5f, Ui.muted, false); card.addView(steps, Ui.lpm(-1, -2, 0, 6, 0, 0));
-  card.addView(Ui.text(a, "Local, on this phone. No network.", 11, Ui.muted, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
-  paint(f, status, steps, running ? clock : total + 1000);
-  if (running) tick(a, c, f, status, steps, total);
-  return card;
+ static void live(MainActivity a) {
+  LinearLayout b = Ui.col(a); b.setPadding(Ui.dp(14), Ui.dp(10), Ui.dp(14), Ui.dp(10));
+  GradientDrawable g = new GradientDrawable(); g.setColor(Ui.surface); g.setCornerRadius(Ui.dp(18)); b.setBackground(g);
+  ModelChat.liveView = Ui.text(a, "...", 14.5f, Ui.ink, false); b.addView(ModelChat.liveView);
+  ModelChat.liveStat = Ui.text(a, "", 11.5f, Ui.muted, false); b.addView(ModelChat.liveStat, Ui.lpm(-1, -2, 0, 6, 0, 0));
+  TextView stop = Ui.text(a, "Stop", 12, Ui.ink, true); stop.setPadding(0, Ui.dp(8), Ui.dp(12), 0); Ui.tap(stop, AiEngine::stop); b.addView(stop);
+  ModelChat.paint();
+  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2); lp.rightMargin = Ui.dp(32); lp.bottomMargin = Ui.dp(8); msgs.addView(b, lp);
+  scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
  }
 
- static void paint(FlowView f, TextView status, TextView steps, long ms) {
-  f.at(ms); StringBuilder b = new StringBuilder(); String cur = "";
-  List<Object[]> sorted = new ArrayList<>(run.steps); sorted.sort((x, y) -> Integer.compare((Integer) x[0], (Integer) y[0]));
-  for (Object[] s : sorted) {
-   int n = (Integer) s[0];
-   if (f.start[n] >= 0 && f.start[n] <= ms) { cur = (String) s[1]; b.append(f.end[n] <= ms ? "\u2713 " : "\u2022 ").append((String) s[1]).append("  (").append(((Long) s[2]) < 1000 ? "<1" : "" + ((Long) s[2]) / 1000).append(" ms)\n"); }
+ /** Entry point for typed or spoken text. The first message asks whether to keep chat history. */
+ static void submit(MainActivity a, String s) {
+  if (!a.db.flag("chatAsked", false)) { askHistory(a, () -> run(a, s)); return; }
+  run(a, s);
+ }
+
+ static void askHistory(MainActivity a, Runnable then) {
+  LinearLayout c = Sheets.sheetBody(a, "Keep this chat?");
+  c.addView(Ui.text(a, "Should Hisab store your chat history on this phone? If you say no, nothing is saved and the chat is gone when you close it. You can change this later in Chat settings.", 14, Ui.muted, false), Ui.lpm(-1, -2, 0, 0, 0, 14));
+  final MainActivity.Layer[] l = new MainActivity.Layer[1];
+  TextView yes = Ui.button(a, "Yes, store it", true), no = Ui.button(a, "No, do not store", false);
+  Ui.tap(yes, () -> { a.db.setPref("chatAsked", "1"); a.db.setPref("chatSave", "1"); a.close(l[0]); then.run(); });
+  Ui.tap(no, () -> { a.db.setPref("chatAsked", "1"); a.db.setPref("chatSave", "0"); a.close(l[0]); then.run(); });
+  c.addView(yes, Ui.lpm(-1, -2, 0, 0, 0, 8)); c.addView(no);
+  l[0] = Sheets.show(a, c);
+ }
+
+ static void settings(MainActivity a) {
+  LinearLayout c = Sheets.sheetBody(a, "Chat settings");
+  Privacy.toggle(a, c, "Read my Hisab data", "chatRead", false, () -> refresh(a));
+  c.addView(Ui.text(a, "The model sees your numbers. Hisab code works them out exactly and gives them to the model, which only words the answer. Off: the model never sees your data.", 12.5f, Ui.muted, false), Ui.lpm(-1, -2, 0, 0, 0, 12));
+  Privacy.toggle(a, c, "Write to my Hisab data", "chatWrite", false, () -> refresh(a));
+  c.addView(Ui.text(a, "Typing an entry like \"tea 20\" in the chat can add, edit or delete. Every change shows a Confirm card first. Nothing changes without Confirm.", 12.5f, Ui.muted, false), Ui.lpm(-1, -2, 0, 0, 0, 12));
+  Privacy.toggle(a, c, "Store chat history on this phone", "chatSave", false, () -> { a.db.setPref("chatAsked", "1"); if (!a.db.flag("chatSave", false)) a.db.setPref("chatLog", ""); else save(a); });
+  TextView clr = Ui.button(a, "Clear saved history", false); Ui.tap(clr, () -> { LOG.clear(); a.db.setPref("chatLog", ""); a.toast("History cleared", null); refresh(a); });
+  c.addView(clr, Ui.lpm(-1, -2, 0, 8, 0, 0));
+  Sheets.show(a, c);
+ }
+
+ static void run(MainActivity a, String s) {
+  LOG.add(new String[]{"me", s, ""}); while (LOG.size() > 60) LOG.remove(0);
+  ChatBrain.Reply r = ChatBrain.ask(a.db, s, LocalDate.now());
+  if (!r.act.isEmpty()) {
+   if (write(a) && r.tx != null) { pending = r; save(a); refresh(a); return; }
+   LOG.add(new String[]{"hisab", "To add, change or delete entries from chat, turn on Write in Chat settings. Nothing was changed.", ""}); save(a); refresh(a); return;
   }
-  status.setText(ms > f.end[10] ? "Done" : cur.isEmpty() ? "Starting..." : cur);
-  steps.setText(b.toString().trim());
+  String facts = read(a) ? ModelChat.facts(a, s, r) : null;
+  ModelChat.send(a, s, facts, LOG, () -> { save(a); refresh(a); });
  }
 
- static void tick(MainActivity a, LinearLayout c, FlowView f, TextView status, TextView steps, long total) {
-  H.postDelayed(new Runnable() {
-   @Override public void run() {
-    if (!running || c.getParent() == null) return;
-    clock += 33; paint(f, status, steps, clock);
-    if (clock > total + 150) finish(a, c); else H.postDelayed(this, 33);
-   }
-  }, 33);
+ static void save(MainActivity a) {
+  if (!a.db.flag("chatSave", false)) return;
+  try {
+   org.json.JSONArray arr = new org.json.JSONArray();
+   for (String[] m : LOG) { org.json.JSONArray e = new org.json.JSONArray(); e.put(m[0]); e.put(m[1]); e.put(m.length > 2 ? m[2] : ""); arr.put(e); }
+   a.db.setPref("chatLog", arr.toString());
+  } catch (Exception ignored) { }
  }
 
- static void finish(MainActivity a, LinearLayout c) {
-  running = false; ChatBrain.Reply r = run; if (r == null) return;
-  if (r.act.isEmpty()) LOG.add(new String[]{"hisab", r.text, sources(a, r)});
-  build(a, c);
+ static void load(MainActivity a) {
+  try {
+   org.json.JSONArray arr = new org.json.JSONArray(a.db.pref("chatLog", "[]"));
+   for (int i = 0; i < arr.length(); i++) { org.json.JSONArray e = arr.getJSONArray(i); LOG.add(new String[]{e.getString(0), e.getString(1), e.getString(2)}); }
+  } catch (Exception ignored) { }
  }
 
  static String sources(MainActivity a, ChatBrain.Reply r) {
@@ -123,19 +181,9 @@ final class ChatPage {
   return b.toString().trim();
  }
 
- static void send(MainActivity a, LinearLayout c, EditText in) {
-  String s = in.getText().toString().trim(); if (s.isEmpty() || running || AiEngine.running) return;
-  LOG.add(new String[]{"me", s, ""});
-  if (ModelChat.on(a)) { draft = ""; in.setText(""); ModelChat.send(a, c, s, LOG, () -> build(a, c)); return; }
-  ChatBrain.Reply r = ChatBrain.ask(a.db, s, LocalDate.now());
-  pending = r.act.isEmpty() ? null : r; run = r;
-  while (LOG.size() > 60) LOG.remove(0);
-  if (a.db.flag("chatAnim", true)) { running = true; clock = 0; build(a, c); }
-  else { running = false; if (r.act.isEmpty()) LOG.add(new String[]{"hisab", r.text, sources(a, r)}); build(a, c); }
- }
 
- static void confirm(MainActivity a, LinearLayout c) {
-  ChatBrain.Reply r = pending; pending = null; if (r == null || r.tx == null) { build(a, c); return; }
+ static void confirm(MainActivity a) {
+  ChatBrain.Reply r = pending; pending = null; if (r == null || r.tx == null) { refresh(a); return; }
   String done;
   switch (r.act) {
    case "add": a.db.save(r.tx); done = "Added: " + Fmt.money(r.tx.amount) + "  " + r.tx.note; break;
@@ -145,6 +193,6 @@ final class ChatPage {
   }
   LOG.add(new String[]{"hisab", L.isMl() ? "ശരി, ചെയ്തു. " + done : done, ""});
   try { a.refresh(); } catch (Exception ignored) { }
-  build(a, c);
+  save(a); refresh(a);
  }
 }
