@@ -162,6 +162,7 @@ final class Pages {
     TextView done = Ui.button(a, "Done", true); r2.addView(done, Ui.lpm(-1, -2, 0, 18, 0, 0));
     final MainActivity.Layer[] r2ref = new MainActivity.Layer[1];
     Ui.tap(done, () -> a.close(r2ref[0])); r2ref[0] = Sheets.show(a, r2);
+    if (Speech.on(db, "speakSave", false)) Speech.say(a, L.isMl() ? "ഓരോരുത്തരും " + Speech.money(base) + " തരണം." : "Each person owes " + Speech.money(base) + ".");
     a.toast("Saved " + sel.size() + " shares", () -> { for (long id : ids) db.deleteTx(id); a.refresh(); });
     return;
    }

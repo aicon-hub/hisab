@@ -336,6 +336,8 @@ public class PolishTest {
  @Test public void repeatDateIsPickedNotTyped(){android.widget.EditText e=Sheets.field(a,"d","2026-12-01",android.text.InputType.TYPE_CLASS_TEXT);Sheets.dateField(a,e);assertFalse(e.isFocusable());assertTrue(e.hasOnClickListeners());}
  @Test public void tagChipsToggleTheField(){a.db.setPref("trips","");android.widget.EditText f=Sheets.field(a,"t","food",Sheets.TEXT);android.view.View v=Tags.chooser(a,f);assertNotNull(v);assertEquals("food",String.join(",",Tags.parse(" Food , ,food")));}
  @Test public void bankSmsKeepsThreeStepsAndAdvancedHidden(){BankSms.open(a);String t=texts(a.root);assertTrue(t.contains("Step 1: switch it on"));assertTrue(t.contains("Step 2: pick your bank"));assertTrue(t.contains("More options"));a.closeAll();}
+ @Test public void spokenMoneyHasNoCommasOrSymbol(){Fmt.currency("INR");assertEquals("1250 rupees",Speech.money(125000));assertFalse(Speech.money(12345600).contains(","));}
+ @Test public void spokenFeedbackPageAndButtonsBuild(){Speech.settings(a);assertTrue(texts(a.root).contains("Test the voice"));a.closeAll();a.settingsSection="";a.showTab(0,false);assertTrue(texts(a.root).contains("Read out today"));Speech.say(a,"hello");}
  @Test public void yearReportRenders(){YearReport.open(a);assertTrue(texts(a.root).contains("Year report"));a.closeAll();}
 
  @Test public void diaryAndMonthlySummary() {

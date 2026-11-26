@@ -94,7 +94,8 @@ final class Settings {
    gn.addView(item(a,"globe","Language / ഭാഷ",db.pref("language","English"),()->choose(a,"Language / ഭാഷ","language",new String[]{"English","മലയാളം"},db.pref("language","English"),true)));
    gn.addView(Ui.text(a,"Malayalam is a beta interface translation. Technical help may remain in English. Your entries and category names are not changed.",12,Ui.muted,false),Ui.lpm(-1,-2,0,0,0,10));
    gn.addView(Ui.divider(a));
-   gn.addView(item(a,"lock","Privacy",null,()->Privacy.open(a))); c.addView(gn);
+   gn.addView(item(a,"lock","Privacy",null,()->Privacy.open(a))); gn.addView(Ui.divider(a));
+   gn.addView(item(a,"bell","Spoken feedback","Read out amounts and summaries",()->Speech.settings(a))); c.addView(gn);
    }
 
    if (sec.equals("money")) {
@@ -144,7 +145,7 @@ final class Settings {
    if (sec.equals("about")) {
    LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
-   ab.addView(Ui.text(a, "Version 1.0.20 test build", 12.5f, Ui.muted, true));
+   ab.addView(Ui.text(a, "Version 1.0.21 test build", 12.5f, Ui.muted, true));
    ab.addView(Ui.divider(a), Ui.lpm(-1, -2, 0, 14, 0, 0));
    ab.addView(item(a, "share", "Share Hisab with a friend", "Recommend the app and how to install it", () -> shareHisab(a)));
    ab.addView(item(a, "info", "Section guides", "Short explanations, shown once per section · tap to see them again", () -> { a.db.getWritableDatabase().delete("prefs", "k LIKE 'infoSeen_%'", null); a.toast("Guides will show again when you open each section", null); a.closeAll(); open(a); }));

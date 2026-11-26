@@ -36,6 +36,7 @@ final class InsightsPage {
    android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, summary(db, ym));
    a.launchExternal(android.content.Intent.createChooser(i, "Share month summary"));
   }));
+  more.addView(Ui.divider(a)); more.addView(Settings.item(a, "bell", "Read out this month", "Spoken summary", () -> Speech.say(a, Speech.monthLine(db, ym))));
   c.addView(more, Ui.lpm(-1, -2, 0, 0, 0, 14));
   if (RoundUp.step(db) > 0) { LinearLayout ru = Ui.card(a); ru.setPadding(Ui.dp(18), Ui.dp(14), Ui.dp(18), Ui.dp(14));
    LinearLayout rr = Ui.row(a); rr.addView(Ui.text(a, "Round-up pot", 13, Ui.muted, true), Ui.weight(1)); rr.addView(Ui.big(a, Fmt.money(RoundUp.pot(db)), 20, Ui.ink)); ru.addView(rr);

@@ -172,6 +172,6 @@ final class EntrySheet {
   Store.Tx t = new Store.Tx(); t.id = s.id; t.kind = s.kind; t.amount = v; t.day = s.day.toString(); t.account = s.account; t.dest = s.kind.equals("transfer") ? s.dest : 0; t.person = people ? s.person : 0; t.note = s.note; t.tags = s.tags;
   if (s.kind.equals("expense") || s.kind.equals("income")) { t.cat = s.cat; if (t.cat == 0) { List<Store.Cat> cs = a.db.categories(s.kind); if (!cs.isEmpty()) t.cat = cs.get(cs.size() - 1).id; } }
   long id = a.db.save(t); a.db.setPref("lastAcc", "" + s.account); if (t.kind.equals("expense")) BudgetAlert.check(a, a.db, t.cat); a.close(ref[0]); a.refresh();
-  final boolean fresh = s.id == 0; a.toast((fresh ? "Added " : "Updated ") + Fmt.money(v), fresh ? () -> { a.db.deleteTx(id); a.refresh(); } : null);
+  final boolean fresh = s.id == 0; { Store.Cat sc = a.db.categoryMap().get(s.cat); Speech.saved(a, fresh ? "Added" : "Updated", v, sc == null ? null : sc.name); } a.toast((fresh ? "Added " : "Updated ") + Fmt.money(v), fresh ? () -> { a.db.deleteTx(id); a.refresh(); } : null);
  }
 }

@@ -35,6 +35,7 @@ final class HomePage {
   LinearLayout stats = Ui.row(a); stats.setPadding(0, Ui.dp(16), 0, 0);
   stats.addView(stat(a, "Income", Fmt.money(income)), Ui.weight(1)); stats.addView(stat(a, "Spent", Fmt.money(spent)), Ui.weight(1)); stats.addView(stat(a, "Net", Fmt.money(income - spent)), Ui.weight(1));
   hero.addView(stats);
+  hero.addView(Speech.button(a, "Read out today", () -> Speech.say(a, Speech.todayLine(db, today) + " " + Speech.monthLine(db, ym))), Ui.lpm(-1, -2, 0, 12, 0, 0));
   long pace = Forecast.monthEnd(db, today);
   if (pace > 0) hero.addView(Ui.text(a, "At this pace, " + Fmt.month(ym) + " ends around " + Fmt.money(pace), 12.5f, Ui.muted, false), Ui.lpm(-1, -2, 0, 10, 0, 0));
   String goalLine = Habits.goalLine(db, today); if (goalLine != null) hero.addView(Ui.text(a, goalLine, 12.5f, Ui.muted, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
@@ -70,6 +71,7 @@ final class HomePage {
   List<Store.Rec> due = new ArrayList<>(); for (Store.Rec r : db.recurring()) if (r.active && LocalDate.parse(r.next).isBefore(today.plusDays(8))) due.add(r);
   if (!due.isEmpty() && HomeCustom.on(db, "comingUp")) {
    c.addView(Kit.sectionHead(a, "Coming up", "All", () -> Pages.recurring(a)));
+   final List<Store.Rec> dueF = due; c.addView(Speech.button(a, "Read out", () -> Speech.say(a, Speech.dueLine(dueF, today))), Ui.lpm(-1, -2, 0, 0, 0, 10));
    LinearLayout card = Ui.card(a);
    for (int i = 0; i < due.size() && i < 3; i++) { Store.Rec r = due.get(i); if (i > 0) card.addView(Ui.divider(a)); card.addView(dueRow(a, r, today)); }
    c.addView(card);
@@ -218,8 +220,9 @@ final class HomePage {
   r.addView(e, Ui.weight(1));
   FrameLayout mic = Ui.badge(a, "mic", 42, Ui.surface2, Ui.ink); r.addView(mic, Ui.lp(Ui.dp(42), Ui.dp(42))); mic.setContentDescription("Say it");
   FrameLayout go = Ui.badge(a, "check", 42, Ui.dark ? Ui.accent : Ui.ink, Ui.dark ? Ui.onAccent : 0xFFFFFFFF); r.addView(go, Ui.lp(Ui.dp(42), Ui.dp(42))); go.setContentDescription("Add typed entry");
-  Ui.tap(mic, () -> { if (a.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) { a.requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO}, 6); return; } Voice.listen(a, v -> { e.setText(v); e.setSelection(v.length()); }); });
-  Runnable submit = () -> { String s = e.getText().toString().trim(); if (s.isEmpty()) return; Store.Tx t = parse(a.db, s); if (t == null) { a.toast("Include an amount, like tea 40", null); return; } long id = a.db.save(t); if(id<0){a.toast("Entry could not be saved",null);return;} e.setText(""); View focus=a.getCurrentFocus();if(focus!=null)((android.view.inputmethod.InputMethodManager)a.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(focus.getWindowToken(),0); a.refresh(); a.toast("Added " + Fmt.money(t.amount) + (a.db.categoryMap().get(t.cat) != null ? " · " + a.db.categoryMap().get(t.cat).name : ""), () -> { a.db.deleteTx(id); a.refresh(); }); };
+  final boolean[] viaVoice = {false};
+  Ui.tap(mic, () -> { if (a.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) { a.requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO}, 6); return; } Voice.listen(a, v -> { viaVoice[0] = true; e.setText(v); e.setSelection(v.length()); }); });
+  Runnable submit = () -> { String s = e.getText().toString().trim(); if (s.isEmpty()) return; Store.Tx t = parse(a.db, s); if (t == null) { a.toast("Include an amount, like tea 40", null); return; } long id = a.db.save(t); if(id<0){a.toast("Entry could not be saved",null);return;} e.setText(""); View focus=a.getCurrentFocus();if(focus!=null)((android.view.inputmethod.InputMethodManager)a.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(focus.getWindowToken(),0); a.refresh(); if (viaVoice[0]) { viaVoice[0] = false; Speech.heard(a, t.amount, a.db.categoryMap().get(t.cat) != null ? a.db.categoryMap().get(t.cat).name : null); } else Speech.saved(a, "Added", t.amount, a.db.categoryMap().get(t.cat) != null ? a.db.categoryMap().get(t.cat).name : null); a.toast("Added " + Fmt.money(t.amount) + (a.db.categoryMap().get(t.cat) != null ? " · " + a.db.categoryMap().get(t.cat).name : ""), () -> { a.db.deleteTx(id); a.refresh(); }); };
   Ui.tap(go, submit); e.setOnEditorActionListener((v, id, ev) -> { if(id==EditorInfo.IME_ACTION_DONE || (ev!=null && ev.getKeyCode()==android.view.KeyEvent.KEYCODE_ENTER && ev.getAction()==android.view.KeyEvent.ACTION_DOWN)){submit.run();return true;}return false; });
   return r;
  }
