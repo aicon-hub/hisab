@@ -21,9 +21,10 @@ final class Speech {
  }
 
  /** Speaks the text now. Safe to call from any screen; failures are silent. */
+ /** Spoken feedback is switched off in the app (Salman, 27 Nov). Code kept so it can return. */
+ static final boolean DISABLED = true;
  static void say(MainActivity a, String text) {
-  if (text == null || text.trim().isEmpty()) return;
-  if (L.isMl() && MlVoice.ready(a)) { MlVoice.speak(a, text, () -> a.runOnUiThread(() -> sayWithPhone(a, text))); return; }
+  if (DISABLED || text == null || text.trim().isEmpty()) return;
   sayWithPhone(a, text);
  }
  private static void sayWithPhone(MainActivity a, String text) {
@@ -50,7 +51,7 @@ final class Speech {
 
  /** After saving an entry: speaks only when the user switched "Speak after saving" on. */
  static void saved(MainActivity a, String what, long amount, String cat) {
-  if (!on(a.db, "speakSave", false)) return;
+  if (DISABLED || !on(a.db, "speakSave", false)) return;
   say(a, L.isMl() ? money(amount) + " ചേർത്തു" + (cat == null ? "" : ", " + cat) : what + " " + money(amount) + (cat == null ? "" : ", " + cat));
  }
  /** Voice-entry confirmation: on by default, so a spoken entry is confirmed by voice. */
@@ -86,36 +87,9 @@ final class Speech {
 
  /** Small "Read out" button in the app's usual style. */
  static android.widget.TextView button(MainActivity a, String label, Runnable what) {
-  android.widget.TextView t = Ui.button(a, label, false); t.setContentDescription(label); Ui.tap(t, what); return t;
+  android.widget.TextView t = Ui.button(a, label, false); t.setContentDescription(label); Ui.tap(t, what); if (DISABLED) t.setVisibility(android.view.View.GONE); return t;
  }
 
- private static void mlSection(MainActivity a, android.widget.LinearLayout c) {
-  android.widget.LinearLayout card = Ui.card(a);
-  card.addView(Ui.text(a, "Malayalam voice (Indic Tiny TTS)", 16, Ui.ink, true));
-  android.widget.TextView info = Ui.text(a, "A clearer Malayalam voice that works offline. One download of about 91 MB, best on Wi-Fi. It is used when Hisab is in Malayalam. Amounts are read as Malayalam words; English names inside a sentence are skipped. The voice is a test version and has only been checked on a computer so far.", 13, Ui.muted, false);
-  info.setPadding(0, Ui.dp(6), 0, Ui.dp(8)); card.addView(info);
-  android.widget.TextView status = Ui.text(a, "", 13, Ui.ink, true); card.addView(status);
-  android.widget.LinearLayout row = new android.widget.LinearLayout(a); row.setOrientation(android.widget.LinearLayout.VERTICAL); card.addView(row, Ui.lpm(-1, -2, 0, 10, 0, 0));
-  Runnable[] refresh = new Runnable[1];
-  refresh[0] = () -> {
-   row.removeAllViews();
-   if (MlVoice.busy()) { status.setText("Downloading... " + MlVoice.percent() + "%"); return; }
-   if (MlVoice.installed(a)) {
-    status.setText("Installed");
-    Privacy.toggle(a, row, "Use this voice in Malayalam", "mlVoice", true, () -> {});
-    row.addView(button(a, "Test the Malayalam voice", () -> { boolean was = MlVoice.ready(a); MlVoice.speak(a, "ഹിസാബ് സംസാരിക്കുന്നു. " + money(125000), () -> a.runOnUiThread(() -> a.toast("The voice could not start on this phone", null))); }), Ui.lpm(-1, -2, 0, 8, 0, 0));
-    row.addView(button(a, "Delete the voice (frees 91 MB)", () -> { MlVoice.delete(a); a.toast("Voice deleted", null); status.postDelayed(refresh[0], 400); }), Ui.lpm(-1, -2, 0, 8, 0, 0));
-   } else {
-    status.setText("Not downloaded");
-    row.addView(button(a, "Download (about 91 MB)", () -> Sheets.confirm(a, "Download the Malayalam voice?", "About 91 MB from huggingface.co. Use Wi-Fi if you can. Nothing from Hisab is uploaded. You can delete it any time.", "Download", () -> {
-     MlVoice.download(a, () -> a.runOnUiThread(refresh[0]), err -> { if (err != null) a.toast(err, null); refresh[0].run(); });
-     refresh[0].run();
-    })), Ui.lpm(-1, -2, 0, 4, 0, 0));
-   }
-   row.addView(Ui.text(a, MlVoice.CREDIT, 11.5f, Ui.muted, false), Ui.lpm(-1, -2, 0, 12, 0, 0));
-  };
-  refresh[0].run(); c.addView(card, Ui.lpm(-1, -2, 0, 4, 0, 4));
- }
 
  /** Settings page. */
  static void settings(MainActivity a) {
@@ -123,7 +97,6 @@ final class Speech {
    c.addView(Ui.text(a, "Hisab can speak amounts and summaries using your phone's own text-to-speech voice. Nothing is sent anywhere. For Malayalam, install a Malayalam voice in the phone's text-to-speech settings; otherwise English is used.", 14, Ui.muted, false), Ui.lpm(-1, -2, 0, 0, 0, 12));
    Privacy.toggle(a, c, "Confirm voice entries by voice", "speakVoice", true, () -> {});
    Privacy.toggle(a, c, "Speak after saving an entry", "speakSave", false, () -> {});
-   mlSection(a, c);
    c.addView(button(a, "Test the voice", () -> say(a, L.isMl() ? "ഹിസാബ് സംസാരിക്കുന്നു. " + money(125000) : "Hisab is speaking. " + money(125000))), Ui.lpm(-1, -2, 0, 16, 0, 0));
    c.addView(Ui.text(a, "Read-out buttons: Home (Read out today), Insights (Read out this month), Coming up (Read out), and each trip card.", 12.5f, Ui.muted, false), Ui.lpm(-1, -2, 0, 12, 0, 0));
   });

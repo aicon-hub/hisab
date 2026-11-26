@@ -18,7 +18,7 @@ public class MainActivity extends Activity {
  Store db;
  FrameLayout root, tabHost, layerHost;
  LinearLayout dock;
- int tab = 0, topInset = 0, bottomInset = 0, keyboardInset = 0;
+ int tab = 0, topInset = 0, bottomInset = 0, keyboardInset = 0, ownKb = 0; HisabKeys kb;
  int nextRequestCode = 100;
  YearMonth ledgerMonth = YearMonth.now(), insightMonth = YearMonth.now();
  String ledgerFilter = "all", ledgerQuery = "", ledgerFrom = "", ledgerTo = ""; int ledgerDay = 0; long ledgerCat = 0, ledgerMin = 0, ledgerMax = 0; boolean ledgerCalendar = false; String settingsSection = ""; int reportYear = java.time.Year.now().getValue();
@@ -30,7 +30,7 @@ public class MainActivity extends Activity {
  static final class Layer { FrameLayout holder; FrameLayout panel; Supplier<View> build; boolean sheet; Runnable onClose; View content; }
 
  @Override protected void onCreate(Bundle b) {
-  super.onCreate(b);
+  super.onCreate(b); CrashLog.install(this);
   db = new Store(this); db.seedBasics(); Ui.haptics = db.flag("haptics", true); Ui.initVib(this);
   if (!db.hasData() && db.pref("sample", "").isEmpty()) { Sample.seed(db); }
   if (Build.VERSION.SDK_INT >= 30) getWindow().setDecorFitsSystemWindows(false);
@@ -38,6 +38,7 @@ public class MainActivity extends Activity {
   applyTheme();
   root = new FrameLayout(this);
   setContentView(root);
+  kb = new HisabKeys(this); kb.install();
   root.setOnApplyWindowInsetsListener((v, ins) -> {
    if (Build.VERSION.SDK_INT >= 30) {
     android.graphics.Insets bars = ins.getInsets(WindowInsets.Type.systemBars());
@@ -132,7 +133,9 @@ public class MainActivity extends Activity {
    lp.bottomMargin = Ui.dp(14) + bottomInset; dock.setLayoutParams(lp);
   }
   FrameLayout.LayoutParams hp = (FrameLayout.LayoutParams) layerHost.getLayoutParams();
-  hp.bottomMargin = keyboardInset; layerHost.setLayoutParams(hp);
+  int kbm = Math.max(keyboardInset, Math.max(0, ownKb - bottomInset));
+  hp.bottomMargin = kbm; layerHost.setLayoutParams(hp);
+  FrameLayout.LayoutParams tp = (FrameLayout.LayoutParams) tabHost.getLayoutParams(); tp.bottomMargin = Math.max(0, ownKb); tabHost.setLayoutParams(tp);
   for (Layer l : layers) l.panel.setPadding(0, l.sheet ? 0 : topInset, 0, bottomInset);
  }
 
@@ -238,7 +241,9 @@ public class MainActivity extends Activity {
 
  void closeAll() { for (Layer l : new ArrayList<>(layers)) close(l); }
 
+ @Override public boolean dispatchTouchEvent(android.view.MotionEvent ev) { if (kb != null) kb.onTouch(ev); return super.dispatchTouchEvent(ev); }
  @Override public void onBackPressed() {
+  if (kb != null && kb.isShown()) { kb.hide(); return; }
   if (lockLayer != null) { moveTaskToBack(true); return; }
   if (!layers.isEmpty()) { closeTop(); return; }
   if (tab != 0) { showTab(0, true); return; }

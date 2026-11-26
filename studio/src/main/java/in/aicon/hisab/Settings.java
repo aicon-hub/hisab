@@ -95,7 +95,8 @@ final class Settings {
    gn.addView(Ui.text(a,"Malayalam is a beta interface translation. Technical help may remain in English. Your entries and category names are not changed.",12,Ui.muted,false),Ui.lpm(-1,-2,0,0,0,10));
    gn.addView(Ui.divider(a));
    gn.addView(item(a,"lock","Privacy",null,()->Privacy.open(a))); gn.addView(Ui.divider(a));
-   gn.addView(item(a,"bell","Spoken feedback","Read out amounts and summaries",()->Speech.settings(a))); c.addView(gn);
+   Privacy.toggle(a,gn,"Type with Hisab's own keyboard","hisabKeys",true,()->{if(a.kb!=null)a.kb.hide();});
+   gn.addView(Ui.text(a,"Works only inside Hisab: English, Malayalam and Manglish (type Roman letters, get Malayalam), with word suggestions from your own categories, people and notes. Tap the language key to switch. Switch this off to use the phone's keyboard.",12,Ui.muted,false),Ui.lpm(-1,-2,0,0,0,6)); c.addView(gn);
    }
 
    if (sec.equals("money")) {
@@ -145,8 +146,8 @@ final class Settings {
    if (sec.equals("about")) {
    LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
-   ab.addView(Ui.text(a, "Version 1.0.22 test build", 12.5f, Ui.muted, true));
-   ab.addView(Ui.text(a, MlVoice.CREDIT, 11.5f, Ui.muted, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
+   ab.addView(Ui.text(a, "Version 1.0.23 test build", 12.5f, Ui.muted, true));
+   ab.addView(item(a, "bell", "Last problem", "Shows what went wrong if the app closed. Stays on this phone", () -> CrashLog.show(a)));
    ab.addView(Ui.divider(a), Ui.lpm(-1, -2, 0, 14, 0, 0));
    ab.addView(item(a, "share", "Share Hisab with a friend", "Recommend the app and how to install it", () -> shareHisab(a)));
    ab.addView(item(a, "info", "Section guides", "Short explanations, shown once per section · tap to see them again", () -> { a.db.getWritableDatabase().delete("prefs", "k LIKE 'infoSeen_%'", null); a.toast("Guides will show again when you open each section", null); a.closeAll(); open(a); }));
