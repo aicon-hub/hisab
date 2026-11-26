@@ -48,6 +48,7 @@ final class ChatPage {
   row.addView(in, new LinearLayout.LayoutParams(0, -2, 1)); row.addView(mic, Ui.lpm(Ui.dp(42), Ui.dp(42), 8, 0, 0, 0));
   c.addView(row, Ui.lpm(-1, -2, 0, 0, 0, 8)); c.addView(send, Ui.lpm(-1, -2, 0, 0, 0, 12));
   c.addView(Ui.text(a, "Hisab mode: answers only from your own Hisab data, on this phone.", 12, Ui.muted, false), Ui.lpm(-1, -2, 0, 0, 0, 10));
+  { TextView mp = Ui.pill(a, "AI models", false); Ui.tap(mp, () -> ModelsPage.open(a)); c.addView(mp, Ui.lpm(-2, -2, 0, 0, 0, 10)); }
   if (run != null) c.addView(runCard(a, c), Ui.lpm(-1, -2, 0, 0, 0, 10));
   if (!running && pending != null && !pending.act.isEmpty()) {
    LinearLayout card = Ui.card(a);
