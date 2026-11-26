@@ -17,7 +17,7 @@ final class ModelsPage {
   LinearLayout intro = Ui.card(a);
   intro.addView(Ui.text(a, "Optional. Nothing is downloaded unless you tap Download.", 15, Ui.ink, true));
   intro.addView(Ui.text(a, "Models come straight from huggingface.co to this phone, are checked against their published SHA-256, and stay on this phone. Hisab never sends your entries anywhere. Hisab itself stays about 5 MB.", 13, Ui.muted, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
-  intro.addView(Ui.text(a, "Today a downloaded model is stored but not used yet. Ask Hisab still answers with its own rules, from your own data only.", 13, Ui.muted, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
+  intro.addView(Ui.text(a, "A downloaded model runs in Ask Hisab under \"All-model answers\" (needs the small AI engine, offered there). \"Hisab only answers\" never uses a model and answers only from your own data.", 13, Ui.muted, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
   c.addView(intro, Ui.lpm(-1, -2, 0, 0, 0, 10));
 
   LinearLayout me = Ui.card(a);
@@ -45,6 +45,7 @@ final class ModelsPage {
   t.addView(Ui.text(a, "Which models for how much memory", 15, Ui.ink, true));
   StringBuilder sb = new StringBuilder();
   for (int tier : AiModels.TIERS) { sb.append(tier).append(" GB: "); boolean f = true; for (AiModels.M m : AiModels.ALL) if (m.minRam == tier) { sb.append(f ? "" : ", ").append(m.name.replace(" Instruct", "")); f = false; } sb.append("\n"); }
+  sb.append("Engine: llama.cpp (MIT licence, ggml authors). ");
   sb.append("A phone can also download the models of the smaller tiers. A 4 GB phone: the first tier only. Below 4 GB, nothing is advised.");
   t.addView(Ui.text(a, sb.toString(), 13, Ui.muted, false), Ui.lpm(-1, -2, 0, 6, 0, 0));
   c.addView(t, Ui.lpm(-1, -2, 0, 4, 0, 8));

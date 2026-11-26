@@ -32,6 +32,7 @@ final class ChatPage {
 
  static void build(MainActivity a, LinearLayout c) {
   c.removeAllViews();
+  ModelChat.top(a, c, () -> build(a, c));
   EditText in = Sheets.field(a, "Ask or type an entry (tea 20)", draft, InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
   in.setTag("chatInput");
   FrameLayout mic = Ui.badge(a, "mic", 42, Ui.surface2, Ui.ink); mic.setContentDescription("Say it");
@@ -47,9 +48,10 @@ final class ChatPage {
   LinearLayout row = new LinearLayout(a); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(android.view.Gravity.CENTER_VERTICAL);
   row.addView(in, new LinearLayout.LayoutParams(0, -2, 1)); row.addView(mic, Ui.lpm(Ui.dp(42), Ui.dp(42), 8, 0, 0, 0));
   c.addView(row, Ui.lpm(-1, -2, 0, 0, 0, 8)); c.addView(send, Ui.lpm(-1, -2, 0, 0, 0, 12));
-  c.addView(Ui.text(a, "Hisab mode: answers only from your own Hisab data, on this phone.", 12, Ui.muted, false), Ui.lpm(-1, -2, 0, 0, 0, 10));
+  if (!ModelChat.on(a)) c.addView(Ui.text(a, "Hisab mode: answers only from your own Hisab data, on this phone.", 12, Ui.muted, false), Ui.lpm(-1, -2, 0, 0, 0, 10));
   { TextView mp = Ui.pill(a, "AI models", false); Ui.tap(mp, () -> ModelsPage.open(a)); c.addView(mp, Ui.lpm(-2, -2, 0, 0, 0, 10)); }
-  if (run != null) c.addView(runCard(a, c), Ui.lpm(-1, -2, 0, 0, 0, 10));
+  if (ModelChat.on(a) && AiEngine.running) c.addView(ModelChat.liveCard(a), Ui.lpm(-1, -2, 0, 0, 0, 10));
+  if (run != null && !ModelChat.on(a)) c.addView(runCard(a, c), Ui.lpm(-1, -2, 0, 0, 0, 10));
   if (!running && pending != null && !pending.act.isEmpty()) {
    LinearLayout card = Ui.card(a);
    card.addView(Ui.text(a, pending.text, 15, Ui.ink, true));
@@ -122,8 +124,9 @@ final class ChatPage {
  }
 
  static void send(MainActivity a, LinearLayout c, EditText in) {
-  String s = in.getText().toString().trim(); if (s.isEmpty() || running) return;
+  String s = in.getText().toString().trim(); if (s.isEmpty() || running || AiEngine.running) return;
   LOG.add(new String[]{"me", s, ""});
+  if (ModelChat.on(a)) { draft = ""; in.setText(""); ModelChat.send(a, c, s, LOG, () -> build(a, c)); return; }
   ChatBrain.Reply r = ChatBrain.ask(a.db, s, LocalDate.now());
   pending = r.act.isEmpty() ? null : r; run = r;
   while (LOG.size() > 60) LOG.remove(0);
