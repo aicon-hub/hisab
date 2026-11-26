@@ -14,6 +14,11 @@ final class ChatBrain {
 
  static final class Reply {
   String text; Store.Tx tx; String act = ""; // act: "", "add", "delete", "edit"
+  /** Real run record: each step is {node, text, microseconds since start}. Nodes: 0 question, 1 language, 2 intent, 3 period, 4 match, 5 read entries, 6 read lists, 7 filter, 8 check, 9 sources, 10 answer. */
+  final List<Object[]> steps = new ArrayList<>();
+  /** The entries the answer was computed from. */
+  List<Store.Tx> sources = new ArrayList<>();
+  String intent = "", period = ""; int read; long t0 = System.nanoTime();
  }
 
  private static final String[][] MONTHS = {
@@ -33,6 +38,9 @@ final class ChatBrain {
   {"entertain", "entertainment", "movie", "cinema", "film", "സിനിമ"},
   {"salary", "salary", "shambalam", "sambalam", "ശമ്പള"}};
 
+ private static Reply cur;
+ private static void step(int node, String text) { Reply r = cur; if (r != null) r.steps.add(new Object[]{node, text, (System.nanoTime() - r.t0) / 1000}); }
+ private static void intent(Reply r, String what) { r.intent = what; step(2, "Understood: " + what); }
  // ------------------------------------------------------------------ helpers
  private static boolean ml(String s) { for (int i = 0; i < s.length(); i++) if (s.charAt(i) >= 0x0D00 && s.charAt(i) <= 0x0D7F) return true; return false; }
  private static boolean has(String low, String... vs) {
@@ -145,7 +153,7 @@ final class ChatBrain {
   return null;
  }
 
- private static String line(Store db, Store.Tx x, Map<Long, Store.Cat> cm) {
+ static String line(Store db, Store.Tx x, Map<Long, Store.Cat> cm) {
   Store.Cat c = cm.get(x.cat);
   String sign = "income".equals(x.kind) ? "+" : "expense".equals(x.kind) ? "-" : "";
   return Fmt.shortDate(x.day) + "  " + sign + Fmt.money(x.amount) + "  " + (x.note == null || x.note.isEmpty() ? (c == null ? x.kind : c.name) : x.note) + (c != null && x.note != null && !x.note.isEmpty() ? " (" + c.name + ")" : "");
@@ -153,7 +161,24 @@ final class ChatBrain {
 
  // ------------------------------------------------------------------ main entry
  static Reply ask(Store db, String raw, LocalDate today) {
-  Reply r = new Reply();
+  Reply r = new Reply(); cur = r;
+  String shown = raw == null ? "" : raw.trim(); if (shown.length() > 40) shown = shown.substring(0, 40) + "...";
+  step(0, "Question read: \"" + shown + "\"");
+  try { run(db, raw, today, r);
+  if (r.intent.isEmpty()) step(2, "Understood: no known question");
+  boolean mlq = ml(raw == null ? "" : raw);
+  boolean roman = !mlq && raw != null && raw.matches("(?s).*\\b(ethra|chilavu|maasam|innu|innale|kadam|baki|selavu|paisa|ente|aayi)\\b.*");
+  step(1, "Language: " + (mlq ? "Malayalam" : roman ? "Manglish" : "English"));
+  step(3, "Period: " + (r.period.isEmpty() ? "none needed" : r.period));
+  step(6, "Read lists: " + db.categories(null).size() + " categories, " + db.people().size() + " people, " + db.accounts().size() + " accounts");
+  step(7, "Filter: kept " + r.sources.size() + (r.read > 0 ? " of " + r.read : "") + " entries");
+  step(8, r.act.isEmpty() ? "Checked the totals over " + r.sources.size() + " entries" : "Checked: nothing is saved until you confirm");
+  step(9, r.sources.isEmpty() ? "Sources: none needed" : "Sources: " + r.sources.size() + " entries listed");
+  step(10, r.act.isEmpty() ? "Answer ready" : "Confirm card ready");
+  } finally { cur = null; }
+  return r;
+ }
+ private static Reply run(Store db, String raw, LocalDate today, Reply r) {
   String text = raw == null ? "" : digits(raw.trim());
   boolean m = ml(text) || L.isMl();
   String low = text.toLowerCase(Locale.ROOT).replaceAll("[\\u200c\\u200d]", "");
@@ -170,14 +195,14 @@ final class ChatBrain {
   if (has(low, "delete", "remove", "undo", "cancel", "erase", "kalayu", "kalayuka", "ozhivakku", "ozhivaakku", "ഒഴിവാക്ക", "കളയ", "ഡിലീറ്റ്", "നീക്ക") && last) {
    List<Store.Tx> rc = db.recent(1);
    if (rc.isEmpty()) { r.text = t(m, "There are no entries to delete.", "ഇല്ലാതാക്കാൻ എൻട്രികളൊന്നുമില്ല."); return r; }
-   r.tx = rc.get(0); r.act = "delete";
+   intent(r, "delete the last entry"); step(5, "Read the last entry"); r.sources = new ArrayList<>(rc); r.tx = rc.get(0); r.act = "delete";
    r.text = t(m, "Delete this entry?\n", "ഈ എൻട്രി ഇല്ലാതാക്കട്ടെ?\n") + line(db, r.tx, cm); return r;
   }
   // ---- change the last entry's amount
   if (has(low, "change", "edit", "update", "correct", "fix", "make it", "maattu", "maattuka", "thiruthu", "മാറ്റ", "തിരുത്ത") && last && num > 0) {
    List<Store.Tx> rc = db.recent(1);
    if (rc.isEmpty()) { r.text = t(m, "There is no entry to change.", "മാറ്റാൻ എൻട്രിയില്ല."); return r; }
-   Store.Tx x = rc.get(0); Store.Tx n = db.txById(x.id); n.amount = num; r.tx = n; r.act = "edit";
+   intent(r, "change the last entry"); step(5, "Read the last entry"); r.sources = new ArrayList<>(rc); Store.Tx x = rc.get(0); Store.Tx n = db.txById(x.id); n.amount = num; r.tx = n; r.act = "edit";
    r.text = t(m, "Change the amount of the last entry?\n", "അവസാന എൻട്രിയുടെ തുക മാറ്റട്ടെ?\n") + line(db, x, cm) + "\n→ " + Fmt.money(num); return r;
   }
 
@@ -185,9 +210,11 @@ final class ChatBrain {
   boolean addWord = has(low, "add", "enter", "save", "record", "log", "note down", "chertho", "cherkku", "cherkkuka", "ezhuthu", "ചേർക്ക", "എഴുത", "രേഖപ്പെടുത്ത");
   if (num > 0 && (addWord || (!question && !last && !has(low, "entries", "history", "transactions", "top", "biggest"))) && !has(low, "owe", "balance")) {
    String entry = text.replaceAll("(?i)^(please |pls )?(add|enter|save|record|log|note down|chertho|cherkku|cherkkuka|ezhuthu)\\b[: ]*", "").replaceAll("^(ചേർക്കുക|ചേർക്കൂ|എഴുതുക|എഴുതൂ)[: ]*", "").replaceAll("(?i)\\b(an? )?(entry|expense)( of| for)?\\b", " ").trim();
+   intent(r, "add an entry");
    Store.Tx x = HomePage.parse(db, entry);
    if (x == null) x = HomePage.parse(db, text);
    if (x != null) {
+    step(4, "Read amount " + Fmt.money(x.amount) + ", date " + x.day + ", note \"" + x.note + "\""); step(5, "Matched category and account");
     // Manglish words in the note: show them in Malayalam when the app is in Malayalam
     if ("expense".equals(x.kind) && has(low, "salary", "shambalam", "sambalam", "income", "received", "ശമ്പള", "വരുമാന", "കിട്ടി")) { x.kind = "income"; x.cat = 0; for (Store.Cat ic : db.categories("income")) if (x.cat == 0 || ic.name.toLowerCase(Locale.ROOT).contains("salary") && (has(low, "salary", "shambalam", "sambalam", "ശമ്പള"))) x.cat = ic.id; }
     r.tx = x; r.act = "add";
@@ -201,10 +228,13 @@ final class ChatBrain {
   String from = sp.from.toString(), to = sp.to.toString();
   String when = m ? sp.ml : sp.en;
   List<Store.Tx> tx = db.txs(from, to);
+  step(5, "Read " + tx.size() + " entries, " + from + " to " + to); r.read = tx.size(); r.period = sp.en;
   Store.Person pr = person(db, low);
+  if (pr != null) step(4, "Found person: " + pr.name);
 
   // ---- who owes / lent / borrowed
   if (has(low, "owe", "owes", "owed", "lent", "borrow", "kadam", "kadamayi", "tharanund", "tharaanund", "kittanund", "kittaanund", "baki tharan", "കടം", "തരാനുണ്ട്", "കിട്ടാനുണ്ട്", "വായ്പ")) {
+   intent(r, "who owes whom");
    if (pr != null) {
     long n = db.net(pr.id);
     r.text = n > 0 ? t(m, pr.name + " owes you " + Fmt.money(n) + ".", pr.name + " നിങ്ങൾക്ക് " + Fmt.money(n) + " തരാനുണ്ട്.")
@@ -219,6 +249,7 @@ final class ChatBrain {
   }
   // ---- budgets
   if (has(low, "budget", "limit", "ബജറ്റ്")) {
+   intent(r, "budgets");
    YearMonth ym = YearMonth.from(today); StringBuilder b = new StringBuilder();
    for (Map.Entry<Long, Long> e : db.budgets().entrySet()) {
     Store.Cat c = cm.get(e.getKey()); if (c == null) continue;
@@ -229,6 +260,7 @@ final class ChatBrain {
   }
   // ---- compare this vs last month
   if (has(low, "compare", "versus", "vs", "than last", "more than", "less than", "thaarathamyam", "താരതമ്യം")) {
+   intent(r, "compare with last month");
    YearMonth ym = YearMonth.from(today), pm = ym.minusMonths(1);
    long a1 = sum(db.txs(ym.atDay(1).toString(), today.toString()), "expense", 0, null), a0 = sum(db.txs(pm.atDay(1).toString(), pm.atEndOfMonth().toString()), "expense", 0, null);
    long d = a1 - a0;
@@ -238,15 +270,17 @@ final class ChatBrain {
   }
   // ---- average
   if (has(low, "average", "avg", "per day", "daily", "a day", "ശരാശരി", "oru divasam", "divasam")) {
-   long tot = sum(tx, "expense", 0, null); long days = Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(sp.from, sp.to) + 1);
+   intent(r, "daily average");
+   long tot = sum(tx, "expense", 0, null); for (Store.Tx x : tx) if ("expense".equals(x.kind)) r.sources.add(x); long days = Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(sp.from, sp.to) + 1);
    r.text = t(m, "About " + Fmt.money(tot / days) + " a day " + (sp.explicit ? when : "this month") + " (" + Fmt.money(tot) + " over " + days + " days).", "ഒരു ദിവസം ഏകദേശം " + Fmt.money(tot / days) + " (" + days + " ദിവസത്തിൽ " + Fmt.money(tot) + ")."); return r;
   }
   // ---- top categories / biggest expenses
   boolean top = has(low, "top", "biggest", "largest", "highest", "most", "maximum", "max", "ettavum", "ettavum kooduthal", "ഏറ്റവും", "കൂടുതൽ", "kooduthal");
   if (top || has(low, "where did", "where is", "breakdown", "evide poyi", "എവിടെ")) {
+   intent(r, "top categories or biggest expenses");
    if (has(low, "categor", "where", "breakdown", "evide", "വിഭാഗ", "എവിടെ") || !has(low, "expense", "entry", "spend")) {
     Map<Long, Long> by = new HashMap<>(); long tot = 0;
-    for (Store.Tx x : tx) if ("expense".equals(x.kind)) { by.merge(x.cat, x.amount, Long::sum); tot += x.amount; }
+    for (Store.Tx x : tx) if ("expense".equals(x.kind)) { by.merge(x.cat, x.amount, Long::sum); tot += x.amount; r.sources.add(x); }
     List<Map.Entry<Long, Long>> es = new ArrayList<>(by.entrySet()); es.sort((p, q) -> Long.compare(q.getValue(), p.getValue()));
     if (es.isEmpty()) { r.text = t(m, "No expenses " + when + ".", when + " ചെലവുകളൊന്നുമില്ല."); return r; }
     StringBuilder b = new StringBuilder(t(m, "Where the money went " + when + " (" + Fmt.money(tot) + "):", when + " പണം പോയത് (" + Fmt.money(tot) + "):"));
@@ -254,7 +288,7 @@ final class ChatBrain {
     r.text = b.toString(); return r;
    }
    List<Store.Tx> ex = new ArrayList<>(); for (Store.Tx x : tx) if ("expense".equals(x.kind)) ex.add(x);
-   ex.sort((p, q) -> Long.compare(q.amount, p.amount));
+   ex.sort((p, q) -> Long.compare(q.amount, p.amount)); r.sources.addAll(ex.subList(0, Math.min(5, ex.size())));
    if (ex.isEmpty()) { r.text = t(m, "No expenses " + when + ".", when + " ചെലവുകളൊന്നുമില്ല."); return r; }
    StringBuilder b = new StringBuilder(t(m, "Biggest expenses " + when + ":", when + " ഏറ്റവും വലിയ ചെലവുകൾ:"));
    for (int i = 0; i < Math.min(5, ex.size()); i++) b.append("\n").append(line(db, ex.get(i), cm));
@@ -262,19 +296,22 @@ final class ChatBrain {
   }
   // ---- recent / last entries
   if (last && !has(low, "month", "week", "year", "maasam", "aazhcha", "മാസം", "ആഴ്ച") || has(low, "recent", "latest", "history", "entries", "transactions", "പുതിയ")) {
+   intent(r, "recent entries");
    int n = num > 0 && num <= 20 ? (int) (num / 100) : 5; if (n <= 0 || n > 20) n = 5;
    String ds = digits(low); java.util.regex.Matcher mm = Pattern.compile("\\b([0-9]{1,2})\\b").matcher(ds); if (mm.find()) n = Math.max(1, Math.min(20, Integer.parseInt(mm.group(1))));
-   List<Store.Tx> rc = db.recent(n);
+   List<Store.Tx> rc = db.recent(n); r.sources.addAll(rc); step(5, "Read the last " + rc.size() + " entries");
    if (rc.isEmpty()) { r.text = t(m, "No entries yet.", "എൻട്രികളൊന്നുമില്ല."); return r; }
    StringBuilder b = new StringBuilder(t(m, "Last " + rc.size() + " entries:", "അവസാന " + rc.size() + " എൻട്രികൾ:"));
    for (Store.Tx x : rc) b.append("\n").append(line(db, x, cm)); r.text = b.toString(); return r;
   }
   // ---- how many entries
   if (has(low, "how many", "count", "number of", "ethra ennam", "എത്ര എണ്ണം", "എണ്ണം")) {
+   intent(r, "count entries");
    r.text = t(m, tx.size() + " entries " + when + ".", when + " " + tx.size() + " എൻട്രികൾ."); return r;
   }
   // ---- account balances
   if (has(low, "balance", "account", "accounts", "cash", "wallet", "bank", "how much money", "net worth", "ബാലൻസ്", "അക്കൗണ്ട്", "ബാങ്ക്", "കയ്യിൽ", "kayyil", "kaiyil") && !has(low, "spent", "spend", "left", "baki", "ബാക്കി")) {
+   intent(r, "account balances");
    long total = 0; StringBuilder b = new StringBuilder(); List<Store.Acc> hit = new ArrayList<>();
    for (Store.Acc a : db.accounts()) { long bal = db.balance(a); total += bal; String n = a.name == null ? "" : a.name.toLowerCase(Locale.ROOT); if (n.length() >= 2 && has(low, n)) hit.add(a); b.append("\n").append(a.name).append(": ").append(Fmt.money(bal)); }
    if (hit.size() == 1) { r.text = t(m, hit.get(0).name + " has " + Fmt.money(db.balance(hit.get(0))) + ".", hit.get(0).name + "ൽ " + Fmt.money(db.balance(hit.get(0))) + " ഉണ്ട്."); return r; }
@@ -282,12 +319,15 @@ final class ChatBrain {
   }
   // ---- net / left / savings
   if (has(low, "left", "remaining", "net", "saving", "savings", "saved", "surplus", "baki", "baaki", "migham", "ബാക്കി", "മിച്ചം", "സമ്പാദ്യം")) {
-   long inc = sum(tx, "income", 0, null), exp = sum(tx, "expense", 0, null);
+   intent(r, "money left");
+   long inc = sum(tx, "income", 0, null), exp = sum(tx, "expense", 0, null); for (Store.Tx x : tx) if ("income".equals(x.kind) || "expense".equals(x.kind)) r.sources.add(x);
    r.text = t(m, "Income " + Fmt.money(inc) + ", spent " + Fmt.money(exp) + " " + when + ". Left: " + Fmt.money(inc - exp) + ".", when + " വരവ് " + Fmt.money(inc) + ", ചെലവ് " + Fmt.money(exp) + ". ബാക്കി: " + Fmt.money(inc - exp) + "."); return r;
   }
   // ---- income
   if (has(low, "income", "earn", "earned", "salary", "received", "paid me", "varavu", "varumanam", "sambalam", "shambalam", "വരവ്", "വരുമാന", "ശമ്പള", "കിട്ടി")) {
+   intent(r, "income");
    Store.Cat c = category(db, low, "income"); long v = sum(tx, "income", c == null ? 0 : c.id, null);
+   for (Store.Tx x : tx) if ("income".equals(x.kind) && (c == null || x.cat == c.id)) r.sources.add(x);
    r.text = t(m, "Income " + when + (c == null ? "" : " from " + c.name) + ": " + Fmt.money(v) + ".", when + " വരവ്" + (c == null ? "" : " (" + c.name + ")") + ": " + Fmt.money(v) + "."); return r;
   }
   // ---- spending (default), with optional category / person / note filter
@@ -296,9 +336,11 @@ final class ChatBrain {
   String key = c == null ? noteKey(low, db, tx) : null;
   if (c == null && key == null) c = category(db, low, "expense", true);
   if (spendWord || c != null || key != null || sp.explicit || question) {
+   intent(r, "spending" + (c != null ? " on " + c.name : key != null ? " on \"" + key + "\"" : "") + ", " + sp.en); if (c != null || key != null) step(4, "Matched " + (c != null ? "category " + c.name : "note word \"" + key + "\""));
    long v = sum(tx, "expense", c == null ? 0 : c.id, key); int cnt = 0;
    for (Store.Tx x : tx) if ("expense".equals(x.kind) && (c == null || x.cat == c.id) && (key == null || (x.note != null && x.note.toLowerCase(Locale.ROOT).contains(key)))) cnt++;
    String what = c != null ? c.name : key != null ? "\"" + key + "\"" : "";
+   for (Store.Tx x : tx) if ("expense".equals(x.kind) && (c == null || x.cat == c.id) && (key == null || (x.note != null && x.note.toLowerCase(Locale.ROOT).contains(key)))) r.sources.add(x);
    if (v == 0 && cnt == 0) { r.text = t(m, "Nothing spent" + (what.isEmpty() ? "" : " on " + what) + " " + when + ".", when + (what.isEmpty() ? "" : " " + what + " ന്") + " ചെലവൊന്നുമില്ല."); return r; }
    r.text = t(m, "Spent " + Fmt.money(v) + (what.isEmpty() ? "" : " on " + what) + " " + when + " (" + cnt + (cnt == 1 ? " entry" : " entries") + ").", when + (what.isEmpty() ? "" : " " + what) + " ചെലവ് " + Fmt.money(v) + " (" + cnt + " എൻട്രി).");
    if (c == null && key == null && v > 0) { r.text += t(m, " Ask \"top categories\" to see where it went.", " എവിടെയാണ് പോയതെന്നറിയാൻ \"top categories\" ചോദിക്കൂ."); }

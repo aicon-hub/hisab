@@ -63,6 +63,7 @@ final class HomePage {
 
   if(Privacy.backupDue(db)){TextView backup=Ui.button(a,"Keep a backup of your entries",false);c.addView(backup,Ui.lpm(-1,-2,0,12,0,0));Ui.tap(backup,()->Backup.password(a,true));}
   if (HomeCustom.on(db, "quickAdd")) c.addView(quickAdd(a), Ui.lpm(-1, -2, 0, 14, 0, 0));
+  { AiPill ai = new AiPill(a, L.t("Hisab AI"), L.t("Ask about your money. Runs on this phone.")); Ui.tap(ai, () -> ChatPage.open(a)); c.addView(ai, Ui.lpm(-1, -2, 0, 10, 0, 0)); }
   LinearLayout kinds = Ui.row(a); kinds.setPadding(0, Ui.dp(12), 0, 0);
   String[][] ks = {{"expense", "up", "Spent"}, {"income", "download", "Income"}, {"lent", "lent", "Lent"}, {"borrowed", "borrowed", "Borrowed"}, {"transfer", "swap", "Move"}};
   for (String[] k : ks) { LinearLayout cell = Ui.col(a); cell.setGravity(Gravity.CENTER_HORIZONTAL); cell.addView(Ui.badge(a, k[1], 54, Ui.surface, Ui.ink)); TextView t = Ui.text(a, k[2], 12, Ui.muted, true); t.setPadding(0, Ui.dp(7), 0, 0); t.setGravity(Gravity.CENTER);cell.addView(t); kinds.addView(cell, Ui.weight(1)); Ui.tap(cell, () -> a.openEntry(k[0], null)); ((LinearLayout) cell).setContentDescription(k[2]); }

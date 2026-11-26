@@ -60,4 +60,13 @@ public class ChatBrainTest {
   android.widget.EditText in = a.root.findViewWithTag("chatInput"); assertNotNull(in);
   ChatBrain.Reply r = ChatBrain.ask(db, "tea 30", today); ChatPage.pending = r; assertEquals("add", r.act);
  }
+ @Test public void runRecordsRealStepsAndSources() {
+  ChatBrain.Reply r = ChatBrain.ask(db, "food spend this month", today);
+  java.util.Set<Integer> nodes = new java.util.HashSet<>(); for (Object[] st : r.steps) nodes.add((Integer) st[0]);
+  assertTrue(nodes.containsAll(java.util.Arrays.asList(0, 1, 2, 3, 5, 6, 7, 8, 9, 10)));
+  assertEquals(2, r.sources.size());
+  long last = -1; for (Object[] st : r.steps) { assertTrue((Long) st[2] >= last); last = (Long) st[2]; }
+  assertFalse(ChatPage.sources(a, r).isEmpty());
+  ChatBrain.Reply d = ChatBrain.ask(db, "delete last", today); assertEquals(1, d.sources.size());
+ }
 }
