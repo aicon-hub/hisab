@@ -45,18 +45,18 @@ final class ChatPage {
   LinearLayout f = Ui.col(a); f.setPadding(Ui.dp(14), Ui.dp(6), Ui.dp(14), Ui.dp(16));
   EditText in = Sheets.field(a, "Ask anything, or type an entry (tea 20)", draft, InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
   in.setTag("chatInput"); in.setMaxLines(4);
-  android.widget.FrameLayout mic = Ui.badge(a, "mic", 42, Ui.surface2, Ui.ink); mic.setContentDescription("Say it");
+  MicButton mic = new MicButton(a);
   android.widget.FrameLayout send = Ui.badge(a, "right", 42, Ui.accent, Ui.onAccent); send.setContentDescription("Send");
   Runnable go = () -> { String s = in.getText().toString().trim(); if (s.isEmpty() || AiEngine.running) return; in.setText(""); draft = ""; submit(a, s); };
   Ui.tap(send, go);
   Ui.tap(mic, () -> {
    if (a.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) { a.requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO}, 6); return; }
-   Voice.listen(a, v -> { in.setText(v); in.setSelection(v.length()); go.run(); });
+   mic.setListening(true); Voice.listen(a, v -> { in.setText(v); in.setSelection(v.length()); go.run(); }, on -> a.runOnUiThread(() -> mic.setListening(on)));
   });
   in.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEND);
   in.setOnEditorActionListener((v, id, ev) -> { go.run(); return true; });
   LinearLayout row = Ui.row(a); row.setGravity(Gravity.CENTER_VERTICAL);
-  row.addView(in, new LinearLayout.LayoutParams(0, -2, 1)); row.addView(mic, Ui.lpm(Ui.dp(42), Ui.dp(42), 8, 0, 0, 0)); row.addView(send, Ui.lpm(Ui.dp(42), Ui.dp(42), 8, 0, 0, 0));
+  row.addView(in, new LinearLayout.LayoutParams(0, -2, 1)); row.addView(mic, Ui.lpm(Ui.dp(46), Ui.dp(46), 4, 0, 0, 0)); row.addView(send, Ui.lpm(Ui.dp(42), Ui.dp(42), 8, 0, 0, 0));
   f.addView(row); return f;
  }
 

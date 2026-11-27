@@ -28,6 +28,14 @@ final class MicButton extends FrameLayout {
   setClipChildren(false); setClipToPadding(false); setContentDescription("Say it"); setTag("micButton");
  }
 
+ /** One frame of the listening animation; also used to draw a still picture for checks. */
+ void frame(float f) {
+  float f2 = (f + 0.5f) % 1f; glyph.setAlpha(0f); bars.setAlpha(1f);
+  ring.setScaleX(1f + 0.42f * f); ring.setScaleY(1f + 0.42f * f); ring.setAlpha(0.75f * (1f - f));
+  ring2.setScaleX(1f + 0.42f * f2); ring2.setScaleY(1f + 0.42f * f2); ring2.setAlpha(0.6f * (1f - f2));
+  float[] k = {0.35f, 0.9f, 0.55f, 0.8f}; for (int i = 0; i < bar.length; i++) bar[i].setScaleY(0.25f + 0.75f * (i % 2 == 0 ? 0.6f : 0.4f) * k[i] + 0.15f);
+ }
+
  static int lift(int c, float f) { int r = (c >> 16) & 255, gr = (c >> 8) & 255, b = c & 255; return 0xFF000000 | ((r + (int) ((255 - r) * f)) << 16) | ((gr + (int) ((255 - gr) * f)) << 8) | (b + (int) ((255 - b) * f)); }
  static int shade(int c, float f) { int r = (c >> 16) & 255, gr = (c >> 8) & 255, b = c & 255; return 0xFF000000 | ((int) (r * f) << 16) | ((int) (gr * f) << 8) | (int) (b * f); }
 
@@ -38,12 +46,15 @@ final class MicButton extends FrameLayout {
   glyph.setAlpha(on && motion ? 0f : 1f); bars.setAlpha(on && motion ? 1f : 0f);
   if (!on || !motion) { ring.setAlpha(0f); ring2.setAlpha(0f); for (View b : bar) b.setScaleY(1f); return; }
   pulse = ValueAnimator.ofFloat(0f, 1f); pulse.setDuration(1400); pulse.setRepeatCount(ValueAnimator.INFINITE);
-  pulse.addUpdateListener(x -> { float f = (float) x.getAnimatedValue(), f2 = (f + 0.5f) % 1f; ring.setScaleX(1f + 0.6f * f); ring.setScaleY(1f + 0.6f * f); ring.setAlpha(0.75f * (1f - f)); ring2.setScaleX(1f + 0.6f * f2); ring2.setScaleY(1f + 0.6f * f2); ring2.setAlpha(0.6f * (1f - f2)); });
+  pulse.addUpdateListener(x -> frame((float) x.getAnimatedValue()));
   pulse.start();
   eq = ValueAnimator.ofFloat(0f, 1f); eq.setDuration(700); eq.setRepeatCount(ValueAnimator.INFINITE); eq.setRepeatMode(ValueAnimator.REVERSE);
   eq.addUpdateListener(x -> { float f = (float) x.getAnimatedValue(); float[] k = {0.35f, 0.9f, 0.55f, 0.8f}; for (int i = 0; i < bar.length; i++) bar[i].setScaleY(0.25f + 0.75f * (i % 2 == 0 ? f : 1f - f) * k[i] + 0.15f); });
   eq.start();
  }
+
+ /** The rings grow past the button, so no parent may clip them to a square. */
+ @Override protected void onAttachedToWindow() { super.onAttachedToWindow(); android.view.ViewParent p = getParent(); for (int i = 0; i < 8 && p instanceof android.view.ViewGroup; i++) { android.view.ViewGroup g = (android.view.ViewGroup) p; g.setClipChildren(false); g.setClipToPadding(false); p = g.getParent(); } }
 
  @Override protected void onDetachedFromWindow() { super.onDetachedFromWindow(); if (pulse != null) { pulse.cancel(); pulse = null; } if (eq != null) { eq.cancel(); eq = null; } }
 }

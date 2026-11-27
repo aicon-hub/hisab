@@ -58,7 +58,7 @@ public final class BankSms extends BroadcastReceiver {
   Kit.page(a,"Bank SMS",null,null,c->{
    LinearLayout adv=Ui.col(a);adv.setVisibility(android.view.View.GONE);
    c.addView(Ui.text(a,"Bank balances from SMS",20,Ui.ink,true));
-   c.addView(Ui.text(a,"Three easy steps. Everything is read on this phone only and nothing is uploaded.",14,Ui.muted,false),Ui.lpm(-1,-2,0,4,0,14));
+   c.addView(Ui.text(a,"Three steps. Everything is read on this phone only and nothing is uploaded.",14,Ui.muted,false),Ui.lpm(-1,-2,0,4,0,14));
    c.addView(Ui.text(a,"Step 1: switch it on",15,Ui.ink,true));
    adv.addView(Ui.text(a,"Reads supported bank messages on this phone only. No SMS is sent, uploaded or used for ads. Unknown senders, OTPs and ambiguous formats are ignored. Coverage is not guaranteed for every Indian bank. A forged sender is possible: always verify in your bank app.",14,Ui.muted,false),Ui.lpm(-1,-2,0,12,0,16));
    adv.addView(Ui.text(a,"SMS balance is shown separately from your ledger balance, with its date. It never creates entries or changes your starting balance. This avoids counting an expense twice.",14,Ui.muted,false));

@@ -46,7 +46,14 @@ public class RealPathTest {
   new File(ShotTest.OUT).mkdirs();
   View home = a.tabHost.getChildAt(0); MicButton m = (MicButton) find(home, MicButton.class); assertNotNull(m);
   ShotTest.snap(a, "mic-home-idle");
-  m.setListening(true); assertTrue(m.listening); ShotTest.snap(a, "mic-home-listening"); m.setListening(false);
+  m.setListening(true); assertTrue(m.listening); m.frame(0.55f); ShotTest.snap(a, "mic-home-listening"); m.setListening(false);
+ }
+ @Test public void chatMicIsTheNewOneAndRingsAreNotClipped() throws Exception {
+  new File(ShotTest.OUT).mkdirs(); ChatPage.open(a); settle();
+  View top = a.layers.get(a.layers.size() - 1).content; MicButton m = (MicButton) find(top, MicButton.class); assertNotNull("chat uses MicButton", m);
+  ShotTest.snap(a, "mic-chat-idle"); m.setListening(true); m.frame(0.55f); ShotTest.snap(a, "mic-chat-listening");
+  int n = 0; for (android.view.ViewParent p = m.getParent(); p instanceof ViewGroup && n < 4; p = p.getParent(), n++) assertFalse("parent clips the pulse: " + p, ((ViewGroup) p).getClipChildren());
+  m.setListening(false);
  }
  static View find(View v, Class<?> c) { if (c.isInstance(v)) return v; if (v instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++) { View r = find(((ViewGroup) v).getChildAt(i), c); if (r != null) return r; } return null; }
 }
