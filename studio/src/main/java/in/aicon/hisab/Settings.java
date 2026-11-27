@@ -140,6 +140,8 @@ final class Settings {
    if (DriveBackup.enabled(db)) {
     da.addView(item(a, "upload", "Back up to Google Drive now", DriveBackup.backupNowValue(DriveBackup.lastBackupAt(db), DriveBackup.errorAt(db)), "Uploads a fresh copy of all your entries, accounts and attached bills to your own Google Drive right now. Backups also happen on their own after every change.", () -> DriveBackup.backupNow(a, false))); da.addView(Ui.divider(a));
     da.addView(item(a, "download", "Restore from Google Drive", "Replaces everything on this phone", "Puts the Google Drive copy back on this phone. Everything currently on this phone, including attached photos, is replaced by the backup.", () -> DriveBackup.restoreNow(a))); da.addView(Ui.divider(a));
+    da.addView(item(a, "upload", "Include photos and PDFs", DriveBackup.images(db) ? "On" : "Off", "Attached bill photos and PDFs go into the Drive copy too. Turn off to keep the backup small.", () -> DriveBackup.imagesSwitch(a))); da.addView(Ui.divider(a));
+    da.addView(item(a, "lock", "Encrypt my backup with a password", DriveBackup.encrypted(db) ? "On" : "Off", "Off: restoring needs only your Google sign-in. On: the Drive copy is scrambled with your password, which Hisab keeps only on this phone and cannot recover for you.", () -> DriveBackup.encryptSwitch(a))); da.addView(Ui.divider(a));
    }
    da.addView(item(a, "share", "Export entries as CSV", "A spreadsheet of your entries to share or save", "Sends all your entries as a CSV file that spreadsheet apps like Excel and Google Sheets can open. Nothing is uploaded anywhere; you choose where it goes.", () -> exportCsv(a))); da.addView(Ui.divider(a));
    da.addView(item(a, "share", "Export everything (CSV)", "Entries, accounts, categories, people, budgets, goals, repeats", "One CSV file with the whole app: entries plus your accounts, categories, people, budgets, goals and repeats.", () -> exportEverything(a))); da.addView(Ui.divider(a));
@@ -157,7 +159,7 @@ final class Settings {
    if (sec.equals("about")) {
    LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
-   ab.addView(Ui.text(a, "Version 1.0.30 test build", 12.5f, Ui.muted, true));
+   ab.addView(Ui.text(a, "Version 1.0.31 test build", 12.5f, Ui.muted, true));
    ab.addView(item(a, "bell", "Last problem", "Shows what went wrong if the app closed. Stays on this phone", () -> CrashLog.show(a)));
    ab.addView(Ui.divider(a), Ui.lpm(-1, -2, 0, 14, 0, 0));
    ab.addView(item(a, "share", "Share Hisab with a friend", "Recommend the app and how to install it", () -> shareHisab(a)));

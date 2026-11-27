@@ -156,6 +156,8 @@ final class ChatPage {
 
  static void run(MainActivity a, String s) {
   LOG.add(new String[]{"me", s, ""}); while (LOG.size() > 60) LOG.remove(0);
+  String fixed = FixedFacts.answer(a, s);
+  if (fixed != null) { LOG.add(new String[]{"hisab", fixed, FixedFacts.NOTE}); save(a); refresh(a); return; }
   ChatBrain.Reply r = ChatBrain.ask(a.db, s, LocalDate.now());
   if (!r.act.isEmpty()) {
    if (write(a) && r.tx != null) { pending = r; save(a); refresh(a); return; }
