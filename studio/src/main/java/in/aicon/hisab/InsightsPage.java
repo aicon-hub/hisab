@@ -10,8 +10,8 @@ final class InsightsPage {
 
  static View build(MainActivity a) {
   Store db = a.db; ScrollView[] sv = new ScrollView[1]; LinearLayout c = Kit.column(a, sv, true);
-  c.addView(Kit.title(a, "Where it went", "Insights", false));
-  YearMonth ym = a.insightMonth; boolean pieAll = db.pref("pieScope", "month").equals("all");
+  c.addView(Kit.title(a, "Where it went", "Insights", true));
+  YearMonth ym = a.insightMonth; String pieScope = db.pref("pieScope", "month"); boolean pieAll = pieScope.equals("all"), pieYear = pieScope.equals("year");
   LinearLayout nav = Ui.row(a); nav.setBackground(Ui.shape(Ui.surface, 26)); nav.setPadding(Ui.dp(8), Ui.dp(8), Ui.dp(8), Ui.dp(8));
   FrameLayout l = Ui.badge(a, "left", 38, Ui.surface2, Ui.ink), r = Ui.badge(a, "right", 38, Ui.surface2, Ui.ink);
   nav.addView(l, Ui.lp(Ui.dp(38), Ui.dp(38))); TextView mt = Ui.big(a, Fmt.month(ym), 18, Ui.ink); mt.setGravity(Gravity.CENTER); nav.addView(mt, Ui.weight(1)); nav.addView(r, Ui.lp(Ui.dp(38), Ui.dp(38)));
@@ -36,28 +36,33 @@ final class InsightsPage {
    android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, summary(db, ym));
    a.launchExternal(android.content.Intent.createChooser(i, "Share month summary"));
   }));
-  more.addView(Ui.divider(a)); more.addView(Settings.item(a, "bell", "Ask Hisab", "Ask about your money, add entries by chat", () -> ChatPage.open(a)));
-  c.addView(more, Ui.lpm(-1, -2, 0, 0, 0, 14));
+  more.addView(Ui.divider(a)); more.addView(Settings.item(a, "bell", "Ask Hisab AI", "Ask about your money, add entries by chat", () -> ChatPage.open(a)));
+  c.addView(more, Ui.lpm(-1, -2, 0, 22, 0, 14));
   if (RoundUp.step(db) > 0) { LinearLayout ru = Ui.card(a); ru.setPadding(Ui.dp(18), Ui.dp(14), Ui.dp(18), Ui.dp(14));
    LinearLayout rr = Ui.row(a); rr.addView(Ui.text(a, "Round-up pot", 13, Ui.muted, true), Ui.weight(1)); rr.addView(Ui.big(a, Fmt.money(RoundUp.pot(db)), 20, Ui.ink)); ru.addView(rr);
    ru.addView(Ui.text(a, "Spare change if every expense rounded up - counted, not moved.", 12, Ui.muted, false), Ui.lpm(-1, -2, 0, 4, 0, 0));
    c.addView(ru, Ui.lpm(-1, -2, 0, 0, 0, 10)); }
 
   // by category
-  c.addView(Kit.sectionHead(a, "By category", pieAll ? "All time" : "This month", () -> { db.setPref("pieScope", pieAll ? "month" : "all"); a.refresh(); }));
+  c.addView(Kit.sectionHead(a, "By category", null, null));
+  { LinearLayout seg = Ui.row(a); seg.setBackground(Ui.shape(Ui.surface2, 22)); seg.setPadding(Ui.dp(4), Ui.dp(4), Ui.dp(4), Ui.dp(4)); seg.setTag("pieScopeSwitch");
+   String[][] opts = {{"month", "This month"}, {"year", "This year"}, {"all", "All time"}};
+   for (String[] o : opts) { boolean on = o[0].equals(pieScope); TextView t = Ui.text(a, o[1], 13, on ? Ui.onAccent : Ui.ink, true); t.setGravity(Gravity.CENTER); t.setPadding(Ui.dp(6), Ui.dp(9), Ui.dp(6), Ui.dp(9)); if (on) t.setBackground(Ui.shape(Ui.accent, 18)); t.setContentDescription(o[1]); Ui.tap(t, () -> { db.setPref("pieScope", o[0]); a.refresh(); }); seg.addView(t, Ui.weight(1)); }
+   c.addView(seg, Ui.lpm(-1, -2, 0, 0, 0, 12)); }
+  final String pFrom = pieAll ? "0000-01-01" : pieYear ? ym.getYear() + "-01-01" : Fmt.from(ym), pTo = pieAll ? "9999-12-31" : pieYear ? ym.getYear() + "-12-31" : Fmt.to(ym);
   Map<Long, Long> pieCat = byCat; long pieOut = out;
-  if (pieAll) { pieCat = new HashMap<>(); pieOut = 0; for (Store.Tx t : db.txs("0000-01-01", "9999-12-31")) if (t.kind.equals("expense")) { pieOut += t.amount; pieCat.merge(t.cat, t.amount, Long::sum); } }
+  if (pieAll || pieYear) { pieCat = new HashMap<>(); pieOut = 0; for (Store.Tx t : db.txs(pFrom, pTo)) if (t.kind.equals("expense")) { pieOut += t.amount; pieCat.merge(t.cat, t.amount, Long::sum); } }
   List<Map.Entry<Long, Long>> es = new ArrayList<>(pieCat.entrySet()); es.sort((x, y) -> Long.compare(y.getValue(), x.getValue()));
   LinearLayout cc = Ui.card(a);
   if (es.isEmpty()) cc.addView(Kit.empty(a, "chart", "No spending", "Nothing noted in this month."));
   else {
    int n = Math.min(es.size(), 6); long[] vals = new long[n + (es.size() > n ? 1 : 0)]; int[] cols = new int[vals.length]; long rest = 0;
-   for (int i = 0; i < es.size(); i++) { if (i < n) { vals[i] = es.get(i).getValue(); cols[i] = Kit.tone(es.get(i).getKey()); } else rest += es.get(i).getValue(); } if (rest > 0) { vals[n] = rest; cols[n] = Ui.dark ? 0xFF3A3E49 : 0xFFD9D2C2; }
-   Charts.Donut d = new Charts.Donut(a, vals, cols, Fmt.compact(pieOut), pieAll ? "all time" : "spent"); cc.addView(d, Ui.lpm(Ui.dp(190), Ui.dp(190), 0, 4, 0, 14)); ((LinearLayout.LayoutParams) d.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+   for (int i = 0; i < es.size(); i++) { if (i < n) { vals[i] = es.get(i).getValue(); cols[i] = strong(i); } else rest += es.get(i).getValue(); } if (rest > 0) { vals[n] = rest; cols[n] = 0xFF475569; }
+   final List<Map.Entry<Long, Long>> esF = es; final int nF = n; Charts.Donut d = new Charts.Donut(a, vals, cols, Fmt.compact(pieOut), pieAll ? "all time" : pieYear ? "this year" : "spent"); d.pick = idx -> categoryEntries(a, esF, nF, idx, pFrom, pTo); cc.addView(d, Ui.lpm(Ui.dp(190), Ui.dp(190), 0, 4, 0, 14)); ((LinearLayout.LayoutParams) d.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
    for (int i = 0; i < Math.min(es.size(), 7); i++) { Store.Cat ct = cats.get(es.get(i).getKey()); long v = es.get(i).getValue(); int pct = pieOut > 0 ? (int) Math.round(100.0 * v / pieOut) : 0;
-    LinearLayout row = Ui.row(a); row.setPadding(0, Ui.dp(8), 0, Ui.dp(8)); row.addView(Ui.badge(a, ct == null ? "other" : ct.icon, 34, Kit.tone(es.get(i).getKey()), 0xFF14151A), Ui.lpm(Ui.dp(34), Ui.dp(34), 0, 0, 12, 0));
+    LinearLayout row = Ui.row(a); row.setPadding(0, Ui.dp(8), 0, Ui.dp(8)); row.addView(Ui.badge(a, ct == null ? "other" : ct.icon, 34, strong(i), 0xFFFFFFFF), Ui.lpm(Ui.dp(34), Ui.dp(34), 0, 0, 12, 0));
     LinearLayout m = Ui.col(a); LinearLayout h = Ui.row(a); h.addView(Ui.text(a, ct == null ? "Other" : ct.name, 14.5f, Ui.ink, true), Ui.weight(1)); h.addView(Ui.text(a, Fmt.money(v) + "  " + pct + "%", 13, Ui.muted, true)); m.addView(h);
-    Charts.Pace bar = new Charts.Pace(a, v / (float) es.get(0).getValue(), -1, Kit.tone(es.get(i).getKey()), Ui.surface2); m.addView(bar, Ui.lp(-1, Ui.dp(16))); row.addView(m, Ui.weight(1)); cc.addView(row); }
+    Charts.Pace bar = new Charts.Pace(a, v / (float) es.get(0).getValue(), -1, strong(i), Ui.surface2); m.addView(bar, Ui.lp(-1, Ui.dp(16))); row.addView(m, Ui.weight(1)); final int ri = i; Ui.tap(row, () -> categoryEntries(a, esF, nF, ri, pFrom, pTo)); cc.addView(row); }
   }
   c.addView(cc);
 
@@ -137,5 +142,20 @@ final class InsightsPage {
    }
   }
   return b.toString();
+ }
+
+ static final int[] STRONG = {0xFF1D4ED8, 0xFFB3261E, 0xFF0B6E4F, 0xFFB45309, 0xFF7E22CE, 0xFF0F766E, 0xFFBE185D};
+ static int strong(int i) { return STRONG[i % STRONG.length]; }
+
+ /** Sheet listing the entries behind one slice. Index n and above is the "Other" slice. */
+ static void categoryEntries(MainActivity a, List<Map.Entry<Long, Long>> es, int n, int idx, String from, String to) {
+  Map<Long, Store.Cat> cm = a.db.categoryMap(); java.util.Set<Long> top = new java.util.HashSet<>(); for (int i = 0; i < Math.min(n, es.size()); i++) top.add(es.get(i).getKey());
+  boolean other = idx >= n; String name = other ? "Other categories" : cm.get(es.get(idx).getKey()) == null ? "Other" : cm.get(es.get(idx).getKey()).name;
+  List<Store.Tx> rows = new ArrayList<>(); for (Store.Tx t : a.db.txs(from, to)) if (t.kind.equals("expense") && (other ? !top.contains(t.cat) : t.cat == es.get(idx).getKey())) rows.add(t);
+  long sum = 0; for (Store.Tx t : rows) sum += t.amount;
+  LinearLayout body = Sheets.sheetBody(a, name); body.addView(Ui.text(a, rows.size() + " entries, " + Fmt.money(sum), 13, Ui.muted, false), Ui.lpm(-1, -2, 0, 0, 0, 10)); body.setTag("categoryEntries");
+  for (int i = 0; i < Math.min(rows.size(), 60); i++) body.addView(Ui.text(a, ChatBrain.line(a.db, rows.get(i), cm), 13.5f, Ui.ink, false), Ui.lpm(-1, -2, 0, 0, 0, 8));
+  if (rows.size() > 60) body.addView(Ui.text(a, "+ " + (rows.size() - 60) + " more", 12, Ui.muted, false));
+  Sheets.show(a, body);
  }
 }

@@ -12,7 +12,7 @@ final class PeoplePage {
 
  static View build(MainActivity a) {
   Store db = a.db; ScrollView[] sv = new ScrollView[1]; LinearLayout c = Kit.column(a, sv, true);
-  c.addView(Kit.title(a, "Lent and borrowed", "People", false));
+  c.addView(Kit.title(a, "Lent and borrowed", "People", true));
   List<Store.Person> ps = db.people(); long owed = 0, owe = 0; Map<Long, Long> nets = new HashMap<>(); for (Store.Person p : ps) { long n = db.net(p.id); nets.put(p.id, n); if (n > 0) owed += n; else owe -= n; }
   LinearLayout hero = Ui.row(a); hero.setBackground(Ui.shape(Ui.accent, 28)); hero.setPadding(Ui.dp(22), Ui.dp(20), Ui.dp(22), Ui.dp(20));
   LinearLayout l = Ui.col(a); l.addView(Ui.text(a, "They owe you", 13, Ui.onAccentSub, true)); TextView x = Ui.big(a, Fmt.money(owed), 28, Ui.onAccent); x.setPadding(0, Ui.dp(8), 0, 0); l.addView(x); hero.addView(l, Ui.weight(1));

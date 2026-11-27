@@ -71,11 +71,29 @@ final class Charts {
  static final class Donut extends Anim {
   final long[] v; final int[] colors; final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG); String centerTop = "", centerBottom = ""; final Paint tp = new Paint(Paint.ANTI_ALIAS_FLAG);
   Donut(Context c, long[] v, int[] colors, String top, String bottom) { super(c); this.v = v; this.colors = colors; centerTop = top; centerBottom = bottom; p.setStyle(Paint.Style.STROKE); tp.setTextAlign(Paint.Align.CENTER); }
+  java.util.function.IntConsumer pick;
+  @Override public boolean onTouchEvent(android.view.MotionEvent e) {
+   if (pick == null) return super.onTouchEvent(e);
+   if (e.getAction() == android.view.MotionEvent.ACTION_DOWN) return true;
+   if (e.getAction() == android.view.MotionEvent.ACTION_UP) { int k = sliceAt(e.getX(), e.getY()); if (k >= 0) { performClick(); pick.accept(k); } return true; }
+   return true;
+  }
+  @Override public boolean performClick() { return super.performClick(); }
+  /** Slice under a touch point, or -1 when it misses the ring. */
+  int sliceAt(float x, float y) {
+   float w = Math.min(getWidth(), getHeight()), sw = w * 0.17f, r = (w - sw) / 2f, cx = getWidth() / 2f, cy = getHeight() / 2f;
+   double dist = Math.hypot(x - cx, y - cy); if (dist < r - sw * 0.9 || dist > r + sw * 0.9) return -1;
+   double ang = Math.toDegrees(Math.atan2(y - cy, x - cx)) + 90; if (ang < 0) ang += 360;
+   long total = 0; for (long q : v) total += q; if (total <= 0) return -1; double acc = 0;
+   for (int k = 0; k < v.length; k++) { acc += 360.0 * v[k] / total; if (ang < acc) return k; }
+   return v.length - 1;
+  }
   @Override protected void onDraw(Canvas c) {
    float w = Math.min(getWidth(), getHeight()), sw = w * 0.17f, r = (w - sw) / 2f, cx = getWidth() / 2f, cy = getHeight() / 2f; long total = 0; for (long x : v) total += x;
    p.setStrokeWidth(sw); p.setStrokeCap(Paint.Cap.BUTT); p.setColor(Ui.surface2); c.drawCircle(cx, cy, r, p);
-   if (total > 0) { float start = -90, gap = v.length > 1 ? 2.4f : 0, avail = 360f * t;
-    for (int i = 0; i < v.length; i++) { float sweep = 360f * v[i] / total; float draw = Math.max(0, sweep - gap); if (start + 90 + 0 > avail) break; p.setColor(colors[i % colors.length]); c.drawArc(cx - r, cy - r, cx + r, cy + r, start + gap / 2, Math.min(draw, avail - (start + 90)), false, p); start += sweep; } }
+   if (total > 0) { float start = 0, gap = v.length > 1 ? 2.4f : 0, avail = 360f * t;
+    for (int i = 0; i < v.length; i++) { float sweep = 360f * v[i] / total; float from = start + gap / 2, len = Math.max(0, sweep - gap); start += sweep; if (from >= avail) break; p.setColor(colors[i % colors.length]); c.drawArc(cx - r, cy - r, cx + r, cy + r, from - 90, Math.min(len, avail - from), false, p); }
+   }
    tp.setTypeface(Ui.displayBold); tp.setColor(Ui.ink); tp.setTextSize(Ui.dp(22)); c.drawText(centerTop, cx, cy + Ui.dp(2), tp);
    tp.setTypeface(Ui.body); tp.setColor(Ui.muted); tp.setTextSize(Ui.dp(11)); c.drawText(centerBottom, cx, cy + Ui.dp(20), tp);
   }

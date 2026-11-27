@@ -62,7 +62,7 @@ final class ChatPage {
 
  /** Redraws the set-up area and the messages; the input bar stays untouched so typing is not lost. */
  static void refresh(MainActivity a) {
-  if (top == null || msgs == null) return;
+  if (top == null || msgs == null || top.getParent() == null) return;
   top.removeAllViews(); msgs.removeAllViews();
   boolean ok = ModelChat.setup(a, top, () -> refresh(a));
   if (ok) ModelChat.modelBar(a, top, () -> refresh(a));

@@ -34,7 +34,7 @@ final class LedgerPage {
 
  static View build(MainActivity a) {
   Store db = a.db; ScrollView[] sv = new ScrollView[1]; LinearLayout c = Kit.column(a, sv, true);
-  c.addView(Kit.title(a, "Everything you have noted", "Ledger", false));
+  c.addView(Kit.title(a, "Everything you have noted", "Ledger", true));
   YearMonth ym = a.ledgerMonth;
   LinearLayout nav = Ui.row(a); nav.setBackground(Ui.shape(Ui.surface, 26)); nav.setPadding(Ui.dp(8), Ui.dp(8), Ui.dp(8), Ui.dp(8));
   FrameLayout l = Ui.badge(a, "left", 38, Ui.surface2, Ui.ink), r = Ui.badge(a, "right", 38, Ui.surface2, Ui.ink); l.setContentDescription("Previous month"); r.setContentDescription("Next month");

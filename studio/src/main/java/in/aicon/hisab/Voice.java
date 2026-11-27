@@ -12,7 +12,9 @@ final class Voice {
  private Voice() {}
  interface Heard { void onText(String s); }
 
- static void listen(final MainActivity a, final Heard cb) {
+ static void listen(final MainActivity a, final Heard cb) { listen(a, cb, null); }
+
+ static void listen(final MainActivity a, final Heard cb, final java.util.function.Consumer<Boolean> active) {
   if (!SpeechRecognizer.isRecognitionAvailable(a)) { a.toast("Voice typing is not available on this phone", null); return; }
   try {
    final SpeechRecognizer sr = SpeechRecognizer.createSpeechRecognizer(a);
@@ -21,9 +23,9 @@ final class Voice {
     .putExtra(RecognizerIntent.EXTRA_LANGUAGE, L.isMl() ? "ml-IN" : "en-IN")
     .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
    sr.setRecognitionListener(new RecognitionListener() {
-    @Override public void onResults(Bundle r) { sr.destroy(); ArrayList<String> m = r.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION); if (m != null && !m.isEmpty()) cb.onText(m.get(0)); else a.toast("Could not hear that", null); }
-    @Override public void onError(int e) { sr.destroy(); a.toast(e == SpeechRecognizer.ERROR_NO_MATCH || e == SpeechRecognizer.ERROR_SPEECH_TIMEOUT ? "Could not hear that" : "Voice typing stopped", null); }
-    @Override public void onReadyForSpeech(Bundle p) { a.toast("Listening...", null); }
+    @Override public void onResults(Bundle r) { sr.destroy(); if (active != null) active.accept(false); ArrayList<String> m = r.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION); if (m != null && !m.isEmpty()) cb.onText(m.get(0)); else a.toast("Could not hear that", null); }
+    @Override public void onError(int e) { sr.destroy(); if (active != null) active.accept(false); a.toast(e == SpeechRecognizer.ERROR_NO_MATCH || e == SpeechRecognizer.ERROR_SPEECH_TIMEOUT ? "Could not hear that" : "Voice typing stopped", null); }
+    @Override public void onReadyForSpeech(Bundle p) { if (active != null) active.accept(true); a.toast("Listening...", null); }
     @Override public void onBeginningOfSpeech() {}
     @Override public void onRmsChanged(float v) {}
     @Override public void onBufferReceived(byte[] b) {}
