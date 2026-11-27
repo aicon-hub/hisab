@@ -35,16 +35,16 @@ final class Privacy {
   boolean locked = Lock.enabled(a.db);
   if (!locked) {
    TextView set = Ui.button(a, "Set a PIN", true); c.addView(set, Ui.lpm(-1,-2,0,0,0,16));
-   Ui.tap(set, () -> pinForm(a, "Set a PIN", false, ok -> { if (ok) { a.closeAll(); a.toast("App lock is on", null); open(a); } }));
+   Ui.tap(set, () -> pinForm(a, "Set a PIN", false, ok -> { if (ok) { a.toast("App lock is on", null); a.refresh(); } }));
   } else {
    LinearLayout r = Ui.row(a); TextView ch = Ui.button(a, "Change PIN", false), off = Ui.button(a, "Turn off", false);
    r.addView(ch, Ui.lpm(0,-2,0,0,6,0)); ((LinearLayout.LayoutParams) ch.getLayoutParams()).weight = 1;
    r.addView(off, Ui.lpm(0,-2,6,0,0,0)); ((LinearLayout.LayoutParams) off.getLayoutParams()).weight = 1;
    c.addView(r, Ui.lpm(-1,-2,0,0,0,16));
-   Ui.tap(ch, () -> pinForm(a, "Change PIN", true, ok -> { if (ok) { a.closeAll(); a.toast("PIN changed", null); open(a); } }));
+   Ui.tap(ch, () -> pinForm(a, "Change PIN", true, ok -> { if (ok) { a.toast("PIN changed", null); a.refresh(); } }));
    Ui.tap(off, () -> PinPad.ask(a, "Turn off app lock", "Enter your current PIN", cur -> {
     if (Lock.verify(a.db, cur)) { Lock.clear(a.db); a.toast("App lock is off", null); } else a.toast("Wrong PIN. App lock stays on", null);
-    a.closeAll(); open(a);
+    a.refresh();
    }));
    if (Bio.available(a)) {
     toggle(a,c,"Unlock with fingerprint or face","bioUnlock",false,()->{});

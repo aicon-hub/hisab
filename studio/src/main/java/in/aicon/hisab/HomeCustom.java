@@ -39,7 +39,7 @@ final class HomeCustom {
    c.addView(card);
    TextView reset = Ui.button(a, "Show everything", false);
    c.addView(reset, Ui.lpm(-1, -2, 0, 14, 0, 0));
-   Ui.tap(reset, () -> { for (String[] s : SECTIONS) a.db.setPref("home:" + s[0], "1"); a.closeAll(); open(a); });
+   Ui.tap(reset, () -> { for (String[] s : SECTIONS) a.db.setPref("home:" + s[0], "1"); a.refresh(); });
   });
  }
 }

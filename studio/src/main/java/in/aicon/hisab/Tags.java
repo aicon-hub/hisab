@@ -45,8 +45,8 @@ final class Tags {
     TextView edit = Ui.button(a, "Rename", false); edit.setPadding(Ui.dp(12), Ui.dp(8), Ui.dp(12), Ui.dp(8)); row.addView(edit, Ui.lpm(-2, -2, 4, 0, 4, 0));
     Ui.tap(show, () -> { a.ledgerQuery = name; a.closeAll(); a.showTab(1, true); });
     Ui.tap(edit, () -> Sheets.form(a, "Rename tag", new String[]{"Tag name"}, new String[]{name}, new int[]{Sheets.TEXT}, "Save",
-      v -> { if (!v[0].isEmpty()) { a.db.renameTag(name, v[0]); a.closeAll(); a.refresh(); open(a); a.toast("Tag updated", null); } },
-      () -> { a.db.dropTag(name); a.closeAll(); a.refresh(); open(a); a.toast("Tag removed", null); }));
+      v -> { if (!v[0].isEmpty()) { a.db.renameTag(name, v[0]); a.refresh(); a.toast("Tag updated", null); } },
+      () -> { a.db.dropTag(name); a.refresh(); a.toast("Tag removed", null); }));
     card.addView(row); if (i < tags.size() - 1) card.addView(Ui.divider(a));
    }
    c.addView(card);

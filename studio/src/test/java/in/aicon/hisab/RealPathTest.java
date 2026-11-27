@@ -55,5 +55,12 @@ public class RealPathTest {
   int n = 0; for (android.view.ViewParent p = m.getParent(); p instanceof ViewGroup && n < 4; p = p.getParent(), n++) assertFalse("parent clips the pulse: " + p, ((ViewGroup) p).getClipChildren());
   m.setListening(false);
  }
+ @Test public void pinAndAutoRemindStayOnTheirPage() throws Exception {
+  byDesc(a.tabHost, "Settings").performClick(); settle(); Privacy.open(a); settle(); int n = a.layers.size(); assertTrue(n >= 2);
+  Privacy.pinForm(a, "Set a PIN", false, ok -> { if (ok) { a.toast("App lock is on", null); a.refresh(); } }); settle();
+  a.close(a.layers.get(a.layers.size() - 1)); a.refresh(); settle(); assertEquals(n, a.layers.size());
+  a.closeAll(); byDesc(a.tabHost, "Settings").performClick(); settle(); int m = a.layers.size(); AutoRemind.open(a); settle(); assertEquals(m + 1, a.layers.size());
+  a.refresh(); settle(); assertEquals(m + 1, a.layers.size());
+ }
  static View find(View v, Class<?> c) { if (c.isInstance(v)) return v; if (v instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++) { View r = find(((ViewGroup) v).getChildAt(i), c); if (r != null) return r; } return null; }
 }

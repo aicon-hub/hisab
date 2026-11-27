@@ -107,7 +107,7 @@ public final class AutoRemind extends BroadcastReceiver {
      db.setPref("autoRemind", "1"); schedule(a, db);
      if (Build.VERSION.SDK_INT >= 33) a.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 74);
      if (db.pref("autoRemindChannel", "WhatsApp").equals("SMS")) a.requestPermissions(new String[]{Manifest.permission.SEND_SMS}, 73);
-     a.closeAll(); open(a);
+     a.refresh();
     }); v.setOnCheckedChangeListener(null); v.setChecked(false);
    });
    long d0; try { d0 = Long.parseLong(db.pref("autoRemindDays", "7")); } catch (Exception e) { d0 = 7; }
@@ -115,13 +115,13 @@ public final class AutoRemind extends BroadcastReceiver {
    c.addView(Settings.item(a, "calendar", "Remind each person every", days + " days", () -> {
     List<String> labels = new ArrayList<>(); for (int d : DAY_OPTIONS) labels.add(d + " days");
     List<String> cur = new ArrayList<>(); for (int d : DAY_OPTIONS) cur.add("" + d);
-    Sheets.pick(a, "Remind every", labels, null, cur.indexOf("" + days), i -> { db.setPref("autoRemindDays", "" + DAY_OPTIONS[i]); a.closeAll(); open(a); });
+    Sheets.pick(a, "Remind every", labels, null, cur.indexOf("" + days), i -> { db.setPref("autoRemindDays", "" + DAY_OPTIONS[i]); a.refresh(); });
    }));
    String channel = db.pref("autoRemindChannel", "WhatsApp");
    c.addView(Settings.item(a, "sms", "Send by", channel, () -> Sheets.pick(a, "Send by", Arrays.asList("WhatsApp", "SMS"), null, channel.equals("SMS") ? 1 : 0, i -> {
     db.setPref("autoRemindChannel", i == 1 ? "SMS" : "WhatsApp");
     if (i == 1 && a.checkSelfPermission(Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) a.requestPermissions(new String[]{Manifest.permission.SEND_SMS}, 73);
-    a.closeAll(); open(a);
+    a.refresh();
    })));
    c.addView(Ui.text(a, "WhatsApp opens the chat with the message written; Android does not allow apps to send WhatsApp messages automatically, so you press send there. SMS is sent by your phone without another tap when SMS is chosen. Standard carrier SMS charges apply to SMS. Reminders go only to people who owe you right now, never about what you owe others.", 13, Ui.muted, false), Ui.lpm(-1, -2, 0, 14, 0, 12));
    List<Store.Person> waiting = due(db, System.currentTimeMillis());

@@ -49,7 +49,7 @@ final class Diary {
 
  static void edit(MainActivity a, String day) {
   Store db = a.db;
-  Sheets.form(a, "Diary for " + day, new String[]{"Note"}, new String[]{get(db, day)}, new int[]{Sheets.TEXT}, "Save", v -> { set(db, day, v[0]); a.closeAll(); open(a); }, get(db, day).isEmpty() ? null : () -> { set(db, day, ""); a.closeAll(); open(a); });
+  Sheets.form(a, "Diary for " + day, new String[]{"Note"}, new String[]{get(db, day)}, new int[]{Sheets.TEXT}, "Save", v -> { set(db, day, v[0]); a.refresh(); }, get(db, day).isEmpty() ? null : () -> { set(db, day, ""); a.refresh(); });
  }
 
  /** Text of last month's summary, or null when there was nothing recorded. */
