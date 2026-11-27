@@ -172,7 +172,7 @@ final class Ui {
   v.setOnTouchListener((x, e) -> {
    int a = e.getActionMasked();
    if (a == MotionEvent.ACTION_DOWN) { buzzTick(x); x.animate().scaleX(.965f).scaleY(.965f).setDuration(90).start(); }
-   else if (a == MotionEvent.ACTION_UP || a == MotionEvent.ACTION_CANCEL) x.animate().scaleX(1f).scaleY(1f).setDuration(140).setInterpolator(new OvershootInterpolator(2f)).start();
+   else if (a == MotionEvent.ACTION_UP || a == MotionEvent.ACTION_CANCEL) { if (a == MotionEvent.ACTION_UP) Motion.noteTap(x); x.animate().scaleX(1f).scaleY(1f).setDuration(140).setInterpolator(new OvershootInterpolator(2f)).start(); }
    return false;
   });
  }

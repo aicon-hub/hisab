@@ -62,5 +62,12 @@ public class RealPathTest {
   a.closeAll(); byDesc(a.tabHost, "Settings").performClick(); settle(); int m = a.layers.size(); AutoRemind.open(a); settle(); assertEquals(m + 1, a.layers.size());
   a.refresh(); settle(); assertEquals(m + 1, a.layers.size());
  }
+ @Test public void morphAndStaggerRunWithoutBreakingScreens() throws Exception {
+  View home = a.tabHost.getChildAt(0); Motion.stagger(home, 0);
+  View tile = new View(a); a.layerHost.addView(tile, new android.widget.FrameLayout.LayoutParams(200, 100)); Motion.noteTap(tile); Motion.tx = 40; Motion.ty = 300; Motion.tw = 200; Motion.th = 100; assertTrue(Motion.fresh());
+  View p = new View(a); a.layerHost.addView(p, new android.widget.FrameLayout.LayoutParams(1080, 2000)); float[] r = Motion.morphIn(p, 1080, 2000, null); assertEquals(100f, r[3], 0.1f);
+  Motion.morphOut(p, 1080, 2000, r, () -> {}); settle(); a.layerHost.removeView(p); a.layerHost.removeView(tile);
+  byDesc(a.tabHost, "Settings").performClick(); settle(); assertEquals(1, a.layers.size()); a.closeAll(); settle(); assertEquals(0, a.layers.size());
+ }
  static View find(View v, Class<?> c) { if (c.isInstance(v)) return v; if (v instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++) { View r = find(((ViewGroup) v).getChildAt(i), c); if (r != null) return r; } return null; }
 }

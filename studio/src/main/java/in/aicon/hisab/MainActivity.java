@@ -27,7 +27,7 @@ public class MainActivity extends Activity {
  final Map<Integer, Runnable> cancels = new HashMap<>();
  View toastView; boolean launching;
 
- static final class Layer { FrameLayout holder; FrameLayout panel; Supplier<View> build; boolean sheet; Runnable onClose; View content; }
+ static final class Layer { float[] morph; FrameLayout holder; FrameLayout panel; Supplier<View> build; boolean sheet; Runnable onClose; View content; }
 
  @Override protected void onCreate(Bundle b) {
   super.onCreate(b); CrashLog.install(this);
@@ -194,7 +194,7 @@ public class MainActivity extends Activity {
   View v;
   switch (i) { case 1: v = LedgerPage.build(this); break; case 3: v = InsightsPage.build(this); break; case 4: v = PeoplePage.build(this); break; default: v = HomePage.build(this); }
   tabHost.addView(v, new FrameLayout.LayoutParams(-1, -1));
-  if (animate && change && Ui.motion(root)) { v.setAlpha(0); v.animate().alpha(1).setDuration(180).start(); }
+  if (animate && change && Ui.motion(root)) { v.setAlpha(0); v.setTranslationY(Ui.dp(10)); v.animate().alpha(1).translationY(0).setDuration(220).setInterpolator(new DecelerateInterpolator(2f)).start(); Motion.stagger(v, 40); }
 
   root.removeView(dock); buildDock();
  }
@@ -223,7 +223,8 @@ public class MainActivity extends Activity {
   layerHost.addView(l.holder); layers.add(l);
   if (Ui.motion(root)) {
    if (sheet) { scrim.setAlpha(0); scrim.animate().alpha(1).setDuration(200).start(); l.panel.setTranslationY(Ui.dp(500)); l.panel.animate().translationY(0).setDuration(320).setInterpolator(new DecelerateInterpolator(2f)).start(); }
-   else { l.panel.setTranslationX(Ui.dp(120)); l.panel.setAlpha(0); l.panel.animate().translationX(0).alpha(1).setDuration(260).setInterpolator(new DecelerateInterpolator(2f)).start(); }
+   else if (Motion.fresh()) { final View pn = l.panel, ct = l.content; pn.setAlpha(0f); pn.post(() -> { l.morph = Motion.morphIn(pn, layerHost.getWidth(), layerHost.getHeight(), null); Motion.stagger(ct, 120); }); }
+   else { l.panel.setTranslationX(Ui.dp(120)); l.panel.setAlpha(0); l.panel.animate().translationX(0).alpha(1).setDuration(260).setInterpolator(new DecelerateInterpolator(2f)).start(); Motion.stagger(l.content, 60); }
   }
   return l;
  }
@@ -233,7 +234,8 @@ public class MainActivity extends Activity {
  void close(Layer l) {
   if (!layers.remove(l)) return;
   Runnable end = () -> { layerHost.removeView(l.holder); if (l.onClose != null) l.onClose.run(); };
-  if (Ui.motion(root)) { l.holder.setAlpha(1); l.panel.animate().translationY(l.sheet ? Ui.dp(500) : 0).translationX(l.sheet ? 0 : Ui.dp(120)).alpha(l.sheet ? 1 : 0).setDuration(200).withEndAction(end).start(); l.holder.animate().alpha(0).setDuration(200).start(); }
+  if (Ui.motion(root) && !l.sheet && l.morph != null) Motion.morphOut(l.panel, layerHost.getWidth(), layerHost.getHeight(), l.morph, end);
+  else if (Ui.motion(root)) { l.holder.setAlpha(1); l.panel.animate().translationY(l.sheet ? Ui.dp(500) : 0).translationX(l.sheet ? 0 : Ui.dp(120)).alpha(l.sheet ? 1 : 0).setDuration(200).withEndAction(end).start(); l.holder.animate().alpha(0).setDuration(200).start(); }
   else end.run();
   View f = getCurrentFocus(); if (f != null) ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(f.getWindowToken(), 0);
  }
