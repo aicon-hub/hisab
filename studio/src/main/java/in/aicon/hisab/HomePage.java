@@ -219,7 +219,7 @@ final class HomePage {
   EditText e = new EditText(a); e.setHint(L.t("Type it: tea 40, auto 60 yesterday")); e.setHintTextColor(Ui.withAlpha(Ui.ink, 0xA6)); e.setTextColor(Ui.ink); e.setTextSize(15); e.setTypeface(Ui.body); e.setBackground(null); e.setSingleLine(true); e.setImeOptions(EditorInfo.IME_ACTION_DONE); e.setInputType(InputType.TYPE_CLASS_TEXT); e.setTag("quickEntry");
   animateHint(e);
   r.addView(e, Ui.weight(1));
-  MicButton mic = new MicButton(a); r.addView(mic, Ui.lp(Ui.dp(46), Ui.dp(46)));
+  MicButton mic = new MicButton(a); r.addView(mic, Ui.lp(Ui.dp(50), Ui.dp(50)));
   FrameLayout go = Ui.badge(a, "check", 42, Ui.dark ? Ui.accent : Ui.ink, Ui.dark ? Ui.onAccent : 0xFFFFFFFF); r.addView(go, Ui.lp(Ui.dp(42), Ui.dp(42))); go.setContentDescription("Add typed entry");
   final boolean[] viaVoice = {false};
   Ui.tap(mic, () -> { if (a.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) { a.requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO}, 6); return; } mic.setListening(true); Voice.listen(a, v -> { viaVoice[0] = true; e.setText(v); e.setSelection(v.length()); }, on -> a.runOnUiThread(() -> mic.setListening(on))); });

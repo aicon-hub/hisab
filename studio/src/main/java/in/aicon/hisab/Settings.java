@@ -55,8 +55,8 @@ final class Settings {
  static void editRoundUp(MainActivity a) { String cur = a.db.pref("roundUp", ""); java.util.List<String> labels = java.util.Arrays.asList("Off", "Round each expense up to the next 10", "Round each expense up to the next 100"), codes = java.util.Arrays.asList("", "10", "100"); Sheets.pick(a, "Round-up saving", labels, null, codes.indexOf(cur), i -> { a.db.setPref("roundUp", codes.get(i)); a.refresh(); }); }
 
  static void open(MainActivity a) {
-  Store db = a.db;
-  Kit.page(a, a.settingsSection.isEmpty() ? "Settings" : titleOf(a.settingsSection), null, null, c -> {
+  Store db = a.db; final String section = a.settingsSection;
+  Kit.page(a, section.isEmpty() ? "Settings" : titleOf(section), null, null, c -> {
 
    LinearLayout p = Ui.row(a); p.setBackground(Ui.shape(Ui.surface, 26)); p.setPadding(Ui.dp(18), Ui.dp(16), Ui.dp(18), Ui.dp(16));
    String nm = db.pref("name", "You"); View av = Profile.avatar(a,56); p.addView(av, Ui.lpm(Ui.dp(56), Ui.dp(56), 0, 0, 16, 0));
@@ -64,14 +64,14 @@ final class Settings {
    Ui.tap(p, () -> Sheets.form(a, "Your name", new String[]{"Name"}, new String[]{nm}, new int[]{Sheets.TEXT}, "Save", v -> { if (!v[0].isEmpty()) { db.setPref("name", v[0]); a.refresh(); a.refresh(); } }, null)); c.addView(p);
    TextView photo=Ui.button(a,"Add or change profile picture",false);c.addView(photo,Ui.lpm(-1,-2,0,10,0,0));Ui.tap(photo,()->Profile.choose(a));
 
-   if (a.settingsSection.isEmpty()) {
+   if (section.isEmpty()) {
     LinearLayout hub = Ui.card(a); hub.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
     String[][] secs = {{"moon","Look","Colours, font, text size, home","look"},{"globe","Language and privacy","ഭാഷ, app lock, fingerprint","general"},{"spark","Hisab AI","Model, read and write, history, speed","ai"},{"wallet","Money","Accounts, categories, budgets, goals","money"},{"bell","Reminders","Daily check, money due","remind"},{"share","Your data","Backup, export, import, trash bin","data"},{"info","About","Version, share Hisab","about"}};
-    for (int si = 0; si < secs.length; si++) { final String id = secs[si][3]; if (si > 0) hub.addView(Ui.divider(a)); hub.addView(item(a, secs[si][0], secs[si][1], secs[si][2], () -> { a.settingsSection = id; a.closeAll(); open(a); })); }
+    for (int si = 0; si < secs.length; si++) { final String id = secs[si][3]; if (si > 0) hub.addView(Ui.divider(a)); hub.addView(item(a, secs[si][0], secs[si][1], secs[si][2], () -> { a.settingsSection = id; open(a); a.settingsSection = ""; })); }
     c.addView(hub);
     return;
    }
-   String sec = a.settingsSection;
+   String sec = section;
 
    if (sec.equals("look")) {
    LinearLayout look = Ui.card(a); look.setPadding(Ui.dp(18), Ui.dp(6), Ui.dp(18), Ui.dp(6));
@@ -159,7 +159,7 @@ final class Settings {
    if (sec.equals("about")) {
    LinearLayout ab = Ui.card(a);
    ab.addView(Ui.text(a, "Hisab by AiCoN", 16, Ui.ink, true)); TextView t = Ui.text(a, "Free and open source under GPL-3.0. No ads, no tracking, no server. Your entries stay on this phone. Hisab never charges or adds interest.", 13.5f, Ui.muted, false); t.setPadding(0, Ui.dp(8), 0, Ui.dp(10)); ab.addView(t);
-   ab.addView(Ui.text(a, "Version 1.0.31 test build", 12.5f, Ui.muted, true));
+   ab.addView(Ui.text(a, "Version 1.0.32 test build", 12.5f, Ui.muted, true));
    ab.addView(item(a, "bell", "Last problem", "Shows what went wrong if the app closed. Stays on this phone", () -> CrashLog.show(a)));
    ab.addView(Ui.divider(a), Ui.lpm(-1, -2, 0, 14, 0, 0));
    ab.addView(item(a, "share", "Share Hisab with a friend", "Recommend the app and how to install it", () -> shareHisab(a)));

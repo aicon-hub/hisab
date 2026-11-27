@@ -112,7 +112,7 @@ final class DriveBackup {
    Sheets.confirm(a, "Turn off Google Drive backup?", "Automatic backups stop. The backup already in your Google Drive stays in your own Google account.", "Turn off", () -> {
     db.setPref("driveBackup", "0"); db.setPref("driveBackupAcc", ""); db.setPref("driveBackupErr", "0");
     GoogleSignIn.getClient(a, options()).signOut();
-    a.closeAll(); Settings.open(a);
+    a.refresh();
    });
    return;
   }
@@ -123,7 +123,7 @@ final class DriveBackup {
    a.request(GoogleSignIn.getClient(a, options()).getSignInIntent(), result ->
     GoogleSignIn.getSignedInAccountFromIntent(result)
      .addOnSuccessListener(x -> { db.setPref("driveBackup", "1"); db.setPref("driveBackupAcc", x.getEmail() == null ? "" : x.getEmail()); db.setPref("driveBackupErr", "0"); backupNow(a, false); })
-     .addOnFailureListener(e -> { db.setPref("driveBackupErr", "" + System.currentTimeMillis()); a.toast("Sign-in did not complete. Backup stays off", null); a.closeAll(); Settings.open(a); }),
+     .addOnFailureListener(e -> { db.setPref("driveBackupErr", "" + System.currentTimeMillis()); a.toast("Sign-in did not complete. Backup stays off", null); a.refresh(); }),
     () -> a.toast("Sign-in cancelled. Backup stays off", null));
   } else {
    db.setPref("driveBackup", "1"); db.setPref("driveBackupAcc", acc.getEmail() == null ? "" : acc.getEmail()); db.setPref("driveBackupErr", "0");
@@ -142,13 +142,13 @@ final class DriveBackup {
     upload(token, id, zip);
     db.setPref("driveBackupAt", "" + System.currentTimeMillis());
     db.setPref("driveBackupErr", "0");
-    a.runOnUiThread(() -> { if (!silent) { a.toast("Backup saved to your Google Drive", null); a.closeAll(); Settings.open(a); } });
+    a.runOnUiThread(() -> { if (!silent) { a.toast("Backup saved to your Google Drive", null); a.refresh(); } });
    } catch (com.google.android.gms.auth.UserRecoverableAuthException e) {
     db.setPref("driveBackupErr", "" + System.currentTimeMillis());
     a.runOnUiThread(() -> { if (!silent && e.getIntent() != null) { a.toast("Google needs you to sign in again", null); a.request(e.getIntent(), r -> backupNow(a, false)); } });
    } catch (Exception e) {
     db.setPref("driveBackupErr", "" + System.currentTimeMillis());
-    a.runOnUiThread(() -> { if (!silent) { a.toast("Backup failed. Check your connection and sign-in", null); a.closeAll(); Settings.open(a); } });
+    a.runOnUiThread(() -> { if (!silent) { a.toast("Backup failed. Check your connection and sign-in", null); a.refresh(); } });
    }
   }, "hisab-drive-backup").start();
  }
