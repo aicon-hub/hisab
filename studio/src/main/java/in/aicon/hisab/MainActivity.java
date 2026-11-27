@@ -92,6 +92,14 @@ public class MainActivity extends Activity {
    Lock.unlocked = true; Ui.buzzOk(root); root.removeView(lockLayer); lockLayer = null; refresh(); return true;
   }, true);
   col.addView(pad.view, Ui.lpm(PinPad.width(this), -2, 0, 18, 0, 0));
+  if (Lock.phoneLockSet(this)) {
+   TextView fg = Ui.text(this, "Forgot PIN? Use your phone lock", 13.5f, Ui.muted, true); fg.setGravity(Gravity.CENTER); fg.setPadding(0, Ui.dp(16), 0, Ui.dp(8)); fg.setTag("forgotPin");
+   Ui.tap(fg, () -> Sheets.confirm(this, "Open with your phone lock?", "Android will ask for your phone's PIN, pattern, password or fingerprint. If it is right, Hisab's app lock is turned off and all your entries stay. Then set a new PIN in Settings.", "Continue", () -> {
+    android.content.Intent ci = Lock.phoneLockIntent(this); if (ci == null) { toast("This phone has no screen lock set", null); return; }
+    request(ci, d -> { Lock.clear(db); if (lockLayer != null) { root.removeView(lockLayer); lockLayer = null; } refresh(); toast("App lock is off. Set a new PIN in Settings.", null); }, () -> toast("Phone lock was not confirmed. Hisab stays locked.", null));
+   }));
+   col.addView(fg, new LinearLayout.LayoutParams(-1, -2));
+  }
   lockLayer.addView(col, new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER));
   root.addView(lockLayer, new FrameLayout.LayoutParams(-1, -1));
   if (Lock.bio(db) && Bio.available(this)) root.postDelayed(() -> Bio.unlock(this, () -> { if (lockLayer != null) { Lock.unlocked = true; root.removeView(lockLayer); lockLayer = null; refresh(); } }), 300);

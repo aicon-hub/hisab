@@ -113,7 +113,7 @@ final class HomePage {
    LinearLayout inner = Ui.col(a);
    LinearLayout hd = Ui.row(a); LinearLayout tt = Ui.col(a);
    tt.addView(Ui.big(a, Fmt.money(sum), 24, Ui.ink));
-   TextView rng = Ui.text(a, Fmt.shortDate(start.toString()) + " - " + Fmt.shortDate(end.toString()) + (back[0] > 0 ? " · swipe to move" : " · swipe for earlier"), 11.5f, Ui.muted, false); rng.setPadding(0, Ui.dp(3), 0, 0); tt.addView(rng);
+   TextView rng = Ui.text(a, Fmt.shortDate(start.toString()) + " - " + Fmt.shortDate(end.toString()) + (back[0] > 0 ? " · swipe left for newer, right for older" : " · swipe right for earlier"), 11.5f, Ui.muted, false); rng.setPadding(0, Ui.dp(3), 0, 0); tt.addView(rng);
    hd.addView(tt, Ui.weight(1)); hd.addView(Ui.text(a, "avg " + Fmt.money(sum / 7 / 100 * 100) + " a day", 12.5f, Ui.muted, true));
    inner.addView(hd);
    inner.addView(new Charts.Bars(a, v, lb, back[0] == 0 ? 6 : -1, true), Ui.lpm(-1, Ui.dp(150), 0, 12, 0, 0));
@@ -121,7 +121,7 @@ final class HomePage {
    if (Ui.motion(holder) && dir != 0) { inner.setTranslationX(dir * Ui.dp(36)); inner.setAlpha(0f); inner.animate().translationX(0).alpha(1f).setDuration(180).start(); }
   };
   drawWeek.run();
-  if (Ui.motion(holder) && !db.flag("weekSwipeHint", false)) { db.setPref("weekSwipeHint", "1"); holder.postDelayed(() -> { if (back[0] == 0) holder.animate().translationX(-Ui.dp(26)).setDuration(280).withEndAction(() -> holder.animate().translationX(0).setDuration(380).start()).start(); }, 900); }
+  if (Ui.motion(holder) && !db.flag("weekSwipeHint", false)) { db.setPref("weekSwipeHint", "1"); holder.postDelayed(() -> { if (back[0] == 0) holder.animate().translationX(Ui.dp(26)).setDuration(280).withEndAction(() -> holder.animate().translationX(0).setDuration(380).start()).start(); }, 900); }
   final float[] downX = {0, 0}; final boolean[] drag = {false};
   final int slop = android.view.ViewConfiguration.get(a).getScaledTouchSlop();
   wc.setOnTouchListener((vv, e) -> {
@@ -130,14 +130,14 @@ final class HomePage {
    float dx = e.getX() - downX[0], dy = e.getY() - downX[1];
    if (ac == android.view.MotionEvent.ACTION_MOVE) {
     if (!drag[0] && Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy) * 1.3f) { drag[0] = true; if (vv.getParent() != null) vv.getParent().requestDisallowInterceptTouchEvent(true); }
-    if (drag[0]) holder.setTranslationX(back[0] == 0 && dx > 0 ? dx * .25f : dx * .6f);
+    if (drag[0]) holder.setTranslationX(back[0] == 0 && dx < 0 ? dx * .25f : dx * .6f);
     return true;
    }
    if (ac == android.view.MotionEvent.ACTION_UP || ac == android.view.MotionEvent.ACTION_CANCEL) {
     holder.animate().translationX(0).setDuration(160).start();
     if (ac == android.view.MotionEvent.ACTION_UP && drag[0]) {
-     if (dx < -Ui.dp(48)) { Ui.buzzTick(vv); back[0]++; drawWeek.run(); }        // swipe left: earlier 7 days, no limit
-     else if (dx > Ui.dp(48) && back[0] > 0) { Ui.buzzTick(vv); back[0]--; drawWeek.run(); } // swipe right: towards this week
+     if (dx > Ui.dp(48)) { Ui.buzzTick(vv); back[0]++; drawWeek.run(); }        // swipe right: earlier 7 days, no limit
+     else if (dx < -Ui.dp(48) && back[0] > 0) { Ui.buzzTick(vv); back[0]--; drawWeek.run(); } // swipe left: towards this week
     }
     drag[0] = false;
    }

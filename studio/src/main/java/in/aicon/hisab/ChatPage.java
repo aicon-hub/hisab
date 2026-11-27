@@ -27,7 +27,7 @@ final class ChatPage {
  static boolean write(MainActivity a) { return a.db.flag("chatWrite", false); }
 
  static void open(MainActivity a) {
-  pending = null; act = a;
+  pending = null; act = a; try { AiEngine.threadsPref = Integer.parseInt(a.db.pref("aiThreads", "0")); } catch (Exception ignored) { }
   if (LOG.isEmpty() && a.db.flag("chatSave", false)) load(a);
   final MainActivity.Layer[] ref = new MainActivity.Layer[1];
   ref[0] = a.open(() -> {
@@ -143,6 +143,14 @@ final class ChatPage {
   Privacy.toggle(a, c, "Store chat history on this phone", "chatSave", false, () -> { a.db.setPref("chatAsked", "1"); if (!a.db.flag("chatSave", false)) a.db.setPref("chatLog", ""); else save(a); });
   TextView clr = Ui.button(a, "Clear saved history", false); Ui.tap(clr, () -> { LOG.clear(); a.db.setPref("chatLog", ""); a.toast("History cleared", null); refresh(a); });
   c.addView(clr, Ui.lpm(-1, -2, 0, 8, 0, 0));
+  c.addView(Ui.text(a, "Speed", 14, Ui.ink, true), Ui.lpm(-1, -2, 0, 18, 0, 4));
+  c.addView(Ui.text(a, AiEngine.diag() + (AiEngine.loadMs > 0 ? " Model load " + String.format(java.util.Locale.US, "%.1f", AiEngine.loadMs / 1000.0) + " s." : "") + (AiEngine.lastNote.isEmpty() ? "" : " Last answer: " + AiEngine.lastNote), 12, Ui.muted, false), Ui.lpm(-1, -2, 0, 0, 0, 8));
+  c.addView(Ui.text(a, "Threads (changes reload the model)", 12, Ui.muted, true), Ui.lpm(-1, -2, 0, 0, 0, 4));
+  LinearLayout tr = Ui.row(a); int cur = a.db.pref("aiThreads", "0").equals("0") ? 0 : Integer.parseInt(a.db.pref("aiThreads", "0"));
+  for (int t : new int[]{0, 2, 3, 4, 6}) { TextView p = Ui.pill(a, t == 0 ? "Auto" : "" + t, t == cur); Ui.tap(p, () -> { a.db.setPref("aiThreads", "" + t); AiEngine.threadsPref = t; refresh(a); }); tr.addView(p, Ui.lpm(-2, -2, 0, 0, 8, 0)); }
+  c.addView(tr, Ui.lpm(-1, -2, 0, 0, 0, 8));
+  TextView sp = Ui.button(a, "Speed test (one short answer)", false); Ui.tap(sp, () -> { if (!AiEngine.running) submit(a, "Say hello in one short sentence."); });
+  c.addView(sp, Ui.lpm(-1, -2, 0, 4, 0, 0));
   Sheets.show(a, c);
  }
 
@@ -154,7 +162,8 @@ final class ChatPage {
    LOG.add(new String[]{"hisab", "To add, change or delete entries from chat, turn on Write in Chat settings. Nothing was changed.", ""}); save(a); refresh(a); return;
   }
   String facts = read(a) ? ModelChat.facts(a, s, r) : null;
-  ModelChat.send(a, s, facts, LOG, () -> { save(a); refresh(a); });
+  String ground = read(a) && !r.intent.isEmpty() ? r.text : null;
+  ModelChat.send(a, s, facts, ground, LOG, () -> { save(a); refresh(a); });
  }
 
  static void save(MainActivity a) {

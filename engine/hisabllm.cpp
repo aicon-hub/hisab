@@ -66,7 +66,7 @@ extern "C" JNIEXPORT jint JNICALL Java_in_aicon_hisab_LlamaJni_begin(JNIEnv * en
     if (g_smpl) { llama_sampler_free(g_smpl); g_smpl = nullptr; }
     g_smpl = llama_sampler_chain_init(llama_sampler_chain_default_params());
     if (temp <= 0.0f) llama_sampler_chain_add(g_smpl, llama_sampler_init_greedy());
-    else { llama_sampler_chain_add(g_smpl, llama_sampler_init_top_k(40)); llama_sampler_chain_add(g_smpl, llama_sampler_init_top_p(0.9f, 1)); llama_sampler_chain_add(g_smpl, llama_sampler_init_temp(temp)); llama_sampler_chain_add(g_smpl, llama_sampler_init_dist(1234)); }
+    else { llama_sampler_chain_add(g_smpl, llama_sampler_init_top_k(40)); llama_sampler_chain_add(g_smpl, llama_sampler_init_penalties(llama_vocab_n_tokens(g_vocab), 64, 1.15f, 0.0f, 0.0f)); llama_sampler_chain_add(g_smpl, llama_sampler_init_top_p(0.9f, 1)); llama_sampler_chain_add(g_smpl, llama_sampler_init_temp(temp)); llama_sampler_chain_add(g_smpl, llama_sampler_init_dist(1234)); }
     for (int i = 0; i < nt; i += 512) {
         if (g_stop) return -4;
         int n = std::min(512, nt - i);

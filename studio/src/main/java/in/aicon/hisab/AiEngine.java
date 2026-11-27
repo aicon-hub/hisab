@@ -12,12 +12,12 @@ import java.util.concurrent.Executors;
  */
 final class AiEngine {
  private AiEngine() {}
- static final String REL = "https://github.com/aicon-hub/hisab/releases/download/v1.0.28-pro-test/";
+ static final String REL = "https://github.com/aicon-hub/hisab/releases/download/v1.0.29-pro-test/";
  /** Engine builds: generic, with dot-product CPU code, and with int8 matrix code. The phone picks the best one it supports. */
  static final String[] VARIANTS = {"base", "dotprod", "i8mm"};
  static final String[] ASSET = {"libhisabllm-arm64.so", "libhisabllm-arm64-dotprod.so", "libhisabllm-arm64-i8mm.so"};
- static final long[] SIZES = {6948224L, 6972112L, 6984880L};
- static final String[] SHAS = {"d2f6183e55b19a01be0af104ecfc32b52ae026ec4d92c651ef67cb1f1a771503", "68004b960f9211077fe275e01884d012c60ae54050c69db935fa97ac403069f9", "98e4ccee53b3d84310afa84da819fca64fb8d0c75a00f173675fd20d550f8246"};
+ static final long[] SIZES = {6948272L, 6972192L, 6984944L};
+ static final String[] SHAS = {"b9a773533740e1efeea2a96664d4af7696057e4c463eb39eb80375ab52b45821", "f48e17eb92e67bf7c9951daf4eca2b134abffec7180a73e8a555d67dda61d8aa", "435a7bc0867c081ab2aa608fd9045c1ae18e7d3a0c721000edeb15b1a7a37649"};
  static int forced = -1;
  static String features = null;
  /** Reads the CPU feature list the kernel shows every app. */
@@ -34,7 +34,7 @@ final class AiEngine {
  static int variant() { return forced >= 0 ? forced : pick(" " + cpuFeatures()); }
  static String url() { return REL + ASSET[variant()]; }
  static long size() { return SIZES[variant()]; }
- static final int CTX = 4096;
+ static final int CTX = 3072;
 
  /** What the engine needs from native code, so tests can swap in a fake. */
  interface Backend {
@@ -84,7 +84,22 @@ final class AiEngine {
  static volatile boolean stopped;
  static String lastNote = "";
 
- static int threads() { int n = Runtime.getRuntime().availableProcessors(); return n >= 8 ? 4 : Math.max(2, n / 2); }
+ static volatile int threadsPref = 0, cap = 600, loadedThreads = 0; static volatile boolean repeated, capped;
+ static int cores() { return Runtime.getRuntime().availableProcessors(); }
+ static int threads() { if (threadsPref > 0) return Math.min(threadsPref, Math.max(1, cores())); int n = cores(); return n >= 8 ? 4 : Math.max(2, n / 2); }
+ /** True when the text ends in the same chunk written three times in a row. */
+ static int loopAt(CharSequence t) {
+  int n = t.length();
+  for (int len = 12; len <= 120 && len * 3 <= n; len++) {
+   boolean same = true;
+   for (int i = 1; i <= len && same; i++) { char c = t.charAt(n - i); if (c != t.charAt(n - i - len) || c != t.charAt(n - i - 2 * len)) same = false; }
+   if (same) return n - 2 * len;
+  }
+  return -1;
+ }
+ static String diag() {
+  return "Engine " + VARIANTS[variant()] + ", CPU flags: " + (cpuFeatures().contains("asimddp") ? "dotprod " : "") + (cpuFeatures().contains("i8mm") ? "i8mm " : "") + (cpuFeatures().contains("asimddp") || cpuFeatures().contains("i8mm") ? "" : "none seen ") + ", threads " + threads() + " of " + cores() + " cores, context " + CTX + ".";
+ }
  static void unloadNow() { try { if (!loadedId.isEmpty()) backend.unload(); } catch (Throwable ignored) { } loadedId = ""; }
 
  static double tps() { long end = tEnd > 0 ? tEnd : System.currentTimeMillis(); return tFirst <= 0 || end <= tFirst || tokens < 2 ? 0 : (tokens - 1) * 1000.0 / (end - tFirst); }
@@ -92,16 +107,16 @@ final class AiEngine {
  /** Starts one answer. update runs on the worker thread after every piece; end runs on the worker thread with null on success. */
  static void ask(android.content.Context c, AiModels.M m, String[] roles, String[] texts, float temp, Runnable update, java.util.function.Consumer<String> end) {
   if (running) return;
-  H.removeCallbacks(IDLE); running = true; stopped = false; error = null; live = new StringBuilder(); tokens = 0; tStart = System.currentTimeMillis(); tFirst = 0; tEnd = 0; loadMs = 0; promptMs = 0; stage = "Starting the engine";
+  H.removeCallbacks(IDLE); running = true; stopped = false; repeated = false; capped = false; error = null; live = new StringBuilder(); tokens = 0; tStart = System.currentTimeMillis(); tFirst = 0; tEnd = 0; loadMs = 0; promptMs = 0; stage = "Starting the engine";
   POOL.execute(() -> {
    String err = null;
    try {
     if (backend == JNI && !nativeReady) { System.load(file(c).getAbsolutePath()); nativeReady = true; }
-    if (!m.id.equals(loadedId)) {
+    if (!m.id.equals(loadedId) || loadedThreads != threads()) {
      unloadNow(); stage = "Loading " + m.name; update.run(); long t = System.currentTimeMillis();
      int r = backend.load(AiModels.file(c, m).getAbsolutePath(), CTX, threads());
      if (r != 0) throw new IOException(r == 2 ? "Not enough memory to run " + m.name + ". Close other apps or pick a smaller model." : "Could not open the model file.");
-     loadedId = m.id; loadMs = System.currentTimeMillis() - t;
+     loadedId = m.id; loadedThreads = threads(); loadMs = System.currentTimeMillis() - t;
     }
     stage = "Reading your question"; update.run(); long t1 = System.currentTimeMillis();
     String prompt = backend.chatPrompt(roles, texts); if (prompt == null) throw new IOException("This model has no chat format Hisab can use.");
@@ -109,13 +124,15 @@ final class AiEngine {
     if (n < 0) throw new IOException(n == -3 ? "That is too long for this model (about 4,000 words at most). Shorten it." : "The model could not read the question (" + n + ").");
     promptMs = System.currentTimeMillis() - t1; stage = "Answering"; update.run();
     ByteArrayOutputStream pend = new ByteArrayOutputStream(); int guard = 0;
-    while (!stopped && guard++ < 1500) {
+    while (!stopped && guard++ < cap) {
      byte[] b = backend.next(); if (b == null) break;
      if (tFirst == 0) tFirst = System.currentTimeMillis(); tokens++;
      pend.write(b, 0, b.length); byte[] all = pend.toByteArray(); int cut = utf8Complete(all);
      if (cut > 0) { live.append(new String(all, 0, cut, "UTF-8")); pend.reset(); pend.write(all, cut, all.length - cut); }
+     if (tokens % 8 == 0) { int at = loopAt(live); if (at >= 0) { live.setLength(at); repeated = true; stopped = true; break; } }
      update.run();
     }
+    if (!stopped && guard > cap) capped = true;
    } catch (Throwable e) { err = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage(); if (e instanceof UnsatisfiedLinkError) err = "The AI engine could not start on this phone (" + e.getMessage() + ")."; }
    tEnd = System.currentTimeMillis(); running = false; stage = ""; error = err; idle();
    lastNote = m.name + ": " + tokens + " pieces, " + String.format(java.util.Locale.US, "%.1f", tps()) + " per second, first word after " + String.format(java.util.Locale.US, "%.1f", (tFirst > 0 ? tFirst - tStart : tEnd - tStart) / 1000.0) + " s" + (loadMs > 0 ? " (model load " + String.format(java.util.Locale.US, "%.1f", loadMs / 1000.0) + " s)" : "");
@@ -137,14 +154,14 @@ final class AiEngine {
  static void idle() { H.removeCallbacks(IDLE); H.postDelayed(IDLE, 5 * 60 * 1000L); }
  /** Loads the chosen model in the background so the first question does not wait for it. */
  static void warm(android.content.Context c, AiModels.M m, Runnable update) {
-  if (running || loading || m.id.equals(loadedId) || !installed(c)) return;
+  if (running || loading || (m.id.equals(loadedId) && loadedThreads == threads()) || !installed(c)) return;
   loading = true; warmError = null; stage = "Loading " + m.name; H.removeCallbacks(IDLE); final long t = System.currentTimeMillis(); tWarm = t;
   POOL.execute(() -> {
    try {
     if (backend == JNI && !nativeReady) { System.load(file(c).getAbsolutePath()); nativeReady = true; }
-    if (!m.id.equals(loadedId)) {
+    if (!m.id.equals(loadedId) || loadedThreads != threads()) {
      unloadNow(); int r = backend.load(AiModels.file(c, m).getAbsolutePath(), CTX, threads());
-     if (r == 0) { loadedId = m.id; loadMs = System.currentTimeMillis() - t; } else warmError = r == 2 ? "Not enough memory to load " + m.name + "." : "Could not open the model file.";
+     if (r == 0) { loadedId = m.id; loadedThreads = threads(); loadMs = System.currentTimeMillis() - t; } else warmError = r == 2 ? "Not enough memory to load " + m.name + "." : "Could not open the model file.";
     }
    } catch (Throwable e) { warmError = e instanceof UnsatisfiedLinkError ? "The AI engine could not start on this phone." : String.valueOf(e.getMessage()); }
    loading = false; stage = ""; idle(); update.run();

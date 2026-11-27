@@ -48,4 +48,14 @@ final class Lock {
   db.setPref("pinHash", ""); db.setPref("pinSalt", "");
   unlocked = true;
  }
+ /** True when the phone itself has a PIN, pattern, password or fingerprint screen lock. */
+ static boolean phoneLockSet(android.content.Context c) {
+  android.app.KeyguardManager km = (android.app.KeyguardManager) c.getSystemService(android.content.Context.KEYGUARD_SERVICE);
+  return km != null && km.isDeviceSecure();
+ }
+ /** The phone's own "confirm your screen lock" screen. Hisab never sees the phone PIN. */
+ static android.content.Intent phoneLockIntent(android.content.Context c) {
+  android.app.KeyguardManager km = (android.app.KeyguardManager) c.getSystemService(android.content.Context.KEYGUARD_SERVICE);
+  return km == null || !km.isDeviceSecure() ? null : km.createConfirmDeviceCredentialIntent("Hisab", "Confirm your phone lock to reset Hisab's app lock");
+ }
 }

@@ -14,6 +14,24 @@ final class LedgerPage {
   switch (filter) { case "all": return true; case "people": return t.kind.equals("lent") || t.kind.equals("borrowed") || t.kind.startsWith("repay"); default: return t.kind.equals(filter); }
  }
 
+ /** Swipe left on the month for the newer month, swipe right for the older one. The arrow buttons still work. */
+ static void swipeMonth(MainActivity a, View v, Runnable newer, Runnable older) {
+  final float[] d = {0, 0}; final boolean[] drag = {false}; final int slop = android.view.ViewConfiguration.get(a).getScaledTouchSlop();
+  v.setOnTouchListener((vv, e) -> {
+   int ac = e.getActionMasked();
+   if (ac == android.view.MotionEvent.ACTION_DOWN) { d[0] = e.getX(); d[1] = e.getY(); drag[0] = false; return true; }
+   float dx = e.getX() - d[0], dy = e.getY() - d[1];
+   if (ac == android.view.MotionEvent.ACTION_MOVE) {
+    if (!drag[0] && Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy) * 1.3f) { drag[0] = true; if (vv.getParent() != null) vv.getParent().requestDisallowInterceptTouchEvent(true); }
+    return true;
+   }
+   if (ac == android.view.MotionEvent.ACTION_UP && drag[0]) {
+    if (dx < -Ui.dp(48)) { Ui.buzzTick(vv); newer.run(); } else if (dx > Ui.dp(48)) { Ui.buzzTick(vv); older.run(); }
+   }
+   return true;
+  });
+ }
+
  static View build(MainActivity a) {
   Store db = a.db; ScrollView[] sv = new ScrollView[1]; LinearLayout c = Kit.column(a, sv, true);
   c.addView(Kit.title(a, "Everything you have noted", "Ledger", false));
@@ -22,6 +40,7 @@ final class LedgerPage {
   FrameLayout l = Ui.badge(a, "left", 38, Ui.surface2, Ui.ink), r = Ui.badge(a, "right", 38, Ui.surface2, Ui.ink); l.setContentDescription("Previous month"); r.setContentDescription("Next month");
   nav.addView(l, Ui.lp(Ui.dp(38), Ui.dp(38))); TextView mt = Ui.big(a, Fmt.month(ym), 18, Ui.ink); mt.setGravity(Gravity.CENTER); nav.addView(mt, Ui.weight(1)); nav.addView(r, Ui.lp(Ui.dp(38), Ui.dp(38)));
   Ui.tap(l, () -> { a.ledgerMonth = ym.minusMonths(1); a.ledgerDay = 0; a.refresh(); }); Ui.tap(r, () -> { a.ledgerMonth = ym.plusMonths(1); a.ledgerDay = 0; a.refresh(); }); c.addView(nav);
+  swipeMonth(a, mt, () -> { a.ledgerMonth = ym.plusMonths(1); a.ledgerDay = 0; a.refresh(); }, () -> { a.ledgerMonth = ym.minusMonths(1); a.ledgerDay = 0; a.refresh(); });
 
   boolean ranged = !a.ledgerFrom.isEmpty() || !a.ledgerTo.isEmpty();
   List<Store.Tx> month = db.txs(ranged ? (a.ledgerFrom.isEmpty() ? "0000-01-01" : a.ledgerFrom) : Fmt.from(ym), ranged ? (a.ledgerTo.isEmpty() ? "9999-12-31" : a.ledgerTo) : Fmt.to(ym)); long in = 0, out = 0; Map<Integer, Long> spend = new HashMap<>();
@@ -32,6 +51,7 @@ final class LedgerPage {
   // search + calendar toggle
   LinearLayout sr = Ui.row(a); sr.setBackground(Ui.outline(Ui.surface, Ui.line, 26, 1)); sr.setPadding(Ui.dp(16), Ui.dp(2), Ui.dp(8), Ui.dp(2));
   sr.addView(Ui.icon(a, "search", 20, Ui.muted)); EditText e = new EditText(a); e.setHint("Search notes, tags, amounts"); e.setHintTextColor(Ui.muted); e.setTextColor(Ui.ink); e.setTextSize(15); e.setTypeface(Ui.body); e.setBackground(null); e.setSingleLine(true); e.setText(a.ledgerQuery); e.setPadding(Ui.dp(10), Ui.dp(12), Ui.dp(10), Ui.dp(12)); sr.addView(e, Ui.weight(1));
+  if (!a.ledgerQuery.isEmpty()) { FrameLayout clr = Ui.badge(a, "close", 32, Ui.surface2, Ui.ink); clr.setContentDescription("Clear search"); clr.setTag("clearSearch"); Ui.tap(clr, () -> { a.ledgerQuery = ""; a.refresh(); }); sr.addView(clr, Ui.lpm(Ui.dp(32), Ui.dp(32), 0, 0, 6, 0)); }
   FrameLayout cal = Ui.badge(a, "calendar", 38, a.ledgerCalendar ? Ui.accent : Ui.surface2, a.ledgerCalendar ? Ui.onAccent : Ui.ink); sr.addView(cal, Ui.lp(Ui.dp(38), Ui.dp(38))); cal.setContentDescription("Calendar view"); Ui.tap(cal, () -> { a.ledgerCalendar = !a.ledgerCalendar; a.refresh(); });
   FrameLayout fb = Ui.badge(a, "filter", 38, filtersOn(a) ? Ui.accent : Ui.surface2, filtersOn(a) ? Ui.onAccent : Ui.ink); sr.addView(fb, Ui.lp(Ui.dp(38), Ui.dp(38))); fb.setContentDescription("More filters"); fb.setTag("filterBtn"); Ui.tap(fb, () -> filterSheet(a));
   c.addView(sr, Ui.lpm(-1, -2, 0, 14, 0, 0));

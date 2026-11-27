@@ -10,6 +10,7 @@ final class ModelChat {
  private ModelChat() {}
  static final String SYSTEM = "You are a helpful assistant inside the Hisab money app. Answer like a normal AI chat, clearly and briefly. You cannot see the user's Hisab entries now, so never invent their numbers. If asked about their own data, tell them to switch on Read in the chat settings.";
  static final String SYSTEM_DATA = "You are the assistant inside the Hisab money app. The user allowed you to read their Hisab data. Use ONLY the facts below for anything about their money. The numbers in the facts are exact: copy them, never change, add up or invent numbers. If the facts do not answer the question, say what is missing. Answer briefly.\nFACTS FROM HISAB:\n";
+ static final String SYSTEM_GROUND = "You are inside the Hisab money app. Below is the exact answer Hisab already worked out from the user's own entries. Say it to the user in one or two friendly sentences. Copy every number exactly as written. Never add, remove, change or calculate a number.";
  static TextView liveView, liveStat;
  private static final android.os.Handler H = new android.os.Handler(android.os.Looper.getMainLooper());
 
@@ -90,29 +91,52 @@ final class ModelChat {
   String[] qs = {"how much did I spend this month", "income this month", "top categories this month", "account balances", "who owes whom"};
   for (String x : qs) {
    try { ChatBrain.Reply s = ChatBrain.ask(a.db, x, today); if (!s.intent.isEmpty() && s.act.isEmpty() && b.indexOf(s.text) < 0) b.append(s.text).append("\n"); } catch (Exception ignored) { }
-   if (b.length() > 2200) break;
+   if (b.length() > 900) break;
   }
-  return b.length() > 2400 ? b.substring(0, 2400) : b.toString();
+  return b.length() > 1200 ? b.substring(0, 1200) : b.toString();
  }
 
- /** Sends the typed text to the model. facts is null when Read is off. */
- static void send(MainActivity a, String text, String facts, List<String[]> log, Runnable rebuild) {
+ /** Numbers of two digits or more (or with a comma or decimal point), without commas. */
+ static java.util.Set<String> nums(String t) {
+  java.util.Set<String> out = new java.util.HashSet<>(); java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\d[\\d,]*(?:\\.\\d+)?").matcher(t);
+  while (m.find()) { String x = m.group().replace(",", "").replaceAll("\\.0+$", ""); while (x.endsWith(".")) x = x.substring(0, x.length() - 1); if (x.length() >= 2 || m.group().contains(".")) out.add(x); }
+  return out;
+ }
+ /** True when every number in the answer also appears in the source text. */
+ static boolean numbersOk(String answer, String source) { java.util.Set<String> src = nums(source); for (String n : nums(answer)) if (!src.contains(n)) return false; return true; }
+
+ static void send(MainActivity a, String text, String facts, List<String[]> log, Runnable rebuild) { send(a, text, facts, null, log, rebuild); }
+
+ /** Sends the typed text to the model. facts is null when Read is off. ground is Hisab's own exact answer that the model may only put in words. */
+ static void send(MainActivity a, String text, String facts, String ground, List<String[]> log, Runnable rebuild) {
   AiModels.M m = current(a);
   if (m == null || !AiEngine.installed(a)) { Toast.makeText(a, "Download the engine and a model first.", Toast.LENGTH_SHORT).show(); return; }
-  List<String> roles = new ArrayList<>(), texts = new ArrayList<>(); roles.add("system"); texts.add(facts == null ? SYSTEM : SYSTEM_DATA + facts);
-  int budget = 3500; List<String[]> hist = new ArrayList<>();
-  for (int i = log.size() - 2; i >= 0 && hist.size() < 6; i--) {
-   String[] e = log.get(i); boolean me = "me".equals(e[0]); boolean mod = e.length > 2 && e[2].startsWith("AI model");
-   if (!me && !mod) continue; if (budget - e[1].length() < 0) break; budget -= e[1].length(); hist.add(0, e);
-  }
-  for (String[] e : hist) { roles.add("me".equals(e[0]) ? "user" : "assistant"); texts.add(e[1]); }
-  roles.add("user"); texts.add(text.length() > 4000 ? text.substring(0, 4000) : text);
+  List<String> roles = new ArrayList<>(), texts = new ArrayList<>(); roles.add("system");
+  texts.add(ground != null ? SYSTEM_GROUND : facts == null ? SYSTEM : SYSTEM_DATA + facts);
+  if (ground == null) {
+   int budget = 2000; List<String[]> hist = new ArrayList<>();
+   for (int i = log.size() - 2; i >= 0 && hist.size() < 4; i--) {
+    String[] e = log.get(i); boolean me = "me".equals(e[0]); boolean mod = e.length > 2 && e[2].startsWith("AI model");
+    if (!me && !mod) continue; if (budget - e[1].length() < 0) break; budget -= e[1].length(); hist.add(0, e);
+   }
+   for (String[] e : hist) { roles.add("me".equals(e[0]) ? "user" : "assistant"); texts.add(e[1]); }
+   roles.add("user"); texts.add(text.length() > 3000 ? text.substring(0, 3000) : text);
+  } else { roles.add("user"); texts.add("Question: " + text + "\nHisab's exact answer: " + ground); }
   final String used = facts == null ? "" : " Hisab data used (exact): " + (facts.length() > 500 ? facts.substring(0, 500) + "..." : facts).replace("\n", " ");
-  AiEngine.ask(a, m, roles.toArray(new String[0]), texts.toArray(new String[0]), facts == null ? 0.7f : 0.2f,
+  AiEngine.cap = ground != null ? 160 : facts != null ? 350 : 600;
+  AiEngine.ask(a, m, roles.toArray(new String[0]), texts.toArray(new String[0]), ground != null ? 0.3f : facts == null ? 0.7f : 0.4f,
    () -> a.runOnUiThread(ModelChat::paint),
    err -> a.runOnUiThread(() -> {
-    String ans = AiEngine.live.toString().trim();
-    if (!ans.isEmpty()) log.add(new String[]{"hisab", ans, "AI model " + (facts == null ? "(general knowledge, not checked against your data). " : "with your Hisab data. ") + AiEngine.lastNote + used});
+    String ans = AiEngine.live.toString().trim(); String note = "";
+    if (AiEngine.repeated) note += " Stopped early: the model began repeating itself.";
+    if (AiEngine.capped) note += " Cut off at the length limit.";
+    if (ground != null) {
+     if (ans.isEmpty() || !numbersOk(ans, ground)) { log.add(new String[]{"hisab", ground, "Hisab's own exact answer (the model's wording had a number that is not in your data, so it was not shown)." + note + used}); liveView = null; liveStat = null; rebuild.run(); return; }
+     log.add(new String[]{"hisab", ans, "AI model wording of Hisab's exact answer, numbers checked. " + AiEngine.lastNote + note + used});
+    } else if (!ans.isEmpty()) {
+     if (facts != null && !numbersOk(ans, facts + " " + text)) note += " Warning: some numbers here are not from your Hisab data. Do not trust them.";
+     log.add(new String[]{"hisab", ans, "AI model " + (facts == null ? "(general knowledge, not checked against your data). " : "with your Hisab data. ") + AiEngine.lastNote + note + used});
+    }
     else if (err != null) log.add(new String[]{"hisab", err, ""});
     else log.add(new String[]{"hisab", "The model gave no answer.", ""});
     if (err != null && !ans.isEmpty()) log.add(new String[]{"hisab", "Stopped: " + err, ""});
