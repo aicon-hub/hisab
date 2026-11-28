@@ -166,8 +166,27 @@ final class Ui {
  static void buzzTick(View v) { v(v, new long[]{0, 28}, null, android.view.HapticFeedbackConstants.KEYBOARD_TAP); }
  static void buzzOk(View v) { v(v, new long[]{0, 35, 50, 45}, null, android.view.HapticFeedbackConstants.LONG_PRESS); }
  static void buzzNo(View v) { v(v, new long[]{0, 80, 70, 80}, null, android.view.HapticFeedbackConstants.LONG_PRESS); }
+ /** Speaks a tappable tile or row for TalkBack: its own description if it has one, else the text inside it, announced as a button. */
+ static final android.view.View.AccessibilityDelegate SPEAK = new android.view.View.AccessibilityDelegate() {
+  @Override public void onInitializeAccessibilityNodeInfo(View host, android.view.accessibility.AccessibilityNodeInfo info) {
+   super.onInitializeAccessibilityNodeInfo(host, info);
+   info.setClassName(android.widget.Button.class.getName()); info.setClickable(true);
+   if (host.getContentDescription() == null && (info.getText() == null || info.getText().length() == 0)) { String t = spoken(host); if (!t.isEmpty()) info.setContentDescription(t); }
+  }
+ };
+ /** All visible text inside a view, in reading order, short enough to listen to. */
+ static String spoken(View v) {
+  StringBuilder b = new StringBuilder(); gather(v, b, 0); String t = b.toString().trim(); return t.length() > 160 ? t.substring(0, 160) : t;
+ }
+ private static void gather(View v, StringBuilder b, int depth) {
+  if (v == null || v.getVisibility() != View.VISIBLE || depth > 6) return;
+  if (v instanceof android.widget.TextView) { CharSequence c = ((android.widget.TextView) v).getText(); if (c != null && c.length() > 0) { if (b.length() > 0) b.append(". "); b.append(c); } return; }
+  if (v.getContentDescription() != null && depth > 0) { if (b.length() > 0) b.append(". "); b.append(v.getContentDescription()); return; }
+  if (v instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++) gather(((ViewGroup) v).getChildAt(i), b, depth + 1);
+ }
+
  static void tap(View v, Runnable r) {
-  v.setClickable(true);
+  v.setClickable(true); v.setAccessibilityDelegate(SPEAK);
   v.setOnClickListener(x -> r.run());
   v.setOnTouchListener((x, e) -> {
    int a = e.getActionMasked();

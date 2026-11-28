@@ -36,7 +36,7 @@ public class ProTest {
   assertFalse(db.pref("pinHash", "").contains("4712"));
   // two different salts hash differently
   String h1 = Lock.hash("aa", "4712"), h2 = Lock.hash("bb", "4712");
-  assertNotEquals(h1, h2); assertEquals(64, h1.length());
+  assertNotEquals(h1, h2); assertEquals(67, h1.length()); assertTrue(h1.startsWith("p2:"));
   Lock.clear(db);
   assertFalse(Lock.enabled(db));
   assertFalse(Lock.verify(db, "4712"));

@@ -23,9 +23,13 @@ final class Charts {
   boolean played;
  }
 
+ /** "M 120, T 0, W 450" for TalkBack, so a chart can be listened to. */
+ static String describe(String[] labels, long[] v) {
+  StringBuilder b = new StringBuilder(); for (int i = 0; i < v.length && i < labels.length; i++) { if (i > 0) b.append(", "); b.append(labels[i]).append(" ").append(Fmt.money(v[i])); } return b.toString();
+ }
  static final class Ring extends Anim {
   final float value; final int color; final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG); final String icon; final int track;
-  Ring(Context c, float value, int color, String icon) { super(c); this.value = value; this.color = color; this.icon = icon; track = Ui.surface2; p.setStyle(Paint.Style.STROKE); p.setStrokeCap(Paint.Cap.ROUND); }
+  Ring(Context c, float value, int color, String icon) { super(c); this.value = value; this.color = color; this.icon = icon; track = Ui.surface2; setContentDescription(Math.round(value * 100) + " percent used"); p.setStyle(Paint.Style.STROKE); p.setStrokeCap(Paint.Cap.ROUND); }
   @Override protected void onDraw(Canvas c) {
    float w = Math.min(getWidth(), getHeight()), sw = w * 0.11f, r = (w - sw) / 2f, cx = getWidth() / 2f, cy = getHeight() / 2f;
    p.setStrokeWidth(sw); p.setColor(track); c.drawCircle(cx, cy, r, p);
@@ -36,7 +40,7 @@ final class Charts {
 
  static final class Bars extends Anim {
   final long[] v; final String[] labels; final int hi; final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG), tp = new Paint(Paint.ANTI_ALIAS_FLAG); final boolean values;
-  Bars(Context c, long[] v, String[] labels, int hi, boolean values) { super(c); this.v = v; this.labels = labels; this.hi = hi; this.values = values; tp.setTypeface(Ui.bodyBold); tp.setTextAlign(Paint.Align.CENTER); tp.setTextSize(Ui.dp(11) ); }
+  Bars(Context c, long[] v, String[] labels, int hi, boolean values) { super(c); this.v = v; this.labels = labels; this.hi = hi; this.values = values; setContentDescription(describe(labels, v)); tp.setTypeface(Ui.bodyBold); tp.setTextAlign(Paint.Align.CENTER); tp.setTextSize(Ui.dp(11) ); }
   @Override protected void onDraw(Canvas c) {
    int n = v.length; if (n == 0) return; long max = 1; for (long x : v) max = Math.max(max, x);
    float lh = Ui.dp(22), top = values ? Ui.dp(18) : 0, h = getHeight() - lh - top, slot = getWidth() / (float) n, bw = Math.min(slot * 0.56f, Ui.dp(30));
@@ -54,7 +58,7 @@ final class Charts {
  /** Income and spending side by side per month. */
  static final class Pairs extends Anim {
   final long[] in, out; final String[] labels; final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG), tp = new Paint(Paint.ANTI_ALIAS_FLAG);
-  Pairs(Context c, long[] in, long[] out, String[] labels) { super(c); this.in = in; this.out = out; this.labels = labels; tp.setTypeface(Ui.bodyBold); tp.setTextAlign(Paint.Align.CENTER); tp.setTextSize(Ui.dp(11)); }
+  Pairs(Context c, long[] in, long[] out, String[] labels) { super(c); this.in = in; this.out = out; this.labels = labels; setContentDescription("Income and spending by month. " + describe(labels, out) + " spent"); tp.setTypeface(Ui.bodyBold); tp.setTextAlign(Paint.Align.CENTER); tp.setTextSize(Ui.dp(11)); }
   @Override protected void onDraw(Canvas c) {
    int n = in.length; long max = 1; for (int i = 0; i < n; i++) max = Math.max(max, Math.max(in[i], out[i]));
    float lh = Ui.dp(22), h = getHeight() - lh, slot = getWidth() / (float) n, bw = Math.min(slot * 0.28f, Ui.dp(18));
@@ -70,7 +74,7 @@ final class Charts {
 
  static final class Donut extends Anim {
   final long[] v; final int[] colors; final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG); String centerTop = "", centerBottom = ""; final Paint tp = new Paint(Paint.ANTI_ALIAS_FLAG);
-  Donut(Context c, long[] v, int[] colors, String top, String bottom) { super(c); this.v = v; this.colors = colors; centerTop = top; centerBottom = bottom; p.setStyle(Paint.Style.STROKE); tp.setTextAlign(Paint.Align.CENTER); }
+  Donut(Context c, long[] v, int[] colors, String top, String bottom) { super(c); this.v = v; this.colors = colors; centerTop = top; centerBottom = bottom; setContentDescription(top + " " + bottom); p.setStyle(Paint.Style.STROKE); tp.setTextAlign(Paint.Align.CENTER); }
   java.util.function.IntConsumer pick;
   @Override public boolean onTouchEvent(android.view.MotionEvent e) {
    if (pick == null) return super.onTouchEvent(e);
@@ -128,7 +132,7 @@ final class Charts {
  /** Thin pace bar: filled share, with a tick where the month should be by now. */
  static final class Pace extends Anim {
   final float used, tick; final int fill, trackColor; final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-  Pace(Context c, float used, float tick, int fill, int trackColor) { super(c); this.used = used; this.tick = tick; this.fill = fill; this.trackColor = trackColor; }
+  Pace(Context c, float used, float tick, int fill, int trackColor) { super(c); this.used = used; this.tick = tick; this.fill = fill; this.trackColor = trackColor; setContentDescription(Math.round(used * 100) + " percent used"); }
   @Override protected void onDraw(Canvas c) {
    float h = Ui.dp(8), y = getHeight() / 2f, w = getWidth(); p.setColor(trackColor); c.drawRoundRect(new RectF(0, y - h / 2, w, y + h / 2), h, h, p);
    p.setColor(fill); c.drawRoundRect(new RectF(0, y - h / 2, Math.max(h, Math.min(1f, used) * w * t), y + h / 2), h, h, p);

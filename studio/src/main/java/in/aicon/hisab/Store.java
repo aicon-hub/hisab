@@ -217,12 +217,25 @@ final class Store extends SQLiteOpenHelper {
  long saveRec(Rec r) { ContentValues v = new ContentValues(); v.put("title", r.title); v.put("kind", r.kind); v.put("amount", r.amount); v.put("account", r.account); v.put("cat", r.cat); v.put("period", r.period); v.put("next", r.next); v.put("active", r.active ? 1 : 0); long id; if (r.id > 0) { getWritableDatabase().update("recur", v, "id=?", new String[]{"" + r.id}); id = r.id; } else id = getWritableDatabase().insert("recur", null, v); changed(); return id; }
  void deleteRec(long id) { getWritableDatabase().delete("recur", "id=?", new String[]{"" + id}); changed(); }
  static String advance(String day, String period) { LocalDate d = LocalDate.parse(day); return (period.equals("weekly") ? d.plusWeeks(1) : period.equals("yearly") ? d.plusYears(1) : d.plusMonths(1)).toString(); }
+ /** Next due date. Monthly and yearly repeats keep the original day of the month: 31 Jan goes to 28 Feb, then back to 31 Mar. */
+ static String advance(String day, String period, int anchor) {
+  LocalDate d = LocalDate.parse(day);
+  if (period.equals("weekly")) return d.plusWeeks(1).toString();
+  LocalDate n = period.equals("yearly") ? d.plusYears(1) : d.plusMonths(1);
+  return n.withDayOfMonth(Math.min(Math.max(anchor, 1), n.lengthOfMonth())).toString();
+ }
+ /** The day of month the schedule started on. It is remembered only while the stored next date is the one we produced, so editing the date resets it. */
+ String nextFor(Rec r) {
+  int anchor = LocalDate.parse(r.next).getDayOfMonth(); String[] kept = pref("recDay:" + r.id, "").split("\\|");
+  if (kept.length == 2 && kept[1].equals(r.next)) try { anchor = Math.max(anchor, Integer.parseInt(kept[0])); } catch (Exception e) {}
+  String n = advance(r.next, r.period, anchor); setPref("recDay:" + r.id, anchor + "|" + n); return n;
+ }
  /** Adds the entry for the due date and moves the schedule forward. */
  void confirm(Rec r) {
   Tx t = new Tx(); t.kind = r.kind; t.amount = r.amount; t.day = r.next; t.account = r.account; t.cat = r.cat; t.note = r.title; save(t);
-  r.next = advance(r.next, r.period); saveRec(r);
+  r.next = nextFor(r); saveRec(r);
  }
- void skip(Rec r) { r.next = advance(r.next, r.period); saveRec(r); }
+ void skip(Rec r) { r.next = nextFor(r); saveRec(r); }
 
  /** One-time pass: normalise phone numbers saved before the +91 fix. */
  void normalisePhones() {

@@ -48,4 +48,5 @@ final class L {
   add("Lime","ലൈം");add("Sky","ആകാശനീല");add("Lilac","ലൈലാക്");add("Mint","മിന്റ്");add("Rose","റോസ്");add("Sand","മണൽനിറം");add("Peach","പീച്ച്");add("Teal","ടീൽ");add("Periwinkle","പെരിവിങ്കിൾ");add("Coral","പവിഴനിറം");add("Aqua","അക്വാ");add("Lavender","ലാവൻഡർ");add("Butter","ഇളംമഞ്ഞ");add("Sage","സേജ്");add("Apricot","ആപ്രിക്കോട്ട്");add("Ice","ഐസ്");add("Wallpaper","വാൾപേപ്പർ");
  }
  static String t(CharSequence input){if(input==null)return "";String s=input.toString();if(!isMl())return s;String exact=ML.get(s);if(exact!=null)return exact;for(Map.Entry<String,String> e:ML.entrySet())if(e.getKey().equalsIgnoreCase(s))return e.getValue();if(s.startsWith("Hello, "))return ML.get("Hello, ")+(s.substring(7).equals("You")?ML.get("You"):s.substring(7));return s;}
+ static { L2.load(); }
 }

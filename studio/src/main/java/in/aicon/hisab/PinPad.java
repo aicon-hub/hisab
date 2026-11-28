@@ -64,6 +64,7 @@ final class PinPad {
  }
 
  void wrong(String m) {
+  if (Lock.lastWaitMs > 0) { long s = (Lock.lastWaitMs + 999) / 1000; m = "Too many tries. Wait " + (s >= 60 ? (s + 59) / 60 + " min" : s + " s"); Lock.lastWaitMs = 0; }
   msg.setText(L.t(m)); buf.setLength(0); render(false);
   Ui.buzzNo(view);
   if (Ui.motion(view)) {
