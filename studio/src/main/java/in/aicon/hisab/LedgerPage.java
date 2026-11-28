@@ -68,7 +68,7 @@ final class LedgerPage {
   Map<Long, Store.Cat> cats = db.categoryMap(); Map<Long, Store.Acc> accs = Kit.accMap(db); Map<Long, Store.Person> people = Kit.peopleMap(db);
   String q = a.ledgerQuery.trim().toLowerCase(Locale.ROOT); long amt = amountQuery(q); List<Store.Tx> shown = new ArrayList<>();
   for (Store.Tx t : month) { if (!match(a.ledgerFilter, t)) continue; if (a.ledgerCat != 0 && t.cat != a.ledgerCat) continue; if (a.ledgerMin > 0 && t.amount < a.ledgerMin) continue; if (a.ledgerMax > 0 && t.amount > a.ledgerMax) continue; if (a.ledgerDay > 0 && LocalDate.parse(t.day).getDayOfMonth() != a.ledgerDay) continue; if (!q.isEmpty()) { Store.Cat ct = cats.get(t.cat); Store.Person p = people.get(t.person); String hay = (t.note + " " + (t.tags == null ? "" : t.tags) + " " + (ct == null ? "" : ct.name) + " " + (p == null ? "" : p.name) + " " + Kit.kindName(t.kind)).toLowerCase(Locale.ROOT); if (!hay.contains(q) && (amt < 0 || t.amount != amt)) continue; } shown.add(t); }
-  if (shown.isEmpty()) { LinearLayout em = Ui.card(a); em.addView(Kit.empty(a, "search", "No entries here", q.isEmpty() ? "Nothing in this month for this filter." : "Nothing matches your search.")); c.addView(em, Ui.lpm(-1, -2, 0, 16, 0, 0)); }
+  if (shown.isEmpty()) { LinearLayout em = Ui.card(a); em.addView(Kit.empty(a, "search", "No entries here", q.isEmpty() ? "Nothing in this month for this filter." : "Nothing matches your search.", "Add an entry", () -> a.openEntry(Store.KINDS[0], null))); c.addView(em, Ui.lpm(-1, -2, 0, 16, 0, 0)); }
   String day = ""; LinearLayout card = null;
   for (Store.Tx t : shown) {
    if (!t.day.equals(day)) { day = t.day; long dayOut = 0; for (Store.Tx x : shown) if (x.day.equals(t.day) && x.kind.equals("expense")) dayOut += x.amount;

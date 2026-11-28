@@ -247,5 +247,11 @@ final class L2 {
   L.add("Your year in money", "പണക്കണക്കിൽ നിങ്ങളുടെ വർഷം");
   L.add("You can turn backup on or off any time in Settings.", "ക്രമീകരണത്തിൽ എപ്പോൾ വേണമെങ്കിലും ബാക്കപ്പ് ഓണോ ഓഫോ ആക്കാം.");
   L.add("You owe them", "നിങ്ങൾ അവർക്ക് കൊടുക്കാനുള്ളത്");
+  L.add("Dismiss", "ഒഴിവാക്കുക");
+  L.add("Add an entry", "എൻട്രി ചേർക്കുക");
+  L.add("Add a goal", "ലക്ഷ്യം ചേർക്കുക");
+  L.add("Add a repeat", "ആവർത്തനം ചേർക്കുക");
+  L.add("Type it: tea 40", "എഴുതൂ: ചായ 40");
+  L.add("No voice typing on this phone. Turn on Google voice typing in Android settings, or type instead.", "ഈ ഫോണിൽ ശബ്ദ ടൈപ്പിംഗ് ഇല്ല. ആൻഡ്രോയിഡ് ക്രമീകരണത്തിൽ ഗൂഗിൾ വോയ്സ് ടൈപ്പിംഗ് ഓണാക്കുക, അല്ലെങ്കിൽ ടൈപ്പ് ചെയ്യുക.");
  }
 }

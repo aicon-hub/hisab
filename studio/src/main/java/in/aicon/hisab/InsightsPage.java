@@ -54,7 +54,7 @@ final class InsightsPage {
   if (pieAll || pieYear) { pieCat = new HashMap<>(); pieOut = 0; for (Store.Tx t : db.txs(pFrom, pTo)) if (t.kind.equals("expense")) { pieOut += t.amount; pieCat.merge(t.cat, t.amount, Long::sum); } }
   List<Map.Entry<Long, Long>> es = new ArrayList<>(pieCat.entrySet()); es.sort((x, y) -> Long.compare(y.getValue(), x.getValue()));
   LinearLayout cc = Ui.card(a);
-  if (es.isEmpty()) cc.addView(Kit.empty(a, "chart", "No spending", "Nothing noted in this month."));
+  if (es.isEmpty()) cc.addView(Kit.empty(a, "chart", "No spending", "Nothing noted in this month.", "Add an entry", () -> a.openEntry(Store.KINDS[0], null)));
   else {
    int n = Math.min(es.size(), 6); long[] vals = new long[n + (es.size() > n ? 1 : 0)]; int[] cols = new int[vals.length]; long rest = 0;
    for (int i = 0; i < es.size(); i++) { if (i < n) { vals[i] = es.get(i).getValue(); cols[i] = strong(i); } else rest += es.get(i).getValue(); } if (rest > 0) { vals[n] = rest; cols[n] = 0xFF475569; }

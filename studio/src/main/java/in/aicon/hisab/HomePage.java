@@ -158,7 +158,7 @@ final class HomePage {
   if (HomeCustom.on(db, "recent")) {
   c.addView(Kit.sectionHead(a, "Recent", "See all", () -> a.showTab(1, true)));
   List<Store.Tx> rec = db.recent(6); LinearLayout rc = Ui.card(a); rc.setPadding(Ui.dp(16), Ui.dp(8), Ui.dp(16), Ui.dp(8));
-  if (rec.isEmpty()) rc.addView(Kit.empty(a, "ledger", "Nothing yet", "Tap the plus button to add your first entry."));
+  if (rec.isEmpty()) rc.addView(Kit.empty(a, "ledger", "Nothing yet", "Tap the plus button to add your first entry.", "Add an entry", () -> a.openEntry(Store.KINDS[0], null)));
   for (int i = 0; i < rec.size(); i++) { if (i > 0) rc.addView(Ui.divider(a)); rc.addView(Kit.txRow(a, rec.get(i), cats, accs, people, true)); }
   c.addView(rc);
   }
@@ -216,7 +216,7 @@ final class HomePage {
 
  static View quickAdd(MainActivity a) {
   LinearLayout r = Ui.row(a); r.setBackground(Ui.outline(Ui.surface, Ui.line, 28, 1)); r.setPadding(Ui.dp(18), Ui.dp(4), Ui.dp(6), Ui.dp(4));
-  EditText e = new EditText(a); e.setHint(L.t("Type it: tea 40, auto 60 yesterday")); e.setHintTextColor(Ui.withAlpha(Ui.ink, 0xA6)); e.setTextColor(Ui.ink); e.setTextSize(15); e.setTypeface(Ui.body); e.setBackground(null); e.setSingleLine(true); e.setImeOptions(EditorInfo.IME_ACTION_DONE); e.setInputType(InputType.TYPE_CLASS_TEXT); e.setTag("quickEntry");
+  EditText e = new EditText(a); e.setHint(L.t("Type it: tea 40")); e.setHintTextColor(Ui.withAlpha(Ui.ink, 0xA6)); e.setTextColor(Ui.ink); e.setTextSize(15); e.setTypeface(Ui.body); e.setBackground(null); e.setSingleLine(true); e.setImeOptions(EditorInfo.IME_ACTION_DONE); e.setInputType(InputType.TYPE_CLASS_TEXT); e.setTag("quickEntry");
   animateHint(e);
   r.addView(e, Ui.weight(1));
   MicButton mic = new MicButton(a); r.addView(mic, Ui.lp(Ui.dp(50), Ui.dp(50)));
@@ -230,7 +230,7 @@ final class HomePage {
 
  /** Slowly types the example into the empty, unfocused quick-add bar, erases it, and starts again. Stops for good once the person types or focuses the field. */
  static void animateHint(EditText e) {
-  final String full = L.t("Type it: tea 40, auto 60 yesterday").toString();
+  final String full = L.t("Type it: tea 40").toString();
   final int[] pos = {0}; final boolean[] del = {false}; final boolean[] done = {false};
   Runnable tick = new Runnable() {
    @Override public void run() {

@@ -15,7 +15,7 @@ final class Voice {
  static void listen(final MainActivity a, final Heard cb) { listen(a, cb, null); }
 
  static void listen(final MainActivity a, final Heard cb, final java.util.function.Consumer<Boolean> active) {
-  if (!SpeechRecognizer.isRecognitionAvailable(a)) { a.toast("Voice typing is not available on this phone", null); return; }
+  if (!SpeechRecognizer.isRecognitionAvailable(a)) { a.toast("No voice typing on this phone. Turn on Google voice typing in Android settings, or type instead.", null); return; }
   try {
    final SpeechRecognizer sr = SpeechRecognizer.createSpeechRecognizer(a);
    Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)

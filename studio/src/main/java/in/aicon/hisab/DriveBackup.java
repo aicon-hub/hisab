@@ -100,7 +100,7 @@ final class DriveBackup {
   if (!stored.isEmpty()) { try { done.accept(decrypt(file, stored.toCharArray())); return; } catch (Exception ignored) {} }
   int pwType = android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD;
   Sheets.form(a, "Backup password", new String[]{"Password"}, new String[]{""}, new int[]{pwType}, "Restore", v -> {
-   new Thread(() -> { try { byte[] zip = decrypt(file, v[0].toCharArray()); a.runOnUiThread(() -> { setPassword(a.db, v[0]); done.accept(zip); }); } catch (Exception e) { a.runOnUiThread(() -> a.toast("Wrong password. Nothing was changed", null)); } }, "hisab-drive-decrypt").start();
+   new Thread(() -> { try { byte[] zip = decrypt(file, v[0].toCharArray()); a.runOnUiThread(() -> { setPassword(a.db, v[0]); done.accept(zip); }); } catch (Exception e) { a.runOnUiThread(() -> a.alert("Wrong password. Nothing was changed")); } }, "hisab-drive-decrypt").start();
   }, null);
  }
 
@@ -123,7 +123,7 @@ final class DriveBackup {
    a.request(GoogleSignIn.getClient(a, options()).getSignInIntent(), result ->
     GoogleSignIn.getSignedInAccountFromIntent(result)
      .addOnSuccessListener(x -> { db.setPref("driveBackup", "1"); db.setPref("driveBackupAcc", x.getEmail() == null ? "" : x.getEmail()); db.setPref("driveBackupErr", "0"); backupNow(a, false); })
-     .addOnFailureListener(e -> { db.setPref("driveBackupErr", "" + System.currentTimeMillis()); a.toast("Sign-in did not complete. Backup stays off", null); a.refresh(); }),
+     .addOnFailureListener(e -> { db.setPref("driveBackupErr", "" + System.currentTimeMillis()); a.alert("Sign-in did not complete. Backup stays off"); a.refresh(); }),
     () -> a.toast("Sign-in cancelled. Backup stays off", null));
   } else {
    db.setPref("driveBackup", "1"); db.setPref("driveBackupAcc", acc.getEmail() == null ? "" : acc.getEmail()); db.setPref("driveBackupErr", "0");
@@ -148,7 +148,7 @@ final class DriveBackup {
     a.runOnUiThread(() -> { if (!silent && e.getIntent() != null) { a.toast("Google needs you to sign in again", null); a.request(e.getIntent(), r -> backupNow(a, false)); } });
    } catch (Exception e) {
     db.setPref("driveBackupErr", "" + System.currentTimeMillis());
-    a.runOnUiThread(() -> { if (!silent) { a.toast("Backup failed. Check your connection and sign-in", null); a.refresh(); } });
+    a.runOnUiThread(() -> { if (!silent) { a.alert("Backup failed. Check your connection and sign-in"); a.refresh(); } });
    }
   }, "hisab-drive-backup").start();
  }
@@ -202,7 +202,7 @@ final class DriveBackup {
     byte[] file = download(token, id);
     if (isEncrypted(file)) { a.runOnUiThread(() -> withPassword(a, file, z -> restoreZip(a, z, modified))); return; }
     restoreZip(a, file, modified); return;
-   } catch (Exception e) { a.runOnUiThread(() -> a.toast("Could not reach Google Drive. Check your connection", null)); }
+   } catch (Exception e) { a.runOnUiThread(() -> a.alert("Could not reach Google Drive. Check your connection")); }
   }, "hisab-drive-restore").start();
  }
 
@@ -233,9 +233,9 @@ final class DriveBackup {
       }
       db.setPref("driveBackup", "1"); db.setPref("driveBackupErr", "0");
       a.closeAll(); a.applyTheme(); a.build(); Reminders.schedule(a, db); a.toast("Backup restored", null);
-     } catch (Exception e) { a.toast("Invalid backup. Your data was not changed", null); }
+     } catch (Exception e) { a.alert("Invalid backup. Your data was not changed"); }
     }));
-   } catch (Exception e) { a.runOnUiThread(() -> a.toast("Could not reach Google Drive. Check your connection", null)); }
+   } catch (Exception e) { a.runOnUiThread(() -> a.alert("Could not reach Google Drive. Check your connection")); }
   }, "hisab-drive-restore").start();
  }
 

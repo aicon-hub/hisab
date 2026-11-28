@@ -162,6 +162,12 @@ public class MainActivity extends Activity {
   showTab(tab, false);
  }
 
+ /** Space a scroll screen leaves at its bottom so nothing hides under the dock (added to the bottom inset): dock height plus its margin plus a gap, never under 150 dp. */
+ int dockClearance() {
+  int h = dock == null ? 0 : Math.max(dock.getMeasuredHeight(), dock.getHeight());
+  return Math.max(Ui.dp(150), h + Ui.dp(38));
+ }
+
  void buildDock() {
   dock = Ui.row(this); dock.setGravity(Gravity.CENTER);
   dock.setBackground(Ui.outline(Ui.dark ? Ui.surface2 : Ui.ink, Ui.dark ? Ui.line : Ui.ink, 34, 1));
@@ -267,16 +273,21 @@ public class MainActivity extends Activity {
  void openEntryPrefilled(Store.Tx t) { EntrySheet.openPrefilled(this, t); }
  void openTx(Store.Tx t) { Sheets.txDetail(this, t); }
 
- void toast(String msg, Runnable undo) {
+ void toast(String msg, Runnable undo) { showToast(msg, undo, "Undo", false); }
+
+ /** An important error. Stays on screen until the user dismisses it. */
+ void alert(String msg) { showToast(msg, this::dismissToast, "Dismiss", true); }
+
+ private void showToast(String msg, Runnable undo, String label, boolean sticky) {
   Ui.buzzOk(root);
   if (toastView != null) layerHostRoot().removeView(toastView);
   LinearLayout t = Ui.row(this); t.setBackground(Ui.shape(Ui.dark ? Ui.surface2 : Ui.ink, 20)); t.setPadding(Ui.dp(18), Ui.dp(12), Ui.dp(10), Ui.dp(12)); t.setElevation(Ui.dp(32));
   int fg = Ui.dark ? Ui.ink : 0xFFFFFFFF; t.addView(Ui.text(this, msg, 14, fg, false), Ui.weight(1));
-  if (undo != null) { TextView u = Ui.text(this, "Undo", 14, Ui.accentOnDark, true); u.setPadding(Ui.dp(16), Ui.dp(6), Ui.dp(10), Ui.dp(6)); t.addView(u); Ui.tap(u, () -> { undo.run(); dismissToast(); }); }
+  if (undo != null) { TextView u = Ui.text(this, label, 14, Ui.accentOnDark, true); u.setPadding(Ui.dp(16), Ui.dp(6), Ui.dp(10), Ui.dp(6)); t.addView(u); Ui.tap(u, () -> { undo.run(); dismissToast(); }); }
   FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM); lp.setMargins(Ui.dp(20), 0, Ui.dp(20), Ui.dp(94) + bottomInset);
   toastView = t; layerHostRoot().addView(t, lp);
   if (Ui.motion(root)) { t.setTranslationY(Ui.dp(30)); t.setAlpha(0); t.animate().translationY(0).alpha(1).setDuration(220).start(); }
-  final View mine = t; t.postDelayed(() -> { if (toastView == mine) dismissToast(); }, 4200);
+  final View mine = t; if (!sticky) t.postDelayed(() -> { if (toastView == mine) dismissToast(); }, 4200);
  }
  FrameLayout layerHostRoot() { return root; }
  void dismissToast() { if (toastView != null) { View v = toastView; toastView = null; v.animate().alpha(0).setDuration(160).withEndAction(() -> root.removeView(v)).start(); } }

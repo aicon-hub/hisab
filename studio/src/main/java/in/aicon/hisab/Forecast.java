@@ -13,6 +13,6 @@ final class Forecast {
   long spent = 0;
   for (Store.Tx t : db.txs(ym.atDay(1).toString(), ym.atEndOfMonth().toString())) if (t.kind.equals("expense")) spent += t.amount;
   if (spent <= 0 || day.getDayOfMonth() < 3) return 0;
-  return Math.round(spent * (double) ym.lengthOfMonth() / day.getDayOfMonth());
+  return (spent * ym.lengthOfMonth() + day.getDayOfMonth() / 2) / day.getDayOfMonth();
  }
 }

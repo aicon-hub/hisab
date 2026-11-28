@@ -14,7 +14,7 @@ final class Kit {
  /** Scrolling column with page padding. Bottom space clears the dock. */
  static LinearLayout column(MainActivity a, ScrollView[] out, boolean dockSpace) {
   ScrollView s = new ScrollView(a); s.setVerticalScrollBarEnabled(false); s.setOverScrollMode(View.OVER_SCROLL_NEVER); s.setFillViewport(false);
-  LinearLayout c = Ui.col(a); c.setPadding(Ui.dp(20), a.topInset + Ui.dp(12), Ui.dp(20), a.bottomInset + Ui.dp(dockSpace ? 150 : 32)); s.addView(c, new FrameLayout.LayoutParams(-1, -2)); out[0] = s; return c;
+  LinearLayout c = Ui.col(a); c.setPadding(Ui.dp(20), a.topInset + Ui.dp(12), Ui.dp(20), a.bottomInset + (dockSpace ? a.dockClearance() : Ui.dp(32))); s.addView(c, new FrameLayout.LayoutParams(-1, -2)); out[0] = s; return c;
  }
 
  static View title(MainActivity a, String sub, String title, boolean avatar) {
@@ -65,6 +65,12 @@ final class Kit {
   LinearLayout c = Ui.col(a); c.setGravity(Gravity.CENTER_HORIZONTAL); c.setPadding(Ui.dp(24), Ui.dp(28), Ui.dp(24), Ui.dp(28));
   c.addView(Ui.badge(a, icon, 56, Ui.surface2, Ui.ink)); TextView h = Ui.text(a, head, 16, Ui.ink, true); h.setPadding(0, Ui.dp(14), 0, Ui.dp(4)); c.addView(h);
   TextView b = Ui.text(a, body, 13.5f, Ui.muted, false); b.setGravity(Gravity.CENTER); c.addView(b); return c;
+ }
+
+ /** Empty state with one next-step button. */
+ static View empty(MainActivity a, String icon, String head, String body, String label, Runnable next) {
+  LinearLayout c = (LinearLayout) empty(a, icon, head, body);
+  TextView b = Ui.button(a, label, true); c.addView(b, Ui.lpm(-2, -2, 0, 16, 0, 0)); Ui.tap(b, next); return c;
  }
 
  /** Top bar for pushed pages. */
