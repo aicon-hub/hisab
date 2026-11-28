@@ -1,7 +1,6 @@
 package in.aicon.hisab;
 import android.content.*;
 import android.database.*;
-import android.database.sqlite.*;
 import android.view.*;
 import android.widget.*;
 import org.json.*;
@@ -27,13 +26,13 @@ final class Backup {
   try {byte[] result=cipher.doFinal(payload);if(!encrypt)return result;ByteArrayOutputStream out=new ByteArrayOutputStream();out.write(MAGIC);out.write(salt);out.write(nonce);out.write(result);return out.toByteArray();}finally{Arrays.fill(key,(byte)0);}
  }
  static byte[] snapshot(Store db) throws Exception {
-  JSONObject root=new JSONObject().put("format",2);SQLiteDatabase d=db.getReadableDatabase();d.beginTransaction();
+  JSONObject root=new JSONObject().put("format",2);Db d=db.getReadableDatabase();d.beginTransaction();
   try {for(String table:TABLES){JSONArray rows=new JSONArray();try(Cursor c=d.rawQuery("SELECT * FROM "+table,null)){while(c.moveToNext()){JSONObject row=new JSONObject();for(int i=0;i<c.getColumnCount();i++)row.put(c.getColumnName(i),c.getType(i)==Cursor.FIELD_TYPE_INTEGER?c.getLong(i):c.getString(i));rows.put(row);}}root.put(table,rows);}d.setTransactionSuccessful();}finally{d.endTransaction();}
   byte[] data=root.toString().getBytes(StandardCharsets.UTF_8);if(data.length>LIMIT-100)throw new IOException("Backup too large");return data;
  }
  static void restore(Store db,byte[] data) throws Exception {
   if(data.length>LIMIT)throw new IOException("Backup too large");JSONObject root=new JSONObject(new String(data,StandardCharsets.UTF_8));if(root.getInt("format")!=2)throw new IOException("Unsupported backup version");
-  SQLiteDatabase d=db.getWritableDatabase();d.beginTransaction();
+  Db d=db.getWritableDatabase();d.beginTransaction();
   try {for(String table:TABLES){JSONArray rows=root.getJSONArray(table);if(rows.length()>50000)throw new IOException("Too many entries");Set<String> cols=new HashSet<>();try(Cursor c=d.rawQuery("SELECT * FROM "+table+" LIMIT 0",null)){Collections.addAll(cols,c.getColumnNames());}
     d.delete(table,null,null);for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);if(row.length()!=cols.size())throw new IOException("Incomplete record");ContentValues v=new ContentValues();for(String col:cols){Object value=row.get(col);if(value instanceof Number)v.put(col,((Number)value).longValue());else if(value instanceof String && ((String)value).length()<3000000)v.put(col,(String)value);else throw new IOException("Invalid record");}d.insertOrThrow(table,null,v);}}
    // Validate dates, kinds, amounts and references before committing any replacement.

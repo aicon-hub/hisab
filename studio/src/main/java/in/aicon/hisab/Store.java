@@ -3,12 +3,11 @@ package in.aicon.hisab;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.*;
 import java.time.*;
 import java.util.*;
 
 /** On-device ledger. One SQLite file, no network, no server. Amounts are minor units (paise). */
-final class Store extends SQLiteOpenHelper {
+final class Store extends Sql {
  static final class Acc { long id; String name, kind; long opening; }
  static final class Cat { long id; String name, kind, icon; }
  static final class Person { long id; String name, phone; }
@@ -20,9 +19,9 @@ final class Store extends SQLiteOpenHelper {
  static final String[] KINDS = {"expense", "income", "transfer", "lent", "borrowed"};
  final Context ctx;
 
- Store(Context c) { super(c.getApplicationContext(), Profiles.dbName(c), null, 3); ctx = c.getApplicationContext(); }
+ Store(Context c) { super(c.getApplicationContext(), Profiles.dbName(c), 3); ctx = c.getApplicationContext(); }
 
- @Override public void onCreate(SQLiteDatabase d) {
+ @Override void onCreate(Db d) {
   d.execSQL("CREATE TABLE prefs(k TEXT PRIMARY KEY, v TEXT NOT NULL)");
   d.execSQL("CREATE TABLE account(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, kind TEXT NOT NULL, opening INTEGER NOT NULL DEFAULT 0)");
   d.execSQL("CREATE TABLE category(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, kind TEXT NOT NULL, icon TEXT NOT NULL)");
@@ -34,13 +33,13 @@ final class Store extends SQLiteOpenHelper {
   d.execSQL("CREATE TABLE recur(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, kind TEXT NOT NULL, amount INTEGER NOT NULL, account INTEGER NOT NULL, cat INTEGER NOT NULL, period TEXT NOT NULL, next TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1)");
   d.execSQL("CREATE TABLE attach(id INTEGER PRIMARY KEY AUTOINCREMENT, tx INTEGER NOT NULL, path TEXT NOT NULL)");
  }
- @Override public void onUpgrade(SQLiteDatabase d, int a, int b) {
+ @Override void onUpgrade(Db d, int a, int b) {
   if (a < 2) d.execSQL("CREATE TABLE IF NOT EXISTS attach(id INTEGER PRIMARY KEY AUTOINCREMENT, tx INTEGER NOT NULL, path TEXT NOT NULL)");
   if (a < 3) { d.execSQL("ALTER TABLE tx ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0"); d.execSQL("ALTER TABLE tx ADD COLUMN tags TEXT NOT NULL DEFAULT ''"); }
  }
 
  String pref(String k, String def) { try (Cursor c = getReadableDatabase().rawQuery("SELECT v FROM prefs WHERE k=?", new String[]{k})) { return c.moveToFirst() ? c.getString(0) : def; } }
- void setPref(String k, String v) { ContentValues cv = new ContentValues(); cv.put("k", k); cv.put("v", v); getWritableDatabase().insertWithOnConflict("prefs", null, cv, SQLiteDatabase.CONFLICT_REPLACE); }
+ void setPref(String k, String v) { ContentValues cv = new ContentValues(); cv.put("k", k); cv.put("v", v); getWritableDatabase().insertWithOnConflict("prefs", null, cv, Db.CONFLICT_REPLACE); }
  boolean flag(String k, boolean def) { return pref(k, def ? "1" : "0").equals("1"); }
  /** Any stored data changed: ask DriveBackup to mirror it (no-op when backup is off). */
  private void changed() { try { DriveBackup.dataChanged(this); } catch (Exception ignored) {} try { HisabWidget.refresh(ctx); } catch (Exception ignored) {} }
@@ -78,7 +77,7 @@ final class Store extends SQLiteOpenHelper {
  }
  long addCategory(String name, String kind, String icon) { ContentValues v = new ContentValues(); v.put("name", name); v.put("kind", kind); v.put("icon", icon); long id = getWritableDatabase().insert("category", null, v); changed(); return id; }
  void updateCategory(Cat x) { ContentValues v = new ContentValues(); v.put("name", x.name); v.put("icon", x.icon); getWritableDatabase().update("category", v, "id=?", new String[]{"" + x.id}); changed(); }
- void deleteCategory(long id) { SQLiteDatabase d = getWritableDatabase(); d.update("tx", cv("cat", 0), "cat=?", new String[]{"" + id}); d.delete("budget", "cat=?", new String[]{"" + id}); d.delete("category", "id=?", new String[]{"" + id}); changed(); }
+ void deleteCategory(long id) { Db d = getWritableDatabase(); d.update("tx", cv("cat", 0), "cat=?", new String[]{"" + id}); d.delete("budget", "cat=?", new String[]{"" + id}); d.delete("category", "id=?", new String[]{"" + id}); changed(); }
  Map<Long, Cat> categoryMap() { Map<Long, Cat> m = new HashMap<>(); for (Cat c : categories(null)) m.put(c.id, c); return m; }
  private static ContentValues cv(String k, long v) { ContentValues c = new ContentValues(); c.put(k, v); return c; }
 
@@ -93,7 +92,7 @@ final class Store extends SQLiteOpenHelper {
   ContentValues v = new ContentValues(); v.put("name", name); v.put("phone", phone); return getWritableDatabase().insert("person", null, v);
  }
  void updatePerson(Person p) { ContentValues v = new ContentValues(); v.put("name", p.name); v.put("phone", Phone.normalise(p.phone)); getWritableDatabase().update("person", v, "id=?", new String[]{"" + p.id}); changed(); }
- void deletePerson(long id) { SQLiteDatabase d = getWritableDatabase(); d.delete("tx", "person=?", new String[]{"" + id}); d.delete("person", "id=?", new String[]{"" + id}); changed(); }
+ void deletePerson(long id) { Db d = getWritableDatabase(); d.delete("tx", "person=?", new String[]{"" + id}); d.delete("person", "id=?", new String[]{"" + id}); changed(); }
  /** Positive: they owe you. Negative: you owe them. */
  long net(long personId) {
   long n = 0;
@@ -203,7 +202,7 @@ final class Store extends SQLiteOpenHelper {
  }
  /** Monthly limit plus any rolled-over amount. */
  long effectiveLimit(long cat, YearMonth ym) { Long lim = budgets().get(cat); return lim == null || lim <= 0 ? 0 : lim + carry(cat, ym); }
- void setBudget(long cat, long amount) { if (amount <= 0) { getWritableDatabase().delete("budget", "cat=?", new String[]{"" + cat}); changed(); return; } ContentValues v = new ContentValues(); v.put("cat", cat); v.put("amount", amount); getWritableDatabase().insertWithOnConflict("budget", null, v, SQLiteDatabase.CONFLICT_REPLACE); changed(); }
+ void setBudget(long cat, long amount) { if (amount <= 0) { getWritableDatabase().delete("budget", "cat=?", new String[]{"" + cat}); changed(); return; } ContentValues v = new ContentValues(); v.put("cat", cat); v.put("amount", amount); getWritableDatabase().insertWithOnConflict("budget", null, v, Db.CONFLICT_REPLACE); changed(); }
 
  List<Goal> goals() { List<Goal> l = new ArrayList<>(); try (Cursor c = getReadableDatabase().rawQuery("SELECT id,name,target,saved,icon FROM goal ORDER BY id", null)) { while (c.moveToNext()) { Goal g = new Goal(); g.id = c.getLong(0); g.name = c.getString(1); g.target = c.getLong(2); g.saved = c.getLong(3); g.icon = c.getString(4); l.add(g); } } return l; }
  long saveGoal(Goal g) { ContentValues v = new ContentValues(); v.put("name", g.name); v.put("target", g.target); v.put("saved", g.saved); v.put("icon", g.icon == null ? "target" : g.icon); long id; if (g.id > 0) { getWritableDatabase().update("goal", v, "id=?", new String[]{"" + g.id}); id = g.id; } else id = getWritableDatabase().insert("goal", null, v); changed(); return id; }
@@ -244,7 +243,7 @@ final class Store extends SQLiteOpenHelper {
   setPref("phoneFixV1", "1");
  }
 
- void wipe() { SQLiteDatabase d = getWritableDatabase(); for (String t : new String[]{"tx", "budget", "goal", "recur", "person", "category", "account"}) d.delete(t, null, null); setPref("sample", "0"); }
+ void wipe() { Db d = getWritableDatabase(); for (String t : new String[]{"tx", "budget", "goal", "recur", "person", "category", "account"}) d.delete(t, null, null); setPref("sample", "0"); }
  void seedBasics() {
   if (!categories(null).isEmpty()) return;
   String[][] ex = {{"Food", "food"}, {"Groceries", "groceries"}, {"Transport", "transport"}, {"Fuel", "fuel"}, {"Shopping", "shopping"}, {"Bills", "bills"}, {"Health", "health"}, {"Fun", "fun"}, {"Education", "education"}, {"Travel", "travel"}, {"Other", "other"}};
