@@ -31,7 +31,7 @@ public class MainActivity extends Activity {
 
  @Override protected void onCreate(Bundle b) {
   super.onCreate(b); CrashLog.install(this);
-  db = new Store(this); db.seedBasics(); Ui.haptics = db.flag("haptics", true); Ui.initVib(this);
+  db = new Store(this); db.seedBasics(); sealPhotosInBackground(); Ui.haptics = db.flag("haptics", true); Ui.initVib(this);
   if (!db.hasData() && db.pref("sample", "").isEmpty()) { Sample.seed(db); }
   if (Build.VERSION.SDK_INT >= 30) getWindow().setDecorFitsSystemWindows(false);
   else getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
@@ -160,6 +160,12 @@ public class MainActivity extends Activity {
   }
   updateInsets(topInset, bottomInset, keyboardInset + bottomInset);
   showTab(tab, false);
+ }
+
+ /** Encrypts photos saved by older builds. Runs once per start on a phone and does nothing when all are sealed. */
+ private void sealPhotosInBackground() {
+  if (!Sql.PHONE) return;
+  final Store s = db; new Thread(() -> PhotoVault.sealAll(s), "hisab-seal-photos").start();
  }
 
  /** Space a scroll screen leaves at its bottom so nothing hides under the dock (added to the bottom inset): dock height plus its margin plus a gap, never under 150 dp. */

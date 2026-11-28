@@ -60,12 +60,17 @@ final class Lock {
   if (!enabled(db)) return false;
   long w = waitMs(db); if (w > 0) { lastWaitMs = w; return false; }
   String salt = db.pref("pinSalt", ""), stored = db.pref("pinHash", "");
-  boolean ok = valid(pin) && (stored.startsWith("p2:") ? hash(salt, pin).equals(stored) : legacyHash(salt, pin).equals(stored));
+  boolean ok = valid(pin) && same(stored.startsWith("p2:") ? hash(salt, pin) : legacyHash(salt, pin), stored);
   if (ok) { db.setPref("pinFails", "0"); db.setPref("pinLockUntil", "0"); if (!stored.startsWith("p2:")) db.setPref("pinHash", hash(salt, pin)); return true; }
   int f; try { f = Integer.parseInt(db.pref("pinFails", "0")) + 1; } catch (Exception e) { f = 1; }
   db.setPref("pinFails", "" + f); long p = pauseFor(f);
   if (p > 0) { db.setPref("pinLockUntil", "" + (System.currentTimeMillis() + p)); lastWaitMs = p; }
   return false;
+ }
+
+ /** Compares two hash strings in constant time. */
+ static boolean same(String a, String b) {
+  try { return MessageDigest.isEqual(a.getBytes("UTF-8"), b.getBytes("UTF-8")); } catch (java.io.UnsupportedEncodingException e) { return false; }
  }
 
  static boolean bio(Store db) { return db.flag("bioUnlock", false); }

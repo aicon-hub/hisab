@@ -12,7 +12,7 @@ import java.util.concurrent.Executors;
  */
 final class AiEngine {
  private AiEngine() {}
- static final String REL = "https://github.com/aicon-hub/hisab/releases/download/v1.0.38-pro-test/";
+ static final String REL = "https://github.com/aicon-hub/hisab/releases/download/v1.0.39-pro-test/";
  /** Engine builds: generic, with dot-product CPU code, and with int8 matrix code. The phone picks the best one it supports. */
  static final String[] VARIANTS = {"base", "dotprod", "i8mm"};
  static final String[] ASSET = {"libhisabllm-arm64.so", "libhisabllm-arm64-dotprod.so", "libhisabllm-arm64-i8mm.so"};

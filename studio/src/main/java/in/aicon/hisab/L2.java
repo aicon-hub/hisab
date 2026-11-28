@@ -4,6 +4,12 @@ package in.aicon.hisab;
 final class L2 {
  private L2() {}
  static void load() {
+  L.add("Install says a different certificate?", "ഇൻസ്റ്റാൾ ചെയ്യുമ്പോൾ വ്യത്യസ്ത സർട്ടിഫിക്കറ്റ് എന്ന് കാണിക്കുന്നുവോ?");
+  L.add("Steps for the one-time update after the signing key changed", "സൈനിങ് കീ മാറിയതിനു ശേഷമുള്ള ഒറ്റത്തവണ അപ്ഡേറ്റിന്റെ ഘട്ടങ്ങൾ");
+  L.add(Settings.UPDATE_HELP, "ബാക്കപ്പ് എടുക്കുക, ഒരു തവണ അൺഇൻസ്റ്റാൾ ചെയ്യുക, പുതിയ ബിൽഡ് ഇൻസ്റ്റാൾ ചെയ്യുക, റസ്റ്റോർ ചെയ്യുക. സൈനിങ് കീ മാറിയതുകൊണ്ടാണ് ഇത് ഒരിക്കൽ മാത്രം സംഭവിക്കുന്നത്. ആദ്യം ബാക്കപ്പ് എടുത്താൽ മാത്രമേ നിങ്ങളുടെ ഡാറ്റ സുരക്ഷിതമാകൂ.");
+  L.add("Encrypt my backup. If you forget the password, the backup cannot be opened and Hisab cannot recover it", "ബാക്കപ്പ് എൻക്രിപ്റ്റ് ചെയ്യുക. പാസ്‌വേഡ് മറന്നാൽ ബാക്കപ്പ് തുറക്കാനാവില്ല, ഹിസാബിന് അത് വീണ്ടെടുക്കാനും കഴിയില്ല");
+  L.add("Hint (optional). Never type the password here", "സൂചന (ഓപ്ഷണൽ). പാസ്‌വേഡ് ഇവിടെ ടൈപ്പ് ചെയ്യരുത്");
+  L.add("The hint must not contain the password", "സൂചനയിൽ പാസ്‌വേഡ് ഉണ്ടാകരുത്");
   L.add("...or how many people (you included)", "...അല്ലെങ്കിൽ എത്ര പേർ (നിങ്ങൾ ഉൾപ്പെടെ)");
   L.add("AI models", "AI മോഡലുകൾ");
   L.add("Add a Bank account in Accounts first", "ആദ്യം അക്കൗണ്ടുകളിൽ ഒരു ബാങ്ക് അക്കൗണ്ട് ചേർക്കുക");

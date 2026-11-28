@@ -58,9 +58,26 @@ final class DriveBackup {
  static final byte[] DMAGIC = {'H','I','S','D','R','1',0,1};
  static android.content.SharedPreferences sec(Context c) { return c.getSharedPreferences("hisab_drive_secret", Context.MODE_PRIVATE); }
  static boolean images(Store db) { return db.flag("driveImages", true); }
- static boolean encrypted(Store db) { return !sec(db.ctx).getString("pw", "").isEmpty(); }
- static void setPassword(Store db, String pw) { sec(db.ctx).edit().putString("pw", pw == null ? "" : pw).apply(); }
- static boolean isEncrypted(byte[] b) { return b != null && b.length > 8 && java.util.Arrays.equals(DMAGIC, java.util.Arrays.copyOf(b, 8)); }
+ static boolean encrypted(Store db) { return !password(db.ctx).isEmpty(); }
+ /** The backup password, kept on this phone only, sealed with the phone-held key. Older plain values still read and are sealed on the next save. */
+ static String password(Context c) {
+  String v = sec(c).getString("pw", ""); if (!v.startsWith("e1:")) return v;
+  try { return new String(PhotoVault.open(c, android.util.Base64.decode(v.substring(3), android.util.Base64.NO_WRAP)), "UTF-8"); } catch (Exception e) { return ""; }
+ }
+ static void setPassword(Store db, String pw) {
+  String v = pw == null ? "" : pw;
+  try { if (!v.isEmpty()) v = "e1:" + android.util.Base64.encodeToString(PhotoVault.seal(db.ctx, v.getBytes("UTF-8")), android.util.Base64.NO_WRAP); } catch (Exception ignored) { }
+  sec(db.ctx).edit().putString("pw", v).apply();
+ }
+ /** Password hint saved with the encrypted backup file. It is readable by anyone who can open the file, so it must never be the password. */
+ static String hint(Store db) { return db.pref("driveHint", ""); }
+ static boolean isEncrypted(byte[] b) { return b != null && b.length > 8 && (java.util.Arrays.equals(DMAGIC, java.util.Arrays.copyOf(b, 8)) || java.util.Arrays.equals(DMAGIC2, java.util.Arrays.copyOf(b, 8))); }
+ /** The hint stored in a backup file, or empty. */
+ static String hintOf(byte[] b) {
+  if (b == null || b.length < 10 || !java.util.Arrays.equals(DMAGIC2, java.util.Arrays.copyOf(b, 8))) return "";
+  int n = ((b[8] & 255) << 8) | (b[9] & 255); if (n <= 0 || b.length < 10 + n) return "";
+  try { return new String(b, 10, n, "UTF-8"); } catch (Exception e) { return ""; }
+ }
  private static javax.crypto.Cipher cipher(char[] pw, byte[] salt, byte[] nonce, boolean enc) throws Exception {
   javax.crypto.spec.PBEKeySpec spec = new javax.crypto.spec.PBEKeySpec(pw, salt, 210000, 256);
   byte[] key = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).getEncoded(); spec.clearPassword();
@@ -68,38 +85,53 @@ final class DriveBackup {
   c.init(enc ? javax.crypto.Cipher.ENCRYPT_MODE : javax.crypto.Cipher.DECRYPT_MODE, new javax.crypto.spec.SecretKeySpec(key, "AES"), new javax.crypto.spec.GCMParameterSpec(128, nonce)); c.updateAAD(DMAGIC); return c;
  }
  /** DMAGIC + salt(16) + nonce(12) + AES-256-GCM(zip). Key from PBKDF2-HMAC-SHA256, 210000 rounds. */
- static byte[] encrypt(byte[] zip, char[] pw) throws Exception {
+ static byte[] encrypt(byte[] zip, char[] pw) throws Exception { return encrypt(zip, pw, ""); }
+ static final byte[] DMAGIC2 = {'H','I','S','D','R','1',0,2};
+ /** With a hint: DMAGIC2 + hint length(2) + hint(UTF-8) + salt + nonce + data. Without: the old layout. */
+ static byte[] encrypt(byte[] zip, char[] pw, String hint) throws Exception {
+  byte[] hb = hint == null ? new byte[0] : hint.trim().getBytes("UTF-8");
+  if (hb.length > 200) throw new IOException("Hint too long");
+  if (hb.length > 0) {
+   byte[] salt = new byte[16], nonce = new byte[12]; java.security.SecureRandom r = new java.security.SecureRandom(); r.nextBytes(salt); r.nextBytes(nonce);
+   byte[] ct = cipher(pw, salt, nonce, true).doFinal(zip);
+   ByteArrayOutputStream o = new ByteArrayOutputStream(); o.write(DMAGIC2); o.write(hb.length >> 8); o.write(hb.length & 255); o.write(hb); o.write(salt); o.write(nonce); o.write(ct); return o.toByteArray();
+  }
   byte[] salt = new byte[16], nonce = new byte[12]; java.security.SecureRandom r = new java.security.SecureRandom(); r.nextBytes(salt); r.nextBytes(nonce);
   byte[] ct = cipher(pw, salt, nonce, true).doFinal(zip);
   ByteArrayOutputStream o = new ByteArrayOutputStream(); o.write(DMAGIC); o.write(salt); o.write(nonce); o.write(ct); return o.toByteArray();
  }
  static byte[] decrypt(byte[] b, char[] pw) throws Exception {
   if (!isEncrypted(b) || b.length < 37) throw new IOException("Not an encrypted Hisab backup");
-  return cipher(pw, java.util.Arrays.copyOfRange(b, 8, 24), java.util.Arrays.copyOfRange(b, 24, 36), false).doFinal(b, 36, b.length - 36);
+  int at = 8; if (java.util.Arrays.equals(DMAGIC2, java.util.Arrays.copyOf(b, 8))) at = 10 + (((b[8] & 255) << 8) | (b[9] & 255));
+  if (b.length < at + 29) throw new IOException("Damaged backup");
+  return cipher(pw, java.util.Arrays.copyOfRange(b, at, at + 16), java.util.Arrays.copyOfRange(b, at + 16, at + 28), false).doFinal(b, at + 28, b.length - at - 28);
  }
  /** What goes to Drive: the zip, or the zip encrypted with the phone-held password when the switch is on. */
  static byte[] payload(Store db) throws Exception {
   byte[] zip = buildZip(db, images(db));
-  String pw = sec(db.ctx).getString("pw", "");
-  return pw.isEmpty() ? zip : encrypt(zip, pw.toCharArray());
+  String pw = password(db.ctx);
+  return pw.isEmpty() ? zip : encrypt(zip, pw.toCharArray(), hint(db));
  }
  /** Settings switch: turn encryption on (asks for a password twice) or off. Either way a fresh backup follows. */
  static void encryptSwitch(MainActivity a) {
   Store db = a.db;
   if (encrypted(db)) { Sheets.confirm(a, "Stop encrypting the backup?", "The Google Drive copy will be saved without your password from now on. Restoring will need only your Google sign-in.", "Turn off", () -> { setPassword(db, ""); backupNow(a, true); a.refresh(); }); return; }
   int pwType = android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD;
-  Sheets.form(a, "Encrypt my backup", new String[]{"Password (8+ characters)", "Repeat password"}, new String[]{"", ""}, new int[]{pwType, pwType}, "Encrypt", v -> {
+  int plain = android.text.InputType.TYPE_CLASS_TEXT;
+  Sheets.form(a, "Encrypt my backup. If you forget the password, the backup cannot be opened and Hisab cannot recover it", new String[]{"Password (8+ characters)", "Repeat password", "Hint (optional). Never type the password here"}, new String[]{"", "", ""}, new int[]{pwType, pwType, plain}, "Encrypt", v -> {
    if (v[0].length() < 8 || !v[0].equals(v[1])) { a.toast("Use 8+ characters and matching passwords", null); return; }
-   setPassword(db, v[0]); backupNow(a, false); a.toast("Backup will be encrypted. Keep the password: Hisab cannot recover it", null);
+   if (!v[2].trim().isEmpty() && v[2].toLowerCase().contains(v[0].toLowerCase())) { a.toast("The hint must not contain the password", null); return; }
+   db.setPref("driveHint", v[2].trim()); setPassword(db, v[0]); backupNow(a, false); a.toast("Backup will be encrypted. Keep the password: Hisab cannot recover it", null);
   }, null);
  }
  static void imagesSwitch(MainActivity a) { Store db = a.db; db.setPref("driveImages", images(db) ? "0" : "1"); backupNow(a, true); a.refresh(); }
  /** Restore step for an encrypted file: the stored password first, then ask. */
  static void withPassword(MainActivity a, byte[] file, java.util.function.Consumer<byte[]> done) {
-  String stored = sec(a).getString("pw", "");
+  String stored = password(a);
   if (!stored.isEmpty()) { try { done.accept(decrypt(file, stored.toCharArray())); return; } catch (Exception ignored) {} }
   int pwType = android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD;
-  Sheets.form(a, "Backup password", new String[]{"Password"}, new String[]{""}, new int[]{pwType}, "Restore", v -> {
+  String hint = hintOf(file);
+  Sheets.form(a, hint.isEmpty() ? "Backup password" : "Backup password. Hint: " + hint, new String[]{"Password"}, new String[]{""}, new int[]{pwType}, "Restore", v -> {
    new Thread(() -> { try { byte[] zip = decrypt(file, v[0].toCharArray()); a.runOnUiThread(() -> { setPassword(a.db, v[0]); done.accept(zip); }); } catch (Exception e) { a.runOnUiThread(() -> a.alert("Wrong password. Nothing was changed")); } }, "hisab-drive-decrypt").start();
   }, null);
  }
@@ -228,7 +260,7 @@ final class DriveBackup {
        byte[] bytes = entries.get("att/" + name);
        if (bytes == null) continue;
        File f = new File(dir, name);
-       try (FileOutputStream fo = new FileOutputStream(f)) { fo.write(bytes); }
+       PhotoVault.write(a, f, bytes);
        db.addAttach(row.getLong("tx"), f.getAbsolutePath());
       }
       db.setPref("driveBackup", "1"); db.setPref("driveBackupErr", "0");
@@ -274,7 +306,7 @@ static byte[] buildZip(Store db) throws Exception { return buildZip(db, true); }
     if (!f.exists() || f.length() == 0 || f.length() > 50L * 1024 * 1024) continue;
     String name = f.getName();
     if (name.contains("/") || name.contains("..")) continue;
-    byte[] bytes = readFile(f);
+    byte[] bytes = PhotoVault.read(db.ctx, f);
     rows.put(new JSONObject().put("tx", c.getLong(0)).put("name", name));
     entries.put("att/" + name, bytes);
    }

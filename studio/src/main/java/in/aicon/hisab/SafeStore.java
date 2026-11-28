@@ -17,6 +17,7 @@ final class SafeStore {
 
  /** The SQLCipher raw-key string, x'<64 hex>'. Created on first use. Never logged or written in clear. */
  static synchronized String rawKey(Context c) throws Exception {
+  if (!Sql.PHONE) return "x'" + "ab".repeat(32) + "'";
   SharedPreferences sp = c.getApplicationContext().getSharedPreferences(PREF, Context.MODE_PRIVATE);
   String stored = sp.getString(ENTRY, null);
   SecretKey wrap = wrapKey(stored == null);

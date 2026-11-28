@@ -22,7 +22,7 @@ final class Attach {
     android.net.Uri out = androidx.core.content.FileProvider.getUriForFile(a, "in.aicon.hisab.studio2.fileprovider", f);
     Intent cap = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE).putExtra(android.provider.MediaStore.EXTRA_OUTPUT, out).addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
     a.request(cap, d -> {
-     if (f.exists() && f.length() > 0) { a.db.addAttach(txId, f.getAbsolutePath()); a.toast("Photo attached", null); } else f.delete();
+     if (f.exists() && f.length() > 0 && seal(a, f)) { a.db.addAttach(txId, f.getAbsolutePath()); a.toast("Photo attached", null); } else f.delete();
      a.refresh(); if (changed != null) changed.run();
     });
    } else {
@@ -37,6 +37,9 @@ final class Attach {
   });
  }
 
+ /** Encrypts a photo the camera just wrote. False when it could not be saved safely. */
+ static boolean seal(MainActivity a, File f) { try { PhotoVault.sealInPlace(a, f); return true; } catch (Exception e) { return false; } }
+
  static File copyIn(MainActivity a, long txId, android.net.Uri u) {
   try {
    byte[] bytes = Backup.read(a.getContentResolver().openInputStream(u));
@@ -49,10 +52,16 @@ final class Attach {
    Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, opt);
    if (bmp == null) return null;
    File f = new File(dir(a), "att-" + txId + "-" + System.currentTimeMillis() + ".jpg");
-   FileOutputStream fo = new FileOutputStream(f);
-   bmp.compress(Bitmap.CompressFormat.JPEG, 88, fo); fo.close(); bmp.recycle();
+   ByteArrayOutputStream jpg = new ByteArrayOutputStream();
+   bmp.compress(Bitmap.CompressFormat.JPEG, 88, jpg); bmp.recycle();
+   PhotoVault.write(a, f, jpg.toByteArray());
    return f;
   } catch (Exception e) { return null; }
+ }
+
+ /** Decodes a stored photo, sealed or not. Null when it is missing or damaged. */
+ static Bitmap load(MainActivity a, String path) {
+  try { byte[] b = PhotoVault.read(a, new File(path)); return BitmapFactory.decodeByteArray(b, 0, b.length); } catch (Exception e) { return null; }
  }
 
  static void removeAll(MainActivity a, long txId) {
@@ -67,7 +76,7 @@ final class Attach {
   for (Store.Att att : atts) {
    LinearLayout col = Ui.col(a); col.setPadding(0, Ui.dp(6), 0, Ui.dp(6));
    ImageView iv = new ImageView(a); iv.setAdjustViewBounds(true); iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
-   Bitmap bmp = BitmapFactory.decodeFile(att.path);
+   Bitmap bmp = load(a, att.path);
    if (bmp != null) iv.setImageBitmap(bmp);
    col.addView(iv, new LinearLayout.LayoutParams(-1, Ui.dp(220)));
    TextView rm = Ui.text(a, "Remove", 13, Ui.neg, true); rm.setPadding(0, Ui.dp(6), 0, Ui.dp(4)); col.addView(rm);
